@@ -125,10 +125,7 @@ func (m *Model) rebuildFields() {
 
 	// "添加服务商" selector
 	providerTypes := []string{"doubao", "openai-realtime", "openai-whisper", "mimo-asr", "xfyun-spark"}
-	addOpts := make([]string, len(providerTypes)+1)
-	addOpts[0] = "（选择类型）"
-	copy(addOpts[1:], providerTypes)
-	fs = append(fs, field{label: "添加服务商", key: "add_provider", help: "选择类型后按 Enter 添加", fType: fSelect, opts: addOpts, optIdx: 0})
+	fs = append(fs, field{label: "添加服务商", key: "add_provider", help: "选择类型后按 Enter 添加", fType: fSelect, opts: providerTypes, optIdx: 0})
 
 	// "删除服务商" action (only when there are providers)
 	if len(m.cfg.ASRs) > 0 {
@@ -371,8 +368,9 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 		case "enter":
 			m.editing = false
 			f.input.Blur()
-			if f.key == "add_provider" && f.optIdx > 0 {
+			if f.key == "add_provider" {
 				m.addProvider(f.opts[f.optIdx])
+				f.optIdx = 0 // reset to default
 				return nil
 			}
 			if f.key == "del_provider" && f.optIdx == 1 {
