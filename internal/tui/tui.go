@@ -35,6 +35,7 @@ const (
 	fString fieldType = iota
 	fToggle
 	fSelect
+	fSeparator
 )
 
 type field struct {
@@ -125,13 +126,18 @@ func (m *Model) rebuildFields() {
 	// Provider-specific credential fields
 	fs = append(fs, m.credentialFields()...)
 
-	// "选择服务商" selector
+	// Separator before add section
+	if len(m.cfg.ASRs) > 0 {
+		fs = append(fs, field{label: "── 添加新服务商 ──", key: "sep_add", fType: fSeparator})
+	}
+
+	// "添加新服务商" selector
 	providerTypes := []string{"doubao", "openai-realtime", "openai-whisper", "xiaomi-mimo-asr", "xiaomi-mimo-asr-TokenPlan", "xfyun-spark"}
 	addIdx := idxOf(providerTypes, m.lastAddedType)
 	if m.previewType != "" {
 		addIdx = idxOf(providerTypes, m.previewType)
 	}
-	fs = append(fs, field{label: "选择服务商", key: "add_provider", help: "选择类型后配置凭据", fType: fSelect, opts: providerTypes, optIdx: addIdx})
+	fs = append(fs, field{label: "添加新服务商", key: "add_provider", help: "选择类型后配置凭据", fType: fSelect, opts: providerTypes, optIdx: addIdx})
 
 	// Preview credential fields for the type being added
 	if m.previewType != "" {
@@ -244,6 +250,13 @@ func (m *Model) switchProvider(newIdx int) {
 	// Save current credential field values to the old provider
 	m.saveProviderFields(m.providerIdx)
 	m.providerIdx = newIdx
+	// Clear any add-provider preview to avoid confusion
+	m.previewType = ""
+	// Persist to disk so edits aren't lost on restart
+	if err := config.Save(m.cfg); err != nil {
+		m.logf("❌ 切换服务商保存失败: %s", err)
+	}
+	m.logf("✅ 已切换到服务商: %s", m.providerNames[newIdx])
 	// Rebuild fields, preserving cursor position where possible
 	oldCursor := m.cursor
 	m.rebuildFields()
@@ -459,8 +472,14 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 			case "j", "down", "k", "up":
 				m.editing = false
 				m.cursor++
+				for m.cursor < len(m.fields) && m.fields[m.cursor].fType == fSeparator {
+					m.cursor++
+				}
 				if m.cursor >= len(m.fields) {
 					m.cursor = 0
+					for m.cursor < len(m.fields) && m.fields[m.cursor].fType == fSeparator {
+						m.cursor++
+					}
 				}
 			}
 		case fString:
@@ -482,10 +501,16 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 		m.save()
 		return nil
 	case "e", "i", "enter":
-		m.editing = true
 		if m.cursor < 0 {
 			m.cursor = 0
 		}
+		for m.cursor < len(m.fields) && m.fields[m.cursor].fType == fSeparator {
+			m.cursor++
+		}
+		if m.cursor >= len(m.fields) {
+			break
+		}
+		m.editing = true
 		if m.fields[m.cursor].fType == fString {
 			m.fields[m.cursor].input.Focus()
 		}
@@ -494,18 +519,24 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 			m.cursor = 0
 		} else {
 			m.cursor++
-			if m.cursor >= len(m.fields) {
-				m.cursor = len(m.fields) - 1
-			}
+		}
+		for m.cursor < len(m.fields) && m.fields[m.cursor].fType == fSeparator {
+			m.cursor++
+		}
+		if m.cursor >= len(m.fields) {
+			m.cursor = len(m.fields) - 1
 		}
 	case "k", "up":
 		if m.cursor < 0 {
 			m.cursor = 0
 		} else {
 			m.cursor--
-			if m.cursor < 0 {
-				m.cursor = 0
-			}
+		}
+		for m.cursor >= 0 && m.fields[m.cursor].fType == fSeparator {
+			m.cursor--
+		}
+		if m.cursor < 0 {
+			m.cursor = 0
 		}
 	case "l":
 		if m.showLogs {
@@ -518,6 +549,8 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 }
 
 func (m *Model) save() {
+	// Write current provider credential fields back to m.cfg before copying
+	m.saveProviderFields(m.providerIdx)
 	next := *m.cfg
 	vc := &next.Voice
 	for _, f := range m.fields {
@@ -646,6 +679,10 @@ func (m *Model) View() string {
 	b.WriteString(m.renderVoiceStats() + "\n\n")
 	b.WriteString(lStyle.Render("── 配置 (e 编辑, s 保存, h 帮助, j/k 导航) ──") + "\n")
 	for i, f := range m.fields {
+		if f.fType == fSeparator {
+			b.WriteString("  " + dStyle.Render(f.label) + "\n")
+			continue
+		}
 		marker := "  "
 		if i == m.cursor {
 			if m.editing {
@@ -804,7 +841,7 @@ func (m *Model) renderField(i int, f field) string {
 		if editing {
 			return aStyle.Render("[" + v + " ▲▼]")
 		}
-		return vStyle.Render(v)
+		return vStyle.Render(v) + " " + dStyle.Render("(e 切换)")
 	}
 	return ""
 }
