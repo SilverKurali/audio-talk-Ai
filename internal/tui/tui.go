@@ -431,15 +431,19 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 			if f.key == "asr_provider" && f.optIdx != oldIdx {
 				m.switchProvider(f.optIdx)
 			}
-			// If this is the add_provider selector, show preview fields
+			// If this is the add_provider selector, show preview fields and jump to first one
 			if f.key == "add_provider" && f.optIdx != oldIdx {
 				m.previewType = f.opts[f.optIdx]
 				m.rebuildFields()
-				// Restore cursor to add_provider field
+				// Jump cursor to first preview field
+				m.editing = false
+				f.input.Blur()
 				for i, ff := range m.fields {
-					if ff.key == "add_provider" {
+					if strings.HasPrefix(ff.key, "new_") {
 						m.cursor = i
 						m.editing = true
+						ff.input.Focus()
+						m.fields[i] = ff
 						break
 					}
 				}
