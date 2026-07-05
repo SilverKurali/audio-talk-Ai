@@ -125,7 +125,8 @@ func (t *KeyStateTracker) KeyDown(key KeyCode, now time.Time) []Event {
 	}
 
 	// Check watched combos: standard modifier+key combos
-	if !key.IsModifier() {
+	// Skip key-only combos (no modifiers) — they are handled by the solo path below.
+	if !key.IsModifier() && t.activeMods != ModNone {
 		combo := Combo{Mods: t.activeMods, Key: key}
 		if _, ok := t.watched[combo]; ok {
 			t.activeStandardCombos[combo] = true
