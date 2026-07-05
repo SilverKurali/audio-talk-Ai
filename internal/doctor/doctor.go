@@ -45,7 +45,7 @@ func (r Report) Healthy() bool {
 }
 
 func (r Report) Print(w io.Writer) {
-	fmt.Fprintln(w, "Just Talk 环境检查")
+	fmt.Fprintln(w, "Audio Talk AI 环境检查")
 	fmt.Fprintf(w, "平台：%s", platformName(fallback(r.Platform, "unknown")))
 	if r.Backend != "" {
 		fmt.Fprintf(w, " / %s", r.Backend)
@@ -85,7 +85,7 @@ func (r Report) Print(w io.Writer) {
 	if r.Healthy() {
 		fmt.Fprintln(w, "\n结果：环境正常")
 	} else {
-		fmt.Fprintln(w, "\n结果：需要处理上面的项目后再启动 Just Talk。")
+		fmt.Fprintln(w, "\n结果：需要处理上面的项目后再启动 Audio Talk AI。")
 	}
 }
 
