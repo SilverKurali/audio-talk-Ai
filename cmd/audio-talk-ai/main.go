@@ -14,6 +14,7 @@ import (
 	"gitee.com/AY77-OP/audio-talk-ai/engine"
 	"gitee.com/AY77-OP/audio-talk-ai/hotkey"
 	"gitee.com/AY77-OP/audio-talk-ai/internal/doctor"
+	"gitee.com/AY77-OP/audio-talk-ai/internal/session"
 	"gitee.com/AY77-OP/audio-talk-ai/internal/tui"
 	"gitee.com/AY77-OP/audio-talk-ai/plugins"
 	"gitee.com/AY77-OP/audio-talk-ai/plugins/overlay"
@@ -33,7 +34,51 @@ func main() {
 	overlayHelper := flag.Bool("overlay-helper", false, "run macOS overlay helper")
 	overlayPosition := flag.String("overlay-position", "top-right", "overlay helper position")
 	overlayScale := flag.Float64("overlay-scale", 1.0, "overlay helper scale")
+	// Session (di) flags
+	diMode := flag.Bool("di", false, "start in detachable TUI session")
+	attachMode := flag.Bool("attach", false, "attach to existing session (fzf)")
+	listMode := flag.Bool("list", false, "list active sessions")
+	detachName := flag.String("detach", "", "detach a session by name")
+	tuiDirect := flag.Bool("tui-direct", false, "internal: run TUI directly (used by --di server)")
 	flag.Parse()
+
+	// Handle session commands first (before any other logic)
+	if *diMode {
+		if err := runDiMode(); err != nil {
+			fmt.Fprintf(os.Stderr, "di error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+	if *attachMode {
+		if err := session.PickAndAttach(); err != nil {
+			fmt.Fprintf(os.Stderr, "attach error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+	if *listMode {
+		if err := runListSessions(); err != nil {
+			fmt.Fprintf(os.Stderr, "list error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+	if *detachName != "" {
+		dir, err := session.SessionDir()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "session dir error: %v\n", err)
+			os.Exit(1)
+		}
+		sock := filepath.Join(dir, *detachName+".sock")
+		if err := session.DetachSession(sock); err != nil {
+			fmt.Fprintf(os.Stderr, "detach error: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("detached")
+		return
+	}
+
 	if *installOnly {
 		if err := installSelf(); err != nil {
 			fmt.Fprintf(os.Stderr, "install failed: %v\n", err)
@@ -50,6 +95,11 @@ func main() {
 	}
 	if *noTUI {
 		*useTUI = false
+	}
+
+	// --tui-direct: internal flag used by di server, force TUI mode
+	if *tuiDirect {
+		*useTUI = true
 	}
 
 	logLevel := slog.LevelInfo
@@ -158,6 +208,61 @@ func createProvider(backend string) (hotkey.Provider, error) {
 		return hotkey.NewMockProvider(), nil
 	}
 	return hotkey.NewProvider()
+}
+
+func runDiMode() error {
+	dir, err := session.SessionDir()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+
+	// Find our own executable path
+	exe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	if resolved, err := filepath.EvalSymlinks(exe); err == nil {
+		exe = resolved
+	}
+
+	sock := session.UniqueSocketPath(dir, "audio-talk-ai")
+	meta := session.SessionMeta{
+		Name:    filepath.Base(sock),
+		Command: []string{exe, "--tui-direct"},
+	}
+	if err := session.WriteMeta(sock, meta); err != nil {
+		return err
+	}
+
+	fmt.Printf("starting detachable session: %s\n", filepath.Base(sock))
+	fmt.Printf("  socket: %s\n", sock)
+	fmt.Printf("  detach: Ctrl-]\n")
+	fmt.Printf("  reattach: audio-talk-ai --attach\n")
+	fmt.Println()
+
+	return session.RunServer(sock, []string{exe, "--tui-direct"}, slog.Default())
+}
+
+func runListSessions() error {
+	sessions, err := session.AllSessions()
+	if err != nil {
+		return err
+	}
+	if len(sessions) == 0 {
+		fmt.Println("no active sessions")
+		return nil
+	}
+	for _, s := range sessions {
+		name := s.Meta.Name
+		if name == "" {
+			name = filepath.Base(s.Sock)
+		}
+		fmt.Printf("%-32s  %s\n", name, s.Meta.PWD)
+	}
+	return nil
 }
 
 func printTroubleshooting(err error) {

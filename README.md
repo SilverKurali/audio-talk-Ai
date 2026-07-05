@@ -64,6 +64,17 @@ audio-talk-ai --backend wayland   # 强制 Wayland
 audio-talk-ai --backend x11      # 强制 X11
 ```
 
+### 可断开会话（di 模式）
+
+TUI 模式支持断开/重连。启动后按 `Ctrl-]` 断开，Audio Talk AI 继续后台运行（热键仍有效），想看界面时再 attach 回来。需要 `fzf` 来选择会话。
+
+```bash
+audio-talk-ai --di         # 启动可断开的 TUI 会话
+audio-talk-ai --attach     # 重新进入（fzf 选择）
+audio-talk-ai --list       # 列出活跃会话
+audio-talk-ai --detach <name>  # 从另一个终端断开会话
+```
+
 ## 配置
 
 配置文件路径：`~/.config/audio-talk-ai/config.toml`

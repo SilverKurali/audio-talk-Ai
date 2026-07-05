@@ -64,6 +64,17 @@ audio-talk-ai --backend wayland   # force Wayland
 audio-talk-ai --backend x11      # force X11
 ```
 
+### Detachable Session (di mode)
+
+TUI mode supports detach/reattach. Press `Ctrl-]` to detach — Audio Talk AI keeps running in the background (hotkeys still work). Reattach later to see the TUI again. Requires `fzf` for session selection.
+
+```bash
+audio-talk-ai --di         # start a detachable TUI session
+audio-talk-ai --attach     # reattach (fzf picker)
+audio-talk-ai --list       # list active sessions
+audio-talk-ai --detach <name>  # detach a session from another terminal
+```
+
 ## Configuration
 
 Config file: `~/.config/audio-talk-ai/config.toml`
