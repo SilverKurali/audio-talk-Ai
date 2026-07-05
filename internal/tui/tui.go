@@ -400,9 +400,15 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 		case "enter":
 			m.editing = false
 			f.input.Blur()
+			// Enter on a preview field → create provider with filled values
+			if strings.HasPrefix(f.key, "new_") {
+				m.addProvider(m.previewType)
+				return nil
+			}
 			if f.key == "add_provider" {
-				m.addProvider(f.opts[f.optIdx])
-				f.optIdx = 0 // reset to default
+				// Just show preview, don't add yet
+				m.previewType = f.opts[f.optIdx]
+				m.rebuildFields()
 				return nil
 			}
 			if f.key == "del_provider" && f.optIdx == 1 {
@@ -431,19 +437,15 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 			if f.key == "asr_provider" && f.optIdx != oldIdx {
 				m.switchProvider(f.optIdx)
 			}
-			// If this is the add_provider selector, show preview fields and jump to first one
+			// If this is the add_provider selector, show preview fields
 			if f.key == "add_provider" && f.optIdx != oldIdx {
 				m.previewType = f.opts[f.optIdx]
 				m.rebuildFields()
-				// Jump cursor to first preview field
-				m.editing = false
-				f.input.Blur()
+				// Keep cursor on add_provider field
 				for i, ff := range m.fields {
-					if strings.HasPrefix(ff.key, "new_") {
+					if ff.key == "add_provider" {
 						m.cursor = i
 						m.editing = true
-						ff.input.Focus()
-						m.fields[i] = ff
 						break
 					}
 				}
