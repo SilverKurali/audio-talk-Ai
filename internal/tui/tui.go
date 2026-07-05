@@ -126,7 +126,7 @@ func (m *Model) rebuildFields() {
 	fs = append(fs, m.credentialFields()...)
 
 	// "选择服务商" selector
-	providerTypes := []string{"doubao", "openai-realtime", "openai-whisper", "mimo-asr", "xfyun-spark"}
+	providerTypes := []string{"doubao", "openai-realtime", "openai-whisper", "xiaomi-mimo-asr", "xiaomi-mimo-asr-TokenPlan", "xfyun-spark"}
 	addIdx := idxOf(providerTypes, m.lastAddedType)
 	if m.previewType != "" {
 		addIdx = idxOf(providerTypes, m.previewType)
@@ -183,7 +183,7 @@ func (m *Model) credentialFields() []field {
 			fields = append(fields, field{label: "Endpoint", key: "p_base_url", help: "API 端点（留空用默认）", fType: fString, input: ti(p.BaseURL)})
 		}
 		return fields
-	case "mimo-asr":
+	case "xiaomi-mimo-asr", "xiaomi-mimo-asr-TokenPlan":
 		return []field{
 			{label: "API Key", key: "p_api_key", help: "MiMo API Key", fType: fString, input: ti(p.ApiKey)},
 			{label: "Model", key: "p_model", help: "模型名（默认 mimo-v2.5-asr）", fType: fString, input: ti(p.Model)},
@@ -220,7 +220,7 @@ func (m *Model) previewCredentialFields(providerType string) []field {
 			fields = append(fields, field{label: "Endpoint", key: "new_base_url", help: "API 端点（留空用默认）", fType: fString, input: ti("")})
 		}
 		return fields
-	case "mimo-asr":
+	case "xiaomi-mimo-asr", "xiaomi-mimo-asr-TokenPlan":
 		return []field{
 			{label: "API Key", key: "new_api_key", help: "MiMo API Key", fType: fString, input: ti("")},
 			{label: "Model", key: "new_model", help: "模型名（默认 mimo-v2.5-asr）", fType: fString, input: ti("")},

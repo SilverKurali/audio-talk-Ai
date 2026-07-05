@@ -129,7 +129,7 @@ access_key = "your_access_key"
 # 小米 MiMo（批量）
 # [[asr_providers]]
 # name = "mimo"
-# type = "mimo-asr"
+# type = "xiaomi-mimo-asr"
 # api_key = "your_mimo_api_key"
 ```
 

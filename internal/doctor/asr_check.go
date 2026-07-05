@@ -26,7 +26,7 @@ func asrConfigCheck(cfg *config.Config) Check {
 			if strings.TrimSpace(p.AccessKey) == "" {
 				missing = append(missing, "access_key")
 			}
-		case "openai-realtime", "openai-whisper", "mimo-asr":
+		case "openai-realtime", "openai-whisper", "xiaomi-mimo-asr", "xiaomi-mimo-asr-TokenPlan":
 			if strings.TrimSpace(p.ApiKey) == "" {
 				missing = append(missing, "api_key")
 			}

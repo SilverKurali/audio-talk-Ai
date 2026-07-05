@@ -57,7 +57,14 @@ access_key = "your_access_key"
 # 获取密钥：https://platform.xiaomimimo.com/console
 # [[asr_providers]]
 # name = "mimo"
-# type = "mimo-asr"
+# type = "xiaomi-mimo-asr"
+# api_key = "your_mimo_api_key"
+# model = "mimo-v2.5-asr"
+
+# 小米 MiMo ASR Token Plan（批量，国内节点）
+# [[asr_providers]]
+# name = "mimo-token"
+# type = "xiaomi-mimo-asr-TokenPlan"
 # api_key = "your_mimo_api_key"
 # model = "mimo-v2.5-asr"
 

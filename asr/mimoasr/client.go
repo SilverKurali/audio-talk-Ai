@@ -17,9 +17,20 @@ import (
 )
 
 const defaultEndpoint = "https://api.xiaomimimo.com/v1/chat/completions"
+const tokenPlanEndpoint = "https://token-plan-cn.xiaomimimo.com/v1/chat/completions"
 
 func init() {
-	asr.Register("mimo-asr", New)
+	asr.Register("xiaomi-mimo-asr", New)
+	asr.Register("xiaomi-mimo-asr-TokenPlan", newWithEndpoint(tokenPlanEndpoint))
+}
+
+func newWithEndpoint(fallbackEndpoint string) asr.Factory {
+	return func(common asr.Common, providerCfg map[string]interface{}, logger *slog.Logger) (asr.Client, error) {
+		if _, ok := providerCfg["endpoint"]; !ok {
+			providerCfg["endpoint"] = fallbackEndpoint
+		}
+		return New(common, providerCfg, logger)
+	}
 }
 
 type client struct {
