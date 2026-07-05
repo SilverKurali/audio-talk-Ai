@@ -4,144 +4,148 @@
 
 减少用键盘的次数，改用口喷吧。
 
-Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局快捷键录音，把语音识别结果复制到剪贴板，或直接上屏到当前输入框，适合写代码、聊天、记笔记和处理长文本输入。
+Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局快捷键录音，把语音识别结果复制到剪贴板，或直接上屏到当前输入框。适合写代码、聊天、记笔记和处理长文本输入。
 
-## 截图
-
-![Audio Talk AI TUI](docs/screenshot-tui.png)
+支持多个语音识别服务商，可在 TUI 中一键切换。
 
 ## 功能
 
-- 全局快捷键录音，支持 `toggle` 和 `hold` 两种模式。
-- 语音热键限定为适合作为全局快捷键的按键：支持纯修饰键、功能键、Tab、CapsLock、方向键和导航键等；不支持字母、数字、标点、空格等普通字符键。
-- 豆包大模型流式 ASR，支持双向流优化版和二遍识别。
-- 自动复制到剪贴板，支持自动上屏。
+- 全局快捷键录音，支持 `toggle`（按一下开始、再按一下停止）和 `hold`（按住说话）两种模式。
+- 支持 5 个语音识别服务商，可在 TUI 中动态切换：
+  - **豆包**（火山引擎）— 流式 ASR，实时出字
+  - **OpenAI Realtime** — 流式 ASR，WebSocket 实时转写
+  - **OpenAI Whisper** — 批量转写，录完后识别，兼容 Ollama 等第三方
+  - **讯飞星火** — 流式 ASR，支持动态修正和 202 种方言
+  - **小米 MiMo** — 批量转写，支持中英双语和方言
+- 自动复制到剪贴板，支持自动上屏到当前输入框。
 - Wayland / X11 / macOS 顶层录音状态胶囊提示。
-- TUI 配置界面，支持热键、模式、自动上屏、停止延迟、热词等配置。
+- TUI 配置界面，支持热键、模式、ASR 服务商、自动上屏、停止延迟、热词等配置。
 - 热词增强识别，适合项目名、人名、英文术语和专有名词。
 - 录音历史统计，包括历史次数、总字数、平均速度和最近速度。
 
 ## 平台状态
 
-当前开发重点是 Linux 和 macOS 桌面：
-
 | 平台 | 状态 | 说明 |
 | --- | --- | --- |
-| Linux Wayland | 已支持 | 已支持 Sway / wlroots 场景；快捷键基于 evdev，需要 input 权限 |
-| Linux X11 | 已支持 | 使用 X11 原生全局热键 |
-| macOS | 已支持 | 全局快捷键基于 CGEventTap，录音使用 CoreAudio，剪贴板使用 NSPasteboard，胶囊显示使用 AppKit NSPanel |
+| Linux Wayland | 已支持 | 快捷键基于 evdev，需要 input 权限；剪贴板用 wl-clipboard，上屏用 wtype 或 uinput |
+| Linux X11 | 已支持 | 使用 X11 原生全局热键和 XTest 上屏 |
+| macOS | 已支持 | 快捷键基于 CGEventTap，录音用 CoreAudio，剪贴板用 NSPasteboard |
 | Windows | 未实现 | 暂不支持 |
 
 ## 构建
 
 Audio Talk AI 依赖平台原生能力，构建时需要启用 cgo。
 
-Linux 构建依赖：
-
 ```bash
-# Arch Linux
+# Linux (Debian / Ubuntu)
+sudo apt install golang-go build-essential libx11-dev libxtst-dev libxext-dev libxinerama-dev libwayland-dev
+
+# Linux (Arch)
 sudo pacman -S --needed go gcc libx11 libxtst libxext wayland
 
-# Debian / Ubuntu
-sudo apt install golang-go build-essential libx11-dev libxtst-dev libxext-dev libxinerama-dev libwayland-dev
-```
-
-macOS 构建依赖：
-
-```bash
-# 需要 Apple Command Line Tools 提供 clang 和 macOS SDK；不需要安装完整 Xcode。
+# macOS
 xcode-select --install
 ```
 
-构建当前平台二进制：
-
 ```bash
+git clone https://gitee.com/AY77-OP/audio-talk-ai.git
 cd audio-talk-ai
-CGO_ENABLED=1 go build -o build/audio-talk-ai ./cmd/audio-talk-ai
+make build          # 或 go build -o build/audio-talk-ai ./cmd/audio-talk-ai
+make install        # 安装到 ~/.local/bin/
 ```
-
-安装到 `~/.local/bin/audio-talk-ai`：
-
-```bash
-# 确保 ~/.local/bin 在 PATH 中（如未配置，将下面这行加入 ~/.bashrc 或 ~/.zshrc）
-# export PATH="$HOME/.local/bin:$PATH"
-build/audio-talk-ai --install
-# 或
-make install
-```
-
-macOS 需要在本机 macOS 上构建；项目不提供非 cgo 版本。
 
 ## 使用
 
-默认启动 TUI：
-
 ```bash
-audio-talk-ai
-```
-
-后台模式：
-
-```bash
-audio-talk-ai --no-tui
-```
-
-指定后端：
-
-```bash
-audio-talk-ai --backend wayland
-audio-talk-ai --backend x11
+audio-talk-ai              # TUI 模式（默认）
+audio-talk-ai --no-tui     # 后台模式
+audio-talk-ai --doctor     # 环境检查
+audio-talk-ai --backend wayland   # 强制 Wayland
+audio-talk-ai --backend x11      # 强制 X11
 ```
 
 ## 配置
 
-默认配置路径：
+配置文件路径：`~/.config/audio-talk-ai/config.toml`
 
-```text
-~/.config/audio-talk-ai/config.toml
-```
-
-推荐热键配置：
+### 基本配置
 
 ```toml
 [voice]
 mode = "toggle"
-push_to_talk = "Alt+Super"
+push_to_talk = "Alt+Super"      # 推荐：Alt+Super 切换模式
+language = "zh-CN"
+auto_submit = true               # 自动上屏；false 则只复制到剪贴板
+# hotwords = ["项目名", "人名", "术语"]
 ```
 
-`Alt+Super` 配合 `toggle` 模式是推荐用法。按一次开始录音，再按一次停止录音，避免按住模式下和桌面环境或输入框发生按键冲突。
+### ASR 服务商配置
+
+可以配置多个服务商，在 TUI 中切换。不配置 `[[asr_providers]]` 时，直接在 `[voice]` 中写 `app_key` / `access_key` 也能用（兼容旧配置）。
+
+```toml
+# 豆包 ASR（流式，推荐）
+[[asr_providers]]
+name = "doubao"
+type = "doubao"
+default = true
+app_key = "your_app_key"
+access_key = "your_access_key"
+
+# OpenAI Realtime（流式）
+# [[asr_providers]]
+# name = "openai"
+# type = "openai-realtime"
+# api_key = "sk-..."
+# model = "gpt-4o-mini-transcribe"
+
+# OpenAI Whisper（批量，兼容 Ollama 等第三方）
+# [[asr_providers]]
+# name = "whisper"
+# type = "openai-whisper"
+# api_key = "sk-..."
+# model = "whisper-1"
+# endpoint = "http://localhost:11434/v1/audio/transcriptions"
+
+# 讯飞星火（流式，支持方言）
+# [[asr_providers]]
+# name = "xfyun"
+# type = "xfyun-spark"
+# app_id = "your_app_id"
+# api_key = "your_api_key"
+# api_secret = "your_api_secret"
+
+# 小米 MiMo（批量）
+# [[asr_providers]]
+# name = "mimo"
+# type = "mimo-asr"
+# api_key = "your_mimo_api_key"
+```
+
+### 热键说明
 
 语音热键只支持适合作为全局快捷键的按键：
 
-- 支持：纯修饰键组合，如 `Alt+Super`、`Ctrl+Alt+Shift`。
-- 支持：功能键 `F1` 到 `F24`，如 `F9`、`Alt+F8`。
-- 支持：非文本控制键和导航键，如 `Tab`、`Enter`、`Escape`、`Backspace`、`CapsLock`、`Up`、`Down`、`Left`、`Right`、`Home`、`End`、`PageUp`、`PageDown`、`Insert`、`Delete`。
-- 不支持：字母、数字、标点、空格、数字小键盘数字和符号等会输入文本的按键，如 `Alt+G`、`G`、`Alt+1`、`Alt+Space`。
+- 支持：`Alt+Super`、`Ctrl+Alt+Shift`、`F9`、`Alt+F8`、`Tab`、`CapsLock` 等
+- 不支持：字母、数字、标点、空格等会输入文本的按键
 
-热词示例：
+macOS 热键写法：`Option` = Alt，`Command`/`Cmd` = Super
 
 ```toml
-[voice]
-hotwords = ["Wayland", "Sway", "wl-copy", "wtype", "audio-talk-ai"]
-```
-
-macOS 热键写法：
-
-```toml
-[voice]
-# Option 等价于 Alt，Command/Cmd 等价于 Super
 push_to_talk = "Option+Command"
 ```
+
+## 快捷键
+
+| 快捷键 | 作用 |
+|--------|------|
+| 录音热键 | 开始/停止录音 |
+| `Esc` | 取消当前录音 |
+| `R` | 重试上次识别错误 |
 
 ## 更新日志
 
 见 [CHANGELOG.md](CHANGELOG.md)。
-
-## 维护与贡献
-
-Audio Talk AI 由 `whoamihappyhacking` 维护。
-
-本项目不接受 Pull Request。欢迎通过 Issue 反馈 bug、使用体验和功能建议。
 
 ## 许可证
 

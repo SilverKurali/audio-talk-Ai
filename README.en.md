@@ -2,146 +2,150 @@
 
 [中文](README.md)
 
-Audio Talk AI is a desktop voice input tool. It records audio with a global hotkey, sends it to streaming ASR, and then copies the recognized text to the clipboard or submits it directly into the focused input field.
+Type less, speak more.
 
-It is built for people who want to type less and speak more while coding, chatting, writing notes, or working with long text.
+Audio Talk AI is a desktop voice input tool. It records audio with a global hotkey, sends it to a streaming ASR service, and copies the recognized text to the clipboard or submits it directly into the focused input field. Ideal for coding, chatting, note-taking, and long text input.
 
-## Screenshot
-
-![Audio Talk AI TUI](docs/screenshot-tui.png)
+Supports multiple ASR providers with one-click switching in the TUI.
 
 ## Features
 
-- Global hotkey recording with `toggle` and `hold` modes.
-- Voice hotkeys are limited to keys suitable for global shortcuts: modifiers, function keys, Tab, CapsLock, arrow/navigation keys, and similar non-text keys. Letters, digits, punctuation, Space, and other text-producing keys are rejected.
-- Doubao streaming ASR with optimized bidirectional streaming and second-pass recognition.
-- Clipboard copy and automatic text submission.
+- Global hotkey recording with `toggle` (press to start, press again to stop) and `hold` (press and speak) modes.
+- 5 ASR providers with dynamic switching in TUI:
+  - **Doubao** (ByteDance Volcengine) — streaming ASR, real-time partial results
+  - **OpenAI Realtime** — streaming ASR via WebSocket
+  - **OpenAI Whisper** — batch transcription, compatible with Ollama and other OpenAI-format services
+  - **iFlytek Spark** — streaming ASR with dynamic correction and 202 dialects
+  - **Xiaomi MiMo** — batch transcription, Chinese/English and dialect support
+- Automatic clipboard copy and auto-submit into focused input field.
 - Always-on-top recording status overlay for Wayland, X11, and macOS.
-- TUI configuration for hotkeys, mode, auto-submit, stop delay, hotwords, and related settings.
+- TUI configuration for hotkeys, mode, ASR provider, auto-submit, stop delay, hotwords, and more.
 - ASR hotwords for project names, people names, English terms, and domain-specific vocabulary.
-- Usage statistics for total sessions, total recognized characters, average speed, and recent speed.
+- Usage statistics: total sessions, total characters, average speed, and recent speed.
 
 ## Platform Status
 
-The current development focus is Linux and macOS desktop support:
-
 | Platform | Status | Notes |
 | --- | --- | --- |
-| Linux Wayland | Supported | Works with Sway / wlroots; hotkeys use evdev and require input permissions |
-| Linux X11 | Supported | Uses native X11 global hotkeys |
-| macOS | Supported | Global hotkeys use CGEventTap, recording uses CoreAudio, clipboard uses NSPasteboard, and overlay uses AppKit NSPanel |
+| Linux Wayland | Supported | Hotkeys via evdev (requires input group); clipboard via wl-clipboard, auto-submit via wtype or uinput |
+| Linux X11 | Supported | Native X11 global hotkeys and XTest auto-submit |
+| macOS | Supported | Hotkeys via CGEventTap, recording via CoreAudio, clipboard via NSPasteboard |
 | Windows | Not implemented | Not supported yet |
 
 ## Build
 
-Audio Talk AI uses native platform APIs, so builds require cgo.
-
-Linux build dependencies:
+Audio Talk AI uses native platform APIs and requires cgo.
 
 ```bash
-# Arch Linux
+# Linux (Debian / Ubuntu)
+sudo apt install golang-go build-essential libx11-dev libxtst-dev libxext-dev libxinerama-dev libwayland-dev
+
+# Linux (Arch)
 sudo pacman -S --needed go gcc libx11 libxtst libxext wayland
 
-# Debian / Ubuntu
-sudo apt install golang-go build-essential libx11-dev libxtst-dev libxext-dev libxinerama-dev libwayland-dev
-```
-
-macOS build dependencies:
-
-```bash
-# Apple Command Line Tools provide clang and the macOS SDK. Full Xcode is not required.
+# macOS
 xcode-select --install
 ```
 
-Build for the current platform:
-
 ```bash
+git clone https://gitee.com/AY77-OP/audio-talk-ai.git
 cd audio-talk-ai
-CGO_ENABLED=1 go build -o build/audio-talk-ai ./cmd/audio-talk-ai
+make build          # or go build -o build/audio-talk-ai ./cmd/audio-talk-ai
+make install        # installs to ~/.local/bin/
 ```
-
-Install to `~/.local/bin/audio-talk-ai`:
-
-```bash
-# Make sure ~/.local/bin is in PATH. If not, add this line to ~/.bashrc or ~/.zshrc.
-# export PATH="$HOME/.local/bin:$PATH"
-build/audio-talk-ai --install
-# or
-make install
-```
-
-macOS must be built on macOS. The project does not provide a non-cgo build.
 
 ## Usage
 
-Start the TUI:
-
 ```bash
-audio-talk-ai
-```
-
-Run without the TUI:
-
-```bash
-audio-talk-ai --no-tui
-```
-
-Force a backend:
-
-```bash
-audio-talk-ai --backend wayland
-audio-talk-ai --backend x11
+audio-talk-ai              # TUI mode (default)
+audio-talk-ai --no-tui     # daemon mode
+audio-talk-ai --doctor     # environment check
+audio-talk-ai --backend wayland   # force Wayland
+audio-talk-ai --backend x11      # force X11
 ```
 
 ## Configuration
 
-Default config path:
+Config file: `~/.config/audio-talk-ai/config.toml`
 
-```text
-~/.config/audio-talk-ai/config.toml
-```
-
-Recommended hotkey config:
+### Basic Config
 
 ```toml
 [voice]
 mode = "toggle"
-push_to_talk = "Alt+Super"
+push_to_talk = "Alt+Super"      # recommended: Alt+Super toggle mode
+language = "zh-CN"
+auto_submit = true               # auto-submit; false = clipboard only
+# hotwords = ["project-name", "person-name", "term"]
 ```
 
-`Alt+Super` with `toggle` mode is recommended. Press once to start recording, then press again to stop. This avoids hold-mode key conflicts with desktop environments or focused input fields.
+### ASR Provider Config
+
+You can configure multiple providers and switch in TUI. Without `[[asr_providers]]`, you can put `app_key` / `access_key` directly in `[voice]` (backward compatible).
+
+```toml
+# Doubao ASR (streaming, recommended)
+[[asr_providers]]
+name = "doubao"
+type = "doubao"
+default = true
+app_key = "your_app_key"
+access_key = "your_access_key"
+
+# OpenAI Realtime (streaming)
+# [[asr_providers]]
+# name = "openai"
+# type = "openai-realtime"
+# api_key = "sk-..."
+# model = "gpt-4o-mini-transcribe"
+
+# OpenAI Whisper (batch, compatible with Ollama etc.)
+# [[asr_providers]]
+# name = "whisper"
+# type = "openai-whisper"
+# api_key = "sk-..."
+# model = "whisper-1"
+# endpoint = "http://localhost:11434/v1/audio/transcriptions"
+
+# iFlytek Spark (streaming, dialect support)
+# [[asr_providers]]
+# name = "xfyun"
+# type = "xfyun-spark"
+# app_id = "your_app_id"
+# api_key = "your_api_key"
+# api_secret = "your_api_secret"
+
+# Xiaomi MiMo (batch)
+# [[asr_providers]]
+# name = "mimo"
+# type = "mimo-asr"
+# api_key = "your_mimo_api_key"
+```
+
+### Hotkey Notes
 
 Voice hotkeys only support keys suitable for global shortcuts:
 
-- Supported: modifier-only combinations, such as `Alt+Super` and `Ctrl+Alt+Shift`.
-- Supported: function keys `F1` through `F24`, such as `F9` and `Alt+F8`.
-- Supported: non-text control and navigation keys, such as `Tab`, `Enter`, `Escape`, `Backspace`, `CapsLock`, `Up`, `Down`, `Left`, `Right`, `Home`, `End`, `PageUp`, `PageDown`, `Insert`, and `Delete`.
-- Not supported: letters, digits, punctuation, Space, numpad digits, and numpad symbols that can enter text, such as `Alt+G`, `G`, `Alt+1`, and `Alt+Space`.
+- Supported: `Alt+Super`, `Ctrl+Alt+Shift`, `F9`, `Alt+F8`, `Tab`, `CapsLock`, etc.
+- Not supported: letters, digits, punctuation, Space, and other text-producing keys
 
-Hotword example:
+macOS hotkey syntax: `Option` = Alt, `Command`/`Cmd` = Super
 
 ```toml
-[voice]
-hotwords = ["Wayland", "Sway", "wl-copy", "wtype", "audio-talk-ai"]
-```
-
-macOS hotkey example:
-
-```toml
-[voice]
-# Option is Alt; Command/Cmd is Super.
 push_to_talk = "Option+Command"
 ```
+
+## Hotkeys
+
+| Hotkey | Action |
+|--------|--------|
+| Recording hotkey | Start/stop recording |
+| `Esc` | Cancel current recording |
+| `R` | Retry last recognition error |
 
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md).
-
-## Maintenance And Contributions
-
-Audio Talk AI is maintained by `whoamihappyhacking`.
-
-This project does not accept pull requests. Issues are welcome for bug reports, usage feedback, and feature discussion.
 
 ## License
 
