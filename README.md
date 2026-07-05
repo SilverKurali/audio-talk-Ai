@@ -73,7 +73,7 @@ audio-talk-ai --backend x11      # 强制 X11
 ```toml
 [voice]
 mode = "toggle"
-push_to_talk = "Alt+Super"      # 推荐：Alt+Super 切换模式
+push_to_talk = "F9"              # 默认 F9；也可用 Alt+Super 等修饰键组合
 language = "zh-CN"
 auto_submit = true               # 自动上屏；false 则只复制到剪贴板
 # hotwords = ["项目名", "人名", "术语"]

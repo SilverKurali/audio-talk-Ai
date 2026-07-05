@@ -1,7 +1,7 @@
 [voice]
 enabled = true
 mode = "toggle"
-push_to_talk = "Alt+Super"
+push_to_talk = "F9"
 language = "zh-CN"
 auto_submit = true
 # hotwords = ["术语1", "术语2"]

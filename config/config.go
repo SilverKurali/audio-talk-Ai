@@ -121,7 +121,7 @@ type VoiceConfig struct {
 func Default() *Config {
 	return &Config{
 		Voice: VoiceConfig{
-			Enabled: true, Mode: "toggle", PushToTalk: "Alt+Super",
+			Enabled: true, Mode: "toggle", PushToTalk: "F9",
 			Language: "zh-CN", AutoSubmit: true, ResourceID: "volc.bigasr.sauc.duration",
 		},
 		Overlay: OverlayConfig{

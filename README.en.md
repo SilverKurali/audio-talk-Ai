@@ -73,7 +73,7 @@ Config file: `~/.config/audio-talk-ai/config.toml`
 ```toml
 [voice]
 mode = "toggle"
-push_to_talk = "Alt+Super"      # recommended: Alt+Super toggle mode
+push_to_talk = "F9"              # default F9; Alt+Super and other combos also work
 language = "zh-CN"
 auto_submit = true               # auto-submit; false = clipboard only
 # hotwords = ["project-name", "person-name", "term"]
