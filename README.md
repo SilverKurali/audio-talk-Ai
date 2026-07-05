@@ -147,6 +147,12 @@ push_to_talk = "Option+Command"
 
 见 [CHANGELOG.md](CHANGELOG.md)。
 
+## 致谢
+
+本项目基于 [github.com/c/just-talk-go](https://github.com/c/just-talk-go) 开发，感谢原作者的开源贡献。
+
 ## 许可证
 
 Audio Talk AI 使用 GNU General Public License v3.0 开源。
+
+**禁止商用。** 本项目仅供学习和个人使用，不得用于任何商业用途。
