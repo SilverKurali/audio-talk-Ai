@@ -66,10 +66,11 @@ type Model struct {
 	editing       bool
 	helpVisible   bool
 	logExpanded   bool
-	providerNames []string
-	providerIdx   int
-	providerField int  // index of the asr_provider field in fields, -1 if absent
-	background    bool // user requested background mode
+	providerNames   []string
+	providerIdx     int
+	providerField   int    // index of the asr_provider field in fields, -1 if absent
+	background      bool   // user requested background mode
+	lastAddedType   string // last added provider type, used as default in add_provider dropdown
 }
 
 func New(cfg *config.Config) *Model {
@@ -125,7 +126,8 @@ func (m *Model) rebuildFields() {
 
 	// "添加服务商" selector
 	providerTypes := []string{"doubao", "openai-realtime", "openai-whisper", "mimo-asr", "xfyun-spark"}
-	fs = append(fs, field{label: "添加服务商", key: "add_provider", help: "选择类型后按 Enter 添加", fType: fSelect, opts: providerTypes, optIdx: 0})
+	addIdx := idxOf(providerTypes, m.lastAddedType)
+	fs = append(fs, field{label: "添加服务商", key: "add_provider", help: "选择类型后按 Enter 添加", fType: fSelect, opts: providerTypes, optIdx: addIdx})
 
 	// "删除服务商" action (only when there are providers)
 	if len(m.cfg.ASRs) > 0 {
@@ -266,6 +268,7 @@ func (m *Model) addProvider(providerType string) {
 	m.providerNames = append(m.providerNames, name)
 	m.providerIdx = len(m.cfg.ASRs) - 1
 
+	m.lastAddedType = providerType
 	m.rebuildFields()
 	m.logf("✅ 已添加服务商: %s (%s)", name, providerType)
 }
