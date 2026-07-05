@@ -95,6 +95,11 @@ type waylandProvider struct {
 	deviceFds []int
 
 	logger *slog.Logger
+
+	// Dedup: track last event to ignore duplicates from multiple devices
+	lastKeyCode  uint16
+	lastValue    int32
+	lastEventAt  time.Time
 }
 
 func newWaylandProvider() (Provider, error) {
@@ -252,6 +257,14 @@ func (p *waylandProvider) processEvent(evt *inputEvent) {
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
+	// Dedup: same key code and value within 2ms = duplicate from another device
+	if evt.Code == p.lastKeyCode && evt.Value == p.lastValue && now.Sub(p.lastEventAt) < 2*time.Millisecond {
+		return
+	}
+	p.lastKeyCode = evt.Code
+	p.lastValue = evt.Value
+	p.lastEventAt = now
 
 	var events []Event
 	switch evt.Value {
