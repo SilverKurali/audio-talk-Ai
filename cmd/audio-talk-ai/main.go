@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 
@@ -196,9 +197,22 @@ func runTUI(eng *engine.Engine, cfg *config.Config, debug bool) {
 	}()
 	go func() { model.Update(tui.SetProviderInfo(eng.Provider().Info())) }()
 	p := tea.NewProgram(model, tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
+	finalModel, err := p.Run()
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "TUI error: %v\n", err)
 		os.Exit(1)
+	}
+
+	// Check if user requested background mode
+	if m, ok := finalModel.(*tui.Model); ok {
+		if m.WantsBackground() {
+			fmt.Println("已切换到后台模式，热键继续工作。Ctrl+C 退出。")
+			// Wait for engine to finish (Ctrl+C)
+			sigCh := make(chan os.Signal, 1)
+			signal.Notify(sigCh, os.Interrupt)
+			<-sigCh
+			fmt.Println("\n正在退出...")
+		}
 	}
 	eng.Stop()
 }

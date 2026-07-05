@@ -48,6 +48,9 @@ type field struct {
 	optIdx  int
 }
 
+// BackgroundMsg is sent when the user wants to switch to background mode.
+type BackgroundMsg struct{}
+
 type Model struct {
 	w, h          int
 	ready         bool
@@ -65,7 +68,8 @@ type Model struct {
 	logExpanded   bool
 	providerNames []string
 	providerIdx   int
-	providerField int // index of the asr_provider field in fields, -1 if absent
+	providerField int  // index of the asr_provider field in fields, -1 if absent
+	background    bool // user requested background mode
 }
 
 func New(cfg *config.Config) *Model {
@@ -110,6 +114,13 @@ func (m *Model) rebuildFields() {
 
 	// Provider-specific credential fields
 	fs = append(fs, m.credentialFields()...)
+
+	// "添加服务商" selector
+	providerTypes := []string{"doubao", "openai-realtime", "openai-whisper", "mimo-asr", "xfyun-spark"}
+	addOpts := make([]string, len(providerTypes)+1)
+	addOpts[0] = "（选择类型）"
+	copy(addOpts[1:], providerTypes)
+	fs = append(fs, field{label: "添加服务商", key: "add_provider", help: "选择类型后按 Enter 添加", fType: fSelect, opts: addOpts, optIdx: 0})
 
 	fs = append(fs,
 		field{label: "自动上屏", key: "auto_submit", help: "识别后自动粘贴", fType: fToggle, boolVal: vc.AutoSubmit},
@@ -187,8 +198,49 @@ func (m *Model) switchProvider(newIdx int) {
 	}
 }
 
+// addProvider creates a new provider entry and switches to it.
+func (m *Model) addProvider(providerType string) {
+	// Save current provider fields first
+	m.saveProviderFields(m.providerIdx)
+
+	name := providerType
+	// Ensure unique name
+	seen := make(map[string]bool)
+	for _, n := range m.providerNames {
+		seen[n] = true
+	}
+	if seen[name] {
+		for i := 2; ; i++ {
+			candidate := fmt.Sprintf("%s-%d", providerType, i)
+			if !seen[candidate] {
+				name = candidate
+				break
+			}
+		}
+	}
+
+	newProvider := config.ASRProviderConfig{
+		Name:    name,
+		Type:    providerType,
+		Default: len(m.cfg.ASRs) == 0, // first provider is default
+	}
+	m.cfg.ASRs = append(m.cfg.ASRs, newProvider)
+
+	// Rebuild names and switch to new provider
+	m.providerNames = append(m.providerNames, name)
+	m.providerIdx = len(m.cfg.ASRs) - 1
+
+	m.rebuildFields()
+	m.logf("✅ 已添加服务商: %s (%s)", name, providerType)
+}
+
 func (m *Model) SetDebug(debug bool) {
 	m.debug = debug
+}
+
+// WantsBackground returns true if the user requested to switch to background mode.
+func (m *Model) WantsBackground() bool {
+	return m.background
 }
 
 func idxOf(opts []string, v string) int {
@@ -208,6 +260,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.w, m.h, m.ready = msg.Width, msg.Height, true
 	case tea.KeyMsg:
 		return m, m.handleKey(msg)
+	case BackgroundMsg:
+		m.background = true
+		return m, tea.Quit
 	case backendMsg:
 		m.info = hotkey.ProviderInfo(msg)
 	case refreshMsg:
@@ -236,6 +291,10 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 		case "enter":
 			m.editing = false
 			f.input.Blur()
+			if f.key == "add_provider" && f.optIdx > 0 {
+				m.addProvider(f.opts[f.optIdx])
+				return nil
+			}
 			m.save()
 			return nil
 		}
@@ -281,6 +340,9 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 	switch k {
 	case "q", "ctrl+c":
 		return tea.Quit
+	case "b":
+		m.save()
+		return func() tea.Msg { return BackgroundMsg{} }
 	case "s":
 		m.save()
 		return nil
@@ -488,7 +550,7 @@ func (m *Model) View() string {
 			b.WriteString("  " + dStyle.Render(l) + "\n")
 		}
 	}
-	b.WriteString(hStyle.Render("  j/k 导航 | e 编辑 | h 帮助 | esc 退出编辑 | s 保存 | q 退出"))
+	b.WriteString(hStyle.Render("  j/k 导航 | e 编辑 | h 帮助 | esc 退出编辑 | s 保存 | b 后台运行 | q 退出"))
 	return b.String()
 }
 
