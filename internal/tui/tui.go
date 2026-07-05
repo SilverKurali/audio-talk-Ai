@@ -155,12 +155,9 @@ func (m *Model) rebuildFields() {
 func (m *Model) credentialFields() []field {
 	ti := func(v string) textinput.Model { t := textinput.New(); t.SetValue(v); t.Cursor.Blink = false; return t }
 
-	// Legacy single-provider mode: only when no providers in cfg.ASRs
+	// No providers configured: no credential fields, just the add dropdown
 	if len(m.cfg.ASRs) == 0 {
-		return []field{
-			{label: "App Key", key: "app_key", help: "火山 App ID", fType: fString, input: ti(m.cfg.Voice.AppKey)},
-			{label: "Access Key", key: "access_key", help: "火山 Access Token", fType: fString, input: ti(m.cfg.Voice.AccessKey)},
-		}
+		return nil
 	}
 
 	// Multi-provider mode: show fields for the selected provider
@@ -258,33 +255,8 @@ func (m *Model) switchProvider(newIdx int) {
 
 // addProvider creates a new provider entry from preview fields and switches to it.
 func (m *Model) addProvider(providerType string) {
-	// Capture current legacy field values before rebuilding
-	legacyAppKey := m.fieldValue("app_key")
-	legacyAccessKey := m.fieldValue("access_key")
-
 	// Save current provider fields first
 	m.saveProviderFields(m.providerIdx)
-
-	// If converting from legacy mode, create a provider entry from voice config
-	if len(m.cfg.ASRs) == 0 {
-		appKey := m.cfg.Voice.AppKey
-		accessKey := m.cfg.Voice.AccessKey
-		if appKey == "" {
-			appKey = legacyAppKey
-		}
-		if accessKey == "" {
-			accessKey = legacyAccessKey
-		}
-		if appKey != "" || accessKey != "" {
-			m.cfg.ASRs = append(m.cfg.ASRs, config.ASRProviderConfig{
-				Name:      "doubao",
-				Type:      "doubao",
-				Default:   true,
-				AppKey:    appKey,
-				AccessKey: accessKey,
-			})
-		}
-	}
 
 	name := providerType
 	seen := make(map[string]bool)
