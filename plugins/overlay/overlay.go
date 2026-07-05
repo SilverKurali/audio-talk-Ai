@@ -57,8 +57,9 @@ func (p *Plugin) Start(ctx context.Context) error {
 
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
-	refreshTicker := time.NewTicker(2 * time.Second)
-	defer refreshTicker.Stop()
+	// Re-draw every second during recording to keep overlay visible
+	redrawTicker := time.NewTicker(1 * time.Second)
+	defer redrawTicker.Stop()
 	p.logger.Info("overlay started")
 	for {
 		select {
@@ -66,12 +67,19 @@ func (p *Plugin) Start(ctx context.Context) error {
 			return ctx.Err()
 		case <-ticker.C:
 			p.sync(voice.TUIStatus())
-		case <-refreshTicker.C:
-			// Periodically re-commit the surface to keep it visible
+		case <-redrawTicker.C:
+			// Force re-draw during recording/stopping to keep overlay visible
 			if p.lastVisible {
-				p.backend.Refresh()
+				p.redrawLast()
 			}
 		}
+	}
+}
+
+func (p *Plugin) redrawLast() {
+	label, color, visible := displayForStatus(voice.TUIStatus(), p.cfg.IdleVisible)
+	if visible {
+		p.backend.Show(label, color)
 	}
 }
 
