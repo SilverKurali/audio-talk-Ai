@@ -11,15 +11,16 @@ Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局
 ## 功能
 
 - 全局快捷键录音，支持 `toggle`（按一下开始、再按一下停止）和 `hold`（按住说话）两种模式。
-- 支持 5 个语音识别服务商，可在 TUI 中动态切换：
+- 支持 6 个语音识别服务商，可在 TUI 中动态切换：
   - **豆包**（火山引擎）— 流式 ASR，实时出字
   - **OpenAI Realtime** — 流式 ASR，WebSocket 实时转写
   - **OpenAI Whisper** — 批量转写，录完后识别，兼容 Ollama 等第三方
   - **讯飞星火** — 流式 ASR，支持动态修正和 202 种方言
   - **小米 MiMo** — 批量转写，支持中英双语和方言
+  - **小米 MiMo Token Plan** — 批量转写，国内节点
 - 自动复制到剪贴板，支持自动上屏到当前输入框。
 - Wayland / X11 / macOS 顶层录音状态胶囊提示。
-- TUI 配置界面，支持热键、模式、ASR 服务商、自动上屏、停止延迟、热词等配置。
+- TUI 配置界面，支持添加/删除/切换 ASR 服务商，动态显示对应凭据字段，所有下拉选项均有交互提示。
 - 热词增强识别，适合项目名、人名、英文术语和专有名词。
 - 录音历史统计，包括历史次数、总字数、平均速度和最近速度。
 
@@ -131,6 +132,14 @@ access_key = "your_access_key"
 # name = "mimo"
 # type = "xiaomi-mimo-asr"
 # api_key = "your_mimo_api_key"
+# model = "mimo-v2.5-asr"
+
+# 小米 MiMo Token Plan（批量，国内节点）
+# [[asr_providers]]
+# name = "mimo-token"
+# type = "xiaomi-mimo-asr-TokenPlan"
+# api_key = "your_mimo_api_key"
+# model = "mimo-v2.5-asr"
 ```
 
 ### 热键说明

@@ -11,15 +11,16 @@ Supports multiple ASR providers with one-click switching in the TUI.
 ## Features
 
 - Global hotkey recording with `toggle` (press to start, press again to stop) and `hold` (press and speak) modes.
-- 5 ASR providers with dynamic switching in TUI:
+- 6 ASR providers with dynamic switching in TUI:
   - **Doubao** (ByteDance Volcengine) — streaming ASR, real-time partial results
   - **OpenAI Realtime** — streaming ASR via WebSocket
   - **OpenAI Whisper** — batch transcription, compatible with Ollama and other OpenAI-format services
   - **iFlytek Spark** — streaming ASR with dynamic correction and 202 dialects
   - **Xiaomi MiMo** — batch transcription, Chinese/English and dialect support
+  - **Xiaomi MiMo Token Plan** — batch transcription, domestic (China) endpoint
 - Automatic clipboard copy and auto-submit into focused input field.
 - Always-on-top recording status overlay for Wayland, X11, and macOS.
-- TUI configuration for hotkeys, mode, ASR provider, auto-submit, stop delay, hotwords, and more.
+- TUI configuration with add/remove/switch ASR providers, dynamic credential fields, and interactive hints on all dropdowns.
 - ASR hotwords for project names, people names, English terms, and domain-specific vocabulary.
 - Usage statistics: total sessions, total characters, average speed, and recent speed.
 
@@ -131,6 +132,14 @@ access_key = "your_access_key"
 # name = "mimo"
 # type = "xiaomi-mimo-asr"
 # api_key = "your_mimo_api_key"
+# model = "mimo-v2.5-asr"
+
+# Xiaomi MiMo Token Plan (batch, domestic endpoint)
+# [[asr_providers]]
+# name = "mimo-token"
+# type = "xiaomi-mimo-asr-TokenPlan"
+# api_key = "your_mimo_api_key"
+# model = "mimo-v2.5-asr"
 ```
 
 ### Hotkey Notes

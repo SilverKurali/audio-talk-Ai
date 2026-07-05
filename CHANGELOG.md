@@ -6,14 +6,18 @@ All notable project changes are tracked here.
 
 ### New
 
-- Multi-provider ASR system: support 5 speech recognition services with dynamic switching in TUI.
+- Multi-provider ASR system: support 6 speech recognition services with dynamic switching in TUI.
   - **Doubao** (ByteDance Volcengine): streaming ASR via binary WebSocket protocol.
   - **OpenAI Realtime**: streaming ASR via JSON WebSocket, supports gpt-4o-transcribe / gpt-4o-mini-transcribe / whisper-1.
   - **OpenAI Whisper**: batch transcription via REST, compatible with Ollama, vLLM, and other OpenAI-format services.
   - **iFlytek Spark** (讯飞星火): streaming ASR via JSON WebSocket, supports dynamic correction (wpgs) and 202 dialects.
   - **Xiaomi MiMo**: batch transcription via REST, supports Chinese/English and dialects.
+  - **Xiaomi MiMo Token Plan**: batch transcription, domestic (China) endpoint.
 - ASR provider registry with self-registration via `init()` (similar to `database/sql` drivers).
-- TUI dynamically shows provider-specific credential fields when switching providers.
+- TUI provider management: add, remove, and switch ASR providers with dynamic credential fields.
+- TUI select fields show `(e 切换)` hint to indicate interactivity.
+- Visual separator between provider config and add-provider sections in TUI.
+- iFlytek Spark DWA (dynamic correction) changed from free-text to yes/no select.
 - Default hotkey changed from `Alt+Super` to `F9`.
 - Added `config.toml.example` with all provider configurations.
 
@@ -29,6 +33,11 @@ All notable project changes are tracked here.
 ### Fixed
 
 - Batch ASR providers (Whisper, MiMo) now trigger API request on `SendAudio(isLast=true)` instead of `Close()`, fixing a 15-second timeout hang and potential result loss.
+- TUI switching providers now auto-saves to disk, preventing loss of unsaved credential edits.
+- TUI `save()` writes current provider fields back before copying config, ensuring no edits are missed.
+- TUI switching providers clears add-provider preview, avoiding empty fields overlaying saved credentials.
+- Hotkey double-fire for key-only combos (e.g. F9) fixed in KeyStateTracker.
+- Evdev multi-device duplicate key events deduplicated with 2ms window.
 
 ## 2026-05-30
 
