@@ -137,7 +137,7 @@ func (m *Model) rebuildFields() {
 	if m.previewType != "" {
 		fs = append(fs, m.previewCredentialFields(m.previewType)...)
 		// Confirm button
-		fs = append(fs, field{label: "添加当前配置的服务商", key: "confirm_add", help: "按 Enter 确认添加", fType: fSelect, opts: []string{"否", "是"}, optIdx: 0})
+		fs = append(fs, field{label: "确认添加", key: "confirm_add", help: "填写完配置后按 Enter 添加", fType: fSelect, opts: []string{"→ 按 Enter 添加 →"}, optIdx: 0})
 	}
 
 	// "删除服务商" action (only when there are providers)
@@ -186,8 +186,7 @@ func (m *Model) credentialFields() []field {
 	case "xiaomi-mimo-asr", "xiaomi-mimo-asr-TokenPlan":
 		return []field{
 			{label: "API Key", key: "p_api_key", help: "MiMo API Key", fType: fString, input: ti(p.ApiKey)},
-			{label: "Model", key: "p_model", help: "模型名（默认 mimo-v2.5-asr）", fType: fString, input: ti(p.Model)},
-			{label: "Endpoint", key: "p_base_url", help: "API 端点（留空用默认）", fType: fString, input: ti(p.BaseURL)},
+			{label: "Model", key: "p_model", help: "当前仅支持 mimo-v2.5-asr", fType: fString, input: ti(p.Model)},
 		}
 	case "xfyun-spark":
 		return []field{
@@ -402,17 +401,20 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 			m.editing = false
 			f.input.Blur()
 			if f.key == "add_provider" {
-				// Show preview fields for selected type
 				m.previewType = f.opts[f.optIdx]
 				m.rebuildFields()
 				return nil
 			}
-			if f.key == "confirm_add" && f.optIdx == 1 {
+			if f.key == "confirm_add" {
 				m.addProvider(m.previewType)
 				return nil
 			}
 			if f.key == "del_provider" && f.optIdx == 1 {
 				m.deleteProvider(m.providerIdx)
+				return nil
+			}
+			// Preview fields: don't save, just exit editing
+			if strings.HasPrefix(f.key, "new_") {
 				return nil
 			}
 			m.save()
