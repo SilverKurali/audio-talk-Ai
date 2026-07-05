@@ -4,32 +4,37 @@ All notable project changes are tracked here.
 
 ## Unreleased
 
-- Clarified README build and install setup steps for the repository directory and `~/.local/bin` PATH.
-- Restricted voice hotkeys to non-text global shortcut keys, rejecting letters, digits, punctuation, Space, and similar text-producing keys.
-- Avoid duplicate auto-submit on KDE Plasma by using uinput directly and not writing the Wayland primary selection there.
-- TUI is now the default startup mode.
-- Added persistent usage statistics for total sessions, recognized characters, average speed, and recent speed.
-- Added configurable ASR hotwords.
-- Added TUI help toggle with `h`.
-- Improved Wayland clipboard and auto-submit behavior with `wl-copy` and `wtype`.
-- Added Linux recording status overlay for X11 and Wayland.
-- Added macOS support for global hotkeys, native recording, clipboard, auto-submit, recording status overlay, and environment checks.
-- Removed non-cgo macOS fallback builds; Audio Talk AI now requires cgo for native platform integration.
-- Replaced the old Claude-specific agent guide with `AGENTS.md` and clarified build documentation.
-- Improved toggle and hold hotkey behavior for fast repeated key presses.
-- Show ASR connection and final-result timeout errors in the status UI/overlay instead of immediately falling back to idle.
-- Added transient `Esc` cancel and `R` retry hotkeys while recording or showing retryable errors.
-- Improved X11 overlay placement on multi-monitor setups and switched X11 rendering to an ARGB window for smoother rounded corners.
-- Fixed a Wayland overlay shutdown race that could crash while closing the app, and surfaced Linux `arecord` microphone/device failures in the UI.
-- Made `Esc` cancel active overlay states, including the final ASR wait state, and suppress output from canceled pending sessions.
-- Improved Wayland overlay rounded-corner antialiasing, especially on KDE Plasma.
-- Added `audio-talk-ai --install` and `make install` to install the binary into `~/.local/bin`.
+### New
+
+- Multi-provider ASR system: support 5 speech recognition services with dynamic switching in TUI.
+  - **Doubao** (ByteDance Volcengine): streaming ASR via binary WebSocket protocol.
+  - **OpenAI Realtime**: streaming ASR via JSON WebSocket, supports gpt-4o-transcribe / gpt-4o-mini-transcribe / whisper-1.
+  - **OpenAI Whisper**: batch transcription via REST, compatible with Ollama, vLLM, and other OpenAI-format services.
+  - **iFlytek Spark** (讯飞星火): streaming ASR via JSON WebSocket, supports dynamic correction (wpgs) and 202 dialects.
+  - **Xiaomi MiMo**: batch transcription via REST, supports Chinese/English and dialects.
+- ASR provider registry with self-registration via `init()` (similar to `database/sql` drivers).
+- TUI dynamically shows provider-specific credential fields when switching providers.
+- Default hotkey changed from `Alt+Super` to `F9`.
+- Added `config.toml.example` with all provider configurations.
+
+### Changed
+
+- Project renamed from "Just Talk" to "Audio Talk AI".
+- Module path changed from `github.com/c/just-talk-go` to `gitee.com/AY77-OP/audio-talk-ai`.
+- Config binary, log files, and state directories renamed from `just-talk` to `audio-talk-ai`.
+- ASR client code moved from `plugins/voice/asr.go` to `asr/doubao/client.go`.
+- Doctor check now validates provider-specific required fields per provider type.
+- README rewritten with multi-provider configuration documentation.
+
+### Fixed
+
+- Batch ASR providers (Whisper, MiMo) now trigger API request on `SendAudio(isLast=true)` instead of `Close()`, fixing a 15-second timeout hang and potential result loss.
 
 ## 2026-05-30
 
 - Initial Linux-focused development snapshot.
-- Supported Linux Wayland hotkeys via evdev.
-- Supported Linux X11 hotkeys via native X11 grabs.
-- Added Doubao streaming ASR integration.
-- Added TUI configuration interface.
-- Added automatic clipboard copy and auto-submit.
+- Linux Wayland hotkeys via evdev.
+- Linux X11 hotkeys via native X11 grabs.
+- Doubao streaming ASR integration.
+- TUI configuration interface.
+- Automatic clipboard copy and auto-submit.
