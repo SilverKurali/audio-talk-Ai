@@ -195,11 +195,16 @@ func (m *Model) credentialFields() []field {
 			{label: "Model", key: "p_model", help: "当前仅支持 mimo-v2.5-asr", fType: fString, input: ti(p.Model)},
 		}
 	case "xfyun-spark":
+		dwaOpts := []string{"否", "wpgs"}
+		dwaIdx := 0
+		if p.DWA == "wpgs" {
+			dwaIdx = 1
+		}
 		return []field{
 			{label: "App ID", key: "p_app_id", help: "讯飞 App ID", fType: fString, input: ti(p.AppID)},
 			{label: "API Key", key: "p_api_key", help: "讯飞 API Key", fType: fString, input: ti(p.ApiKey)},
 			{label: "API Secret", key: "p_api_secret", help: "讯飞 API Secret", fType: fString, input: ti(p.ApiSecret)},
-			{label: "动态修正", key: "p_dwa", help: "留空关闭，wpgs 开启", fType: fString, input: ti(p.DWA)},
+			{label: "动态修正", key: "p_dwa", help: "wpgs 开启语音纠偏", fType: fSelect, opts: dwaOpts, optIdx: dwaIdx},
 		}
 	default:
 		return nil
@@ -235,7 +240,7 @@ func (m *Model) previewCredentialFields(providerType string) []field {
 			{label: "App ID", key: "new_app_id", help: "讯飞 App ID", fType: fString, input: ti("")},
 			{label: "API Key", key: "new_api_key", help: "讯飞 API Key", fType: fString, input: ti("")},
 			{label: "API Secret", key: "new_api_secret", help: "讯飞 API Secret", fType: fString, input: ti("")},
-			{label: "动态修正", key: "new_dwa", help: "留空关闭，wpgs 开启", fType: fString, input: ti("")},
+			{label: "动态修正", key: "new_dwa", help: "wpgs 开启语音纠偏", fType: fSelect, opts: []string{"否", "wpgs"}, optIdx: 0},
 		}
 	default:
 		return nil
@@ -287,6 +292,10 @@ func (m *Model) addProvider(providerType string) {
 	}
 
 	// Build new provider with values from preview fields
+	dwaVal := m.fieldValue("new_dwa")
+	if dwaVal == "否" {
+		dwaVal = ""
+	}
 	newProvider := config.ASRProviderConfig{
 		Name:      name,
 		Type:      providerType,
@@ -298,7 +307,7 @@ func (m *Model) addProvider(providerType string) {
 		BaseURL:   m.fieldValue("new_base_url"),
 		AppID:     m.fieldValue("new_app_id"),
 		ApiSecret: m.fieldValue("new_api_secret"),
-		DWA:       m.fieldValue("new_dwa"),
+		DWA:       dwaVal,
 	}
 	m.cfg.ASRs = append(m.cfg.ASRs, newProvider)
 
@@ -346,6 +355,9 @@ func (m *Model) deleteProvider(idx int) {
 func (m *Model) fieldValue(key string) string {
 	for _, f := range m.fields {
 		if f.key == key {
+			if f.fType == fSelect {
+				return f.opts[f.optIdx]
+			}
 			return f.input.Value()
 		}
 	}
@@ -626,7 +638,16 @@ func (m *Model) saveProviderFieldsTo(cfg *config.Config, pIdx int) {
 		case "p_app_id":
 			p.AppID = f.input.Value()
 		case "p_dwa":
-			p.DWA = f.input.Value()
+			if f.fType == fSelect {
+				v := f.opts[f.optIdx]
+				if v == "否" {
+					p.DWA = ""
+				} else {
+					p.DWA = v
+				}
+			} else {
+				p.DWA = f.input.Value()
+			}
 		}
 	}
 }
