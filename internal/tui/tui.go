@@ -105,9 +105,17 @@ func (m *Model) rebuildFields() {
 		{label: "模式", key: "mode", help: "toggle 切换 / hold 按住", fType: fSelect, opts: []string{"toggle", "hold"}, optIdx: idxOf([]string{"toggle", "hold"}, vc.Mode)},
 	}
 
-	// Provider selector (only when multiple providers)
+	// Provider selector (when providers exist in cfg.ASRs)
 	m.providerField = -1
-	if len(m.providerNames) > 1 {
+	if len(m.cfg.ASRs) > 0 {
+		// Sync providerNames from cfg.ASRs
+		m.providerNames = make([]string, len(m.cfg.ASRs))
+		for i, p := range m.cfg.ASRs {
+			m.providerNames[i] = p.Name
+		}
+		if m.providerIdx >= len(m.providerNames) {
+			m.providerIdx = 0
+		}
 		m.providerField = len(fs)
 		fs = append(fs, field{label: "ASR 提供商", key: "asr_provider", help: "选择语音识别服务", fType: fSelect, opts: m.providerNames, optIdx: m.providerIdx})
 	}
@@ -122,6 +130,11 @@ func (m *Model) rebuildFields() {
 	copy(addOpts[1:], providerTypes)
 	fs = append(fs, field{label: "添加服务商", key: "add_provider", help: "选择类型后按 Enter 添加", fType: fSelect, opts: addOpts, optIdx: 0})
 
+	// "删除服务商" action (only when there are providers)
+	if len(m.cfg.ASRs) > 0 {
+		fs = append(fs, field{label: "删除当前服务商", key: "del_provider", help: "按 Enter 删除当前选中的服务商", fType: fSelect, opts: []string{"否", "是"}, optIdx: 0})
+	}
+
 	fs = append(fs,
 		field{label: "自动上屏", key: "auto_submit", help: "识别后自动粘贴", fType: fToggle, boolVal: vc.AutoSubmit},
 		field{label: "停止延迟(ms)", key: "stop_delay_ms", help: "松手后补录毫秒", fType: fString, input: ti(fmt.Sprintf("%d", vc.StopDelayMs))},
@@ -134,8 +147,8 @@ func (m *Model) rebuildFields() {
 func (m *Model) credentialFields() []field {
 	ti := func(v string) textinput.Model { t := textinput.New(); t.SetValue(v); t.Cursor.Blink = false; return t }
 
-	if len(m.providerNames) == 0 {
-		// Legacy single-provider mode: show Doubao fields from [voice]
+	// Legacy single-provider mode: only when no providers in cfg.ASRs
+	if len(m.cfg.ASRs) == 0 {
 		return []field{
 			{label: "App Key", key: "app_key", help: "火山 App ID", fType: fString, input: ti(m.cfg.Voice.AppKey)},
 			{label: "Access Key", key: "access_key", help: "火山 Access Token", fType: fString, input: ti(m.cfg.Voice.AccessKey)},
@@ -203,6 +216,17 @@ func (m *Model) addProvider(providerType string) {
 	// Save current provider fields first
 	m.saveProviderFields(m.providerIdx)
 
+	// If converting from legacy mode, create a provider entry from voice config
+	if len(m.cfg.ASRs) == 0 && (m.cfg.Voice.AppKey != "" || m.cfg.Voice.AccessKey != "") {
+		m.cfg.ASRs = append(m.cfg.ASRs, config.ASRProviderConfig{
+			Name:      "doubao",
+			Type:      "doubao",
+			Default:   true,
+			AppKey:    m.cfg.Voice.AppKey,
+			AccessKey: m.cfg.Voice.AccessKey,
+		})
+	}
+
 	name := providerType
 	// Ensure unique name
 	seen := make(map[string]bool)
@@ -232,6 +256,37 @@ func (m *Model) addProvider(providerType string) {
 
 	m.rebuildFields()
 	m.logf("✅ 已添加服务商: %s (%s)", name, providerType)
+}
+
+// deleteProvider removes a provider by index and rebuilds fields.
+func (m *Model) deleteProvider(idx int) {
+	if idx < 0 || idx >= len(m.cfg.ASRs) {
+		return
+	}
+	name := m.cfg.ASRs[idx].Name
+	m.cfg.ASRs = append(m.cfg.ASRs[:idx], m.cfg.ASRs[idx+1:]...)
+
+	// If we deleted the default, make the first one default
+	if len(m.cfg.ASRs) > 0 {
+		hasDefault := false
+		for _, p := range m.cfg.ASRs {
+			if p.Default {
+				hasDefault = true
+				break
+			}
+		}
+		if !hasDefault {
+			m.cfg.ASRs[0].Default = true
+		}
+	}
+
+	// Adjust provider index
+	if m.providerIdx >= len(m.cfg.ASRs) {
+		m.providerIdx = max(0, len(m.cfg.ASRs)-1)
+	}
+
+	m.rebuildFields()
+	m.logf("✅ 已删除服务商: %s", name)
 }
 
 func (m *Model) SetDebug(debug bool) {
@@ -293,6 +348,10 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 			f.input.Blur()
 			if f.key == "add_provider" && f.optIdx > 0 {
 				m.addProvider(f.opts[f.optIdx])
+				return nil
+			}
+			if f.key == "del_provider" && f.optIdx == 1 {
+				m.deleteProvider(m.providerIdx)
 				return nil
 			}
 			m.save()
