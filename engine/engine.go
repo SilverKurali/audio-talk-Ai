@@ -10,8 +10,8 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/c/just-talk-go/config"
-	"github.com/c/just-talk-go/hotkey"
+	"gitee.com/AY77-OP/audio-talk-ai/config"
+	"gitee.com/AY77-OP/audio-talk-ai/hotkey"
 	"github.com/fsnotify/fsnotify"
 )
 

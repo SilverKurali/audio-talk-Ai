@@ -1,14 +1,14 @@
-# Just Talk
+# Audio Talk AI
 
 [English](README.en.md)
 
 减少用键盘的次数，改用口喷吧。
 
-Just Talk 是一个面向桌面环境的语音输入工具。它通过全局快捷键录音，把语音识别结果复制到剪贴板，或直接上屏到当前输入框，适合写代码、聊天、记笔记和处理长文本输入。
+Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局快捷键录音，把语音识别结果复制到剪贴板，或直接上屏到当前输入框，适合写代码、聊天、记笔记和处理长文本输入。
 
 ## 截图
 
-![Just Talk TUI](docs/screenshot-tui.png)
+![Audio Talk AI TUI](docs/screenshot-tui.png)
 
 ## 功能
 
@@ -34,7 +34,7 @@ Just Talk 是一个面向桌面环境的语音输入工具。它通过全局快�
 
 ## 构建
 
-Just Talk 依赖平台原生能力，构建时需要启用 cgo。
+Audio Talk AI 依赖平台原生能力，构建时需要启用 cgo。
 
 Linux 构建依赖：
 
@@ -56,16 +56,16 @@ xcode-select --install
 构建当前平台二进制：
 
 ```bash
-cd just-talk-go
-CGO_ENABLED=1 go build -o build/just-talk ./cmd/just-talk
+cd audio-talk-ai
+CGO_ENABLED=1 go build -o build/audio-talk-ai ./cmd/audio-talk-ai
 ```
 
-安装到 `~/.local/bin/just-talk`：
+安装到 `~/.local/bin/audio-talk-ai`：
 
 ```bash
 # 确保 ~/.local/bin 在 PATH 中（如未配置，将下面这行加入 ~/.bashrc 或 ~/.zshrc）
 # export PATH="$HOME/.local/bin:$PATH"
-build/just-talk --install
+build/audio-talk-ai --install
 # 或
 make install
 ```
@@ -77,20 +77,20 @@ macOS 需要在本机 macOS 上构建；项目不提供非 cgo 版本。
 默认启动 TUI：
 
 ```bash
-just-talk
+audio-talk-ai
 ```
 
 后台模式：
 
 ```bash
-just-talk --no-tui
+audio-talk-ai --no-tui
 ```
 
 指定后端：
 
 ```bash
-just-talk --backend wayland
-just-talk --backend x11
+audio-talk-ai --backend wayland
+audio-talk-ai --backend x11
 ```
 
 ## 配置
@@ -98,7 +98,7 @@ just-talk --backend x11
 默认配置路径：
 
 ```text
-~/.config/just-talk/config.toml
+~/.config/audio-talk-ai/config.toml
 ```
 
 推荐热键配置：
@@ -122,7 +122,7 @@ push_to_talk = "Alt+Super"
 
 ```toml
 [voice]
-hotwords = ["Wayland", "Sway", "wl-copy", "wtype", "just-talk-go"]
+hotwords = ["Wayland", "Sway", "wl-copy", "wtype", "audio-talk-ai"]
 ```
 
 macOS 热键写法：
@@ -139,10 +139,10 @@ push_to_talk = "Option+Command"
 
 ## 维护与贡献
 
-Just Talk 由 `whoamihappyhacking` 维护。
+Audio Talk AI 由 `whoamihappyhacking` 维护。
 
 本项目不接受 Pull Request。欢迎通过 Issue 反馈 bug、使用体验和功能建议。
 
 ## 许可证
 
-Just Talk 使用 GNU General Public License v3.0 开源。
+Audio Talk AI 使用 GNU General Public License v3.0 开源。

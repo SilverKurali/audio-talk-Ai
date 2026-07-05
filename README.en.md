@@ -1,14 +1,14 @@
-# Just Talk
+# Audio Talk AI
 
 [中文](README.md)
 
-Just Talk is a desktop voice input tool. It records audio with a global hotkey, sends it to streaming ASR, and then copies the recognized text to the clipboard or submits it directly into the focused input field.
+Audio Talk AI is a desktop voice input tool. It records audio with a global hotkey, sends it to streaming ASR, and then copies the recognized text to the clipboard or submits it directly into the focused input field.
 
 It is built for people who want to type less and speak more while coding, chatting, writing notes, or working with long text.
 
 ## Screenshot
 
-![Just Talk TUI](docs/screenshot-tui.png)
+![Audio Talk AI TUI](docs/screenshot-tui.png)
 
 ## Features
 
@@ -34,7 +34,7 @@ The current development focus is Linux and macOS desktop support:
 
 ## Build
 
-Just Talk uses native platform APIs, so builds require cgo.
+Audio Talk AI uses native platform APIs, so builds require cgo.
 
 Linux build dependencies:
 
@@ -56,16 +56,16 @@ xcode-select --install
 Build for the current platform:
 
 ```bash
-cd just-talk-go
-CGO_ENABLED=1 go build -o build/just-talk ./cmd/just-talk
+cd audio-talk-ai
+CGO_ENABLED=1 go build -o build/audio-talk-ai ./cmd/audio-talk-ai
 ```
 
-Install to `~/.local/bin/just-talk`:
+Install to `~/.local/bin/audio-talk-ai`:
 
 ```bash
 # Make sure ~/.local/bin is in PATH. If not, add this line to ~/.bashrc or ~/.zshrc.
 # export PATH="$HOME/.local/bin:$PATH"
-build/just-talk --install
+build/audio-talk-ai --install
 # or
 make install
 ```
@@ -77,20 +77,20 @@ macOS must be built on macOS. The project does not provide a non-cgo build.
 Start the TUI:
 
 ```bash
-just-talk
+audio-talk-ai
 ```
 
 Run without the TUI:
 
 ```bash
-just-talk --no-tui
+audio-talk-ai --no-tui
 ```
 
 Force a backend:
 
 ```bash
-just-talk --backend wayland
-just-talk --backend x11
+audio-talk-ai --backend wayland
+audio-talk-ai --backend x11
 ```
 
 ## Configuration
@@ -98,7 +98,7 @@ just-talk --backend x11
 Default config path:
 
 ```text
-~/.config/just-talk/config.toml
+~/.config/audio-talk-ai/config.toml
 ```
 
 Recommended hotkey config:
@@ -122,7 +122,7 @@ Hotword example:
 
 ```toml
 [voice]
-hotwords = ["Wayland", "Sway", "wl-copy", "wtype", "just-talk-go"]
+hotwords = ["Wayland", "Sway", "wl-copy", "wtype", "audio-talk-ai"]
 ```
 
 macOS hotkey example:
@@ -139,10 +139,10 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ## Maintenance And Contributions
 
-Just Talk is maintained by `whoamihappyhacking`.
+Audio Talk AI is maintained by `whoamihappyhacking`.
 
 This project does not accept pull requests. Issues are welcome for bug reports, usage feedback, and feature discussion.
 
 ## License
 
-Just Talk is licensed under the GNU General Public License v3.0.
+Audio Talk AI is licensed under the GNU General Public License v3.0.

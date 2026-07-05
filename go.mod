@@ -1,4 +1,4 @@
-module github.com/c/just-talk-go
+module gitee.com/AY77-OP/audio-talk-ai
 
 go 1.25.0
 

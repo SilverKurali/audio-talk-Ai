@@ -180,7 +180,7 @@ func isKDEPlasma() bool {
 }
 
 func simulatePasteUinput() error {
-	keyboard, err := uinput.CreateKeyboard(uinputDev, []byte("just-talk virtual keyboard"))
+	keyboard, err := uinput.CreateKeyboard(uinputDev, []byte("audio-talk-ai virtual keyboard"))
 	if err != nil {
 		return fmt.Errorf("create uinput keyboard: %w", err)
 	}

@@ -48,7 +48,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/c/just-talk-go/config"
+	"gitee.com/AY77-OP/audio-talk-ai/config"
 )
 
 func runPlatform(cfg *config.Config, backend string) Report {
@@ -68,6 +68,9 @@ func runPlatform(cfg *config.Config, backend string) Report {
 		accessibilityCheck(terminal),
 		recordingBackendCheck(terminal),
 	)
+	if cfg.Voice.Enabled {
+		report.Checks = append(report.Checks, asrConfigCheck(cfg))
+	}
 	return report
 }
 
@@ -267,9 +270,9 @@ func configPathForDisplay() string {
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return "~/.config/just-talk/config.toml"
+		return "~/.config/audio-talk-ai/config.toml"
 	}
-	return filepath.Join(home, ".config", "just-talk", "config.toml")
+	return filepath.Join(home, ".config", "audio-talk-ai", "config.toml")
 }
 
 func overlayPosition(cfg *config.Config) string {

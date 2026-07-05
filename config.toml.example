@@ -1,0 +1,66 @@
+[voice]
+enabled = true
+mode = "toggle"
+push_to_talk = "Alt+Super"
+language = "zh-CN"
+auto_submit = true
+# hotwords = ["术语1", "术语2"]
+
+# 向后兼容：不配置 [[asr_providers]] 时，直接在 [voice] 中写 app_key/access_key 也能用
+# app_key = "your_app_key"
+# access_key = "your_access_key"
+
+# ── 多 provider 配置 ──
+
+# 豆包 ASR（流式，推荐）
+[[asr_providers]]
+name = "doubao"
+type = "doubao"
+default = true
+app_key = "your_app_key"
+access_key = "your_access_key"
+
+# OpenAI Realtime（流式，WebSocket）
+# 模型：gpt-4o-transcribe / gpt-4o-mini-transcribe / whisper-1
+# [[asr_providers]]
+# name = "openai"
+# type = "openai-realtime"
+# api_key = "sk-..."
+# model = "gpt-4o-mini-transcribe"
+
+# OpenAI Whisper（批量，录完后识别）
+# [[asr_providers]]
+# name = "whisper"
+# type = "openai-whisper"
+# api_key = "sk-..."
+# model = "whisper-1"
+
+# 兼容 OpenAI 格式的第三方服务（如 Ollama、vLLM 等）
+# [[asr_providers]]
+# name = "local-whisper"
+# type = "openai-whisper"
+# api_key = "ollama"
+# model = "whisper"
+# endpoint = "http://localhost:11434/v1/audio/transcriptions"
+
+# 讯飞星火语音识别大模型（流式，WebSocket）
+# 获取密钥：https://console.xfyun.cn/services/bmc
+# [[asr_providers]]
+# name = "xfyun"
+# type = "xfyun-spark"
+# app_id = "your_app_id"
+# api_key = "your_api_key"
+# api_secret = "your_api_secret"
+# dwa = "wpgs"  # 动态修正：留空关闭，"wpgs" 开启
+
+# 小米 MiMo ASR（批量，录完后识别）
+# 获取密钥：https://platform.xiaomimimo.com/console
+# [[asr_providers]]
+# name = "mimo"
+# type = "mimo-asr"
+# api_key = "your_mimo_api_key"
+# model = "mimo-v2.5-asr"
+
+[overlay]
+enabled = true
+position = "bottom-center"

@@ -1,7 +1,7 @@
 # Build outputs
 /build/
-/just-talk
-/cmd/just-talk/just-talk
+/audio-talk-ai
+/cmd/audio-talk-ai/audio-talk-ai
 *.exe
 
 # Local runtime files
@@ -18,3 +18,4 @@ config.toml
 # Editor and OS noise
 .DS_Store
 Thumbs.db
+.mimocode/

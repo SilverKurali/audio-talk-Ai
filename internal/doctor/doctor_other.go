@@ -5,7 +5,7 @@ package doctor
 import (
 	"runtime"
 
-	"github.com/c/just-talk-go/config"
+	"gitee.com/AY77-OP/audio-talk-ai/config"
 )
 
 func runPlatform(cfg *config.Config, backend string) Report {

@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/c/just-talk-go/config"
+	"gitee.com/AY77-OP/audio-talk-ai/config"
 )
 
 type Severity int

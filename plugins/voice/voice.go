@@ -13,11 +13,17 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/c/just-talk-go/config"
-	"github.com/c/just-talk-go/engine"
-	"github.com/c/just-talk-go/hotkey"
-	"github.com/c/just-talk-go/internal/autotype"
-	"github.com/c/just-talk-go/internal/clipboard"
+	"gitee.com/AY77-OP/audio-talk-ai/asr"
+	_ "gitee.com/AY77-OP/audio-talk-ai/asr/doubao"
+	_ "gitee.com/AY77-OP/audio-talk-ai/asr/mimoasr"
+	_ "gitee.com/AY77-OP/audio-talk-ai/asr/openairealtime"
+	_ "gitee.com/AY77-OP/audio-talk-ai/asr/openaiwhisper"
+	_ "gitee.com/AY77-OP/audio-talk-ai/asr/xfyunspark"
+	"gitee.com/AY77-OP/audio-talk-ai/config"
+	"gitee.com/AY77-OP/audio-talk-ai/engine"
+	"gitee.com/AY77-OP/audio-talk-ai/hotkey"
+	"gitee.com/AY77-OP/audio-talk-ai/internal/autotype"
+	"gitee.com/AY77-OP/audio-talk-ai/internal/clipboard"
 )
 
 const (
@@ -183,7 +189,7 @@ func statsPath() string {
 			base = "."
 		}
 	}
-	return filepath.Join(base, "just-talk", "stats.json")
+	return filepath.Join(base, "audio-talk-ai", "stats.json")
 }
 
 func TUIStatus() TUIVoiceStatus {
@@ -254,7 +260,7 @@ type VoicePlugin struct {
 	sessionID              uint64
 	sessionGen             uint64
 	recorder               *Recorder
-	asrClient              *ASRClient
+	asrClient              asr.Client
 	asrCancel              context.CancelFunc
 	autoSubmit             bool
 	stopDelayMs            int
@@ -273,7 +279,7 @@ type VoicePlugin struct {
 type recordingSession struct {
 	sessionID   uint64
 	recorder    *Recorder
-	asrClient   *ASRClient
+	asrClient   asr.Client
 	asrCancel   context.CancelFunc
 	autoSubmit  bool
 	userStopped bool
@@ -513,12 +519,25 @@ func (p *VoicePlugin) startRecording() {
 		return
 	}
 	vc := p.cfg.Voice
-	asrCfg := ASRConfig{AppKey: vc.AppKey, AccessKey: vc.AccessKey, ResourceID: vc.ResourceID, Language: vc.Language, Hotwords: vc.Hotwords}
-	if asrCfg.ResourceID == "" {
-		asrCfg.ResourceID = "volc.bigasr.sauc.duration"
+	providers := p.cfg.ResolveASRProviders()
+	if len(providers) == 0 {
+		p.sessionID++
+		sessionID := p.sessionID
+		p.publishErrorLocked("未配置 ASR 提供商", sessionID)
+		p.mu.Unlock()
+		pout("❌ 未配置 ASR 提供商")
+		return
 	}
-	if asrCfg.Language == "" {
-		asrCfg.Language = "zh-CN"
+	providerCfg := providers[0]
+	for _, p := range providers {
+		if p.Default {
+			providerCfg = p
+			break
+		}
+	}
+	common := asr.Common{Language: vc.Language, Hotwords: vc.Hotwords}
+	if common.Language == "" {
+		common.Language = "zh-CN"
 	}
 	var rec *Recorder
 	if vc.Device != "" {
@@ -534,7 +553,7 @@ func (p *VoicePlugin) startRecording() {
 		pout("❌ 录音启动失败: %v", err)
 		return
 	}
-	pout("🎤 开始录音... (后端: %s)", rec.Backend())
+	pout("🎤 开始录音... (后端: %s, ASR: %s)", rec.Backend(), providerCfg.Name)
 	ctx, cancel := context.WithCancel(context.Background())
 	p.sessionID++
 	p.sessionGen++
@@ -551,14 +570,32 @@ func (p *VoicePlugin) startRecording() {
 	p.publishStatusLocked()
 	p.mu.Unlock() // Release lock before slow WebSocket dial
 
-	go p.connectASR(ctx, cancel, sessionID, sessionGen, rec, asrCfg)
+	go p.connectASR(ctx, cancel, sessionID, sessionGen, rec, providerCfg, common)
 	if shouldStopImmediately {
 		p.startStopDelay()
 	}
 }
 
-func (p *VoicePlugin) connectASR(ctx context.Context, cancel context.CancelFunc, sessionID, sessionGen uint64, rec *Recorder, asrCfg ASRConfig) {
-	client := NewASRClient(asrCfg, p.logger)
+func (p *VoicePlugin) connectASR(ctx context.Context, cancel context.CancelFunc, sessionID, sessionGen uint64, rec *Recorder, providerCfg config.ASRProviderConfig, common asr.Common) {
+	client, err := asr.NewClient(providerCfg.Type, common, providerCfg.ProviderCfgMap(), p.logger)
+	if err != nil {
+		cancel()
+		p.mu.Lock()
+		currentSession := p.sessionGen == sessionGen
+		if currentSession {
+			rec.Stop()
+			p.stopping, p.recorder, p.recording = false, nil, false
+			p.stopAt = time.Time{}
+			p.asrCancel = nil
+			p.publishErrorLocked("ASR 创建失败: "+shortError(err), sessionID)
+		}
+		p.mu.Unlock()
+		if currentSession {
+			pout("❌ ASR 创建失败: %v", err)
+		}
+		return
+	}
+
 	if err := client.Connect(ctx); err != nil {
 		wasCanceled := ctx.Err() != nil
 		cancel()
@@ -978,7 +1015,7 @@ func asrConnectErrorDetail(err error) string {
 	return shortError(err)
 }
 
-func (p *VoicePlugin) streamAudio(ctx context.Context, rec *Recorder, client *ASRClient) {
+func (p *VoicePlugin) streamAudio(ctx context.Context, rec *Recorder, client asr.Client) {
 	buf := make([]byte, 6400)
 	for {
 		select {

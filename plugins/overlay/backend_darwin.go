@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/c/just-talk-go/config"
+	"gitee.com/AY77-OP/audio-talk-ai/config"
 )
 
 type darwinBackend struct {
@@ -32,7 +32,7 @@ func newBackend(cfg config.OverlayConfig) (backend, error) {
 		"--overlay-scale", strconv.FormatFloat(cfg.Scale, 'f', -1, 64),
 	)
 	cmd.Stdout = io.Discard
-	if errLog, err := os.OpenFile("/tmp/just-talk-overlay.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644); err == nil {
+	if errLog, err := os.OpenFile("/tmp/audio-talk-ai-overlay.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644); err == nil {
 		cmd.Stderr = errLog
 	} else {
 		cmd.Stderr = io.Discard

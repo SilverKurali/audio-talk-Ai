@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/c/just-talk-go/config"
+	"gitee.com/AY77-OP/audio-talk-ai/config"
 )
 
 func runPlatform(cfg *config.Config, backend string) Report {
@@ -153,28 +153,6 @@ func desktopInfo() string {
 func isKDEPlasma() bool {
 	desktop := strings.ToLower(os.Getenv("XDG_CURRENT_DESKTOP") + " " + os.Getenv("DESKTOP_SESSION"))
 	return strings.Contains(desktop, "kde") || strings.Contains(desktop, "plasma") || os.Getenv("KDE_SESSION_VERSION") != ""
-}
-
-func asrConfigCheck(cfg *config.Config) Check {
-	var missing []string
-	if strings.TrimSpace(cfg.Voice.AppKey) == "" {
-		missing = append(missing, "app_key")
-	}
-	if strings.TrimSpace(cfg.Voice.AccessKey) == "" {
-		missing = append(missing, "access_key")
-	}
-	resourceID := strings.TrimSpace(cfg.Voice.ResourceID)
-	if resourceID == "" {
-		resourceID = "volc.bigasr.sauc.duration"
-	}
-	if len(missing) > 0 {
-		return Check{
-			Name: "ASR 配置", OK: false, Severity: Warning,
-			Detail: "缺少 " + strings.Join(missing, ", "),
-			Fix:    "在 ~/.config/just-talk/config.toml 的 [voice] 中填写 " + strings.Join(missing, ", ") + "。",
-		}
-	}
-	return Check{Name: "ASR 配置", OK: true, Severity: Warning, Detail: "resource_id=" + resourceID}
 }
 
 func inputAccessCheck() Check {

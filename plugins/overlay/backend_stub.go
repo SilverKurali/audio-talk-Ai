@@ -5,7 +5,7 @@ package overlay
 import (
 	"fmt"
 
-	"github.com/c/just-talk-go/config"
+	"gitee.com/AY77-OP/audio-talk-ai/config"
 )
 
 func newBackend(cfg config.OverlayConfig) (backend, error) {

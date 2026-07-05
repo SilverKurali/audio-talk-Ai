@@ -10,14 +10,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/c/just-talk-go/config"
-	"github.com/c/just-talk-go/engine"
-	"github.com/c/just-talk-go/hotkey"
-	"github.com/c/just-talk-go/internal/doctor"
-	"github.com/c/just-talk-go/internal/tui"
-	"github.com/c/just-talk-go/plugins"
-	"github.com/c/just-talk-go/plugins/overlay"
-	"github.com/c/just-talk-go/plugins/voice"
+	"gitee.com/AY77-OP/audio-talk-ai/config"
+	"gitee.com/AY77-OP/audio-talk-ai/engine"
+	"gitee.com/AY77-OP/audio-talk-ai/hotkey"
+	"gitee.com/AY77-OP/audio-talk-ai/internal/doctor"
+	"gitee.com/AY77-OP/audio-talk-ai/internal/tui"
+	"gitee.com/AY77-OP/audio-talk-ai/plugins"
+	"gitee.com/AY77-OP/audio-talk-ai/plugins/overlay"
+	"gitee.com/AY77-OP/audio-talk-ai/plugins/voice"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -29,7 +29,7 @@ func main() {
 	useTUI := flag.Bool("tui", true, "run with terminal UI")
 	noTUI := flag.Bool("no-tui", false, "run without terminal UI")
 	doctorOnly := flag.Bool("doctor", false, "run startup doctor and exit")
-	installOnly := flag.Bool("install", false, "install just-talk to ~/.local/bin")
+	installOnly := flag.Bool("install", false, "install audio-talk-ai to ~/.local/bin")
 	overlayHelper := flag.Bool("overlay-helper", false, "run macOS overlay helper")
 	overlayPosition := flag.String("overlay-position", "top-right", "overlay helper position")
 	overlayScale := flag.Float64("overlay-scale", 1.0, "overlay helper scale")
@@ -60,14 +60,14 @@ func main() {
 	// Daemon mode: log to stderr + file. TUI mode: file only (stderr corrupts display).
 	var logWriter io.Writer
 	if *useTUI {
-		lf, _ := os.OpenFile("/tmp/just-talk.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		lf, _ := os.OpenFile("/tmp/audio-talk-ai.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if lf != nil {
 			logWriter = lf
 		} else {
 			logWriter = io.Discard
 		}
 	} else {
-		lf, _ := os.OpenFile("/tmp/just-talk.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		lf, _ := os.OpenFile("/tmp/audio-talk-ai.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if lf != nil {
 			logWriter = io.MultiWriter(os.Stderr, lf)
 		} else {
@@ -126,7 +126,7 @@ func main() {
 }
 
 func runDaemon(eng *engine.Engine) {
-	slog.Info("just-talk started — press hotkeys, Ctrl+C to quit")
+	slog.Info("audio-talk-ai started — press hotkeys, Ctrl+C to quit")
 	if err := eng.Start(true); err != nil && err != context.Canceled {
 		slog.Error("engine exited with error", "error", err)
 		os.Exit(1)
@@ -184,9 +184,9 @@ func installSelf() error {
 	if resolved, err := filepath.EvalSymlinks(src); err == nil {
 		src = resolved
 	}
-	target := filepath.Join(targetDir, "just-talk")
+	target := filepath.Join(targetDir, "audio-talk-ai")
 	if samePath(src, target) {
-		fmt.Fprintf(os.Stdout, "just-talk is already installed at %s\n", target)
+		fmt.Fprintf(os.Stdout, "audio-talk-ai is already installed at %s\n", target)
 		printInstallPathNote(targetDir)
 		return nil
 	}
@@ -197,7 +197,7 @@ func installSelf() error {
 	}
 	defer in.Close()
 
-	tmp, err := os.CreateTemp(targetDir, ".just-talk-*")
+	tmp, err := os.CreateTemp(targetDir, ".audio-talk-ai-*")
 	if err != nil {
 		return fmt.Errorf("create temporary installer file: %w", err)
 	}
@@ -225,7 +225,7 @@ func installSelf() error {
 	}
 	ok = true
 
-	fmt.Fprintf(os.Stdout, "Installed just-talk to %s\n", target)
+	fmt.Fprintf(os.Stdout, "Installed audio-talk-ai to %s\n", target)
 	printInstallPathNote(targetDir)
 	return nil
 }
@@ -247,7 +247,7 @@ func samePath(a, b string) bool {
 
 func printInstallPathNote(dir string) {
 	if !pathContains(dir) {
-		fmt.Fprintf(os.Stdout, "Note: %s is not in PATH. Add it to your shell profile to run just-talk directly.\n", dir)
+		fmt.Fprintf(os.Stdout, "Note: %s is not in PATH. Add it to your shell profile to run audio-talk-ai directly.\n", dir)
 	}
 }
 

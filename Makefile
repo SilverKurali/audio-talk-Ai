@@ -1,7 +1,7 @@
 .PHONY: build install test clean run
 
-APP_NAME := just-talk
-CMD_DIR := ./cmd/just-talk
+APP_NAME := audio-talk-ai
+CMD_DIR := ./cmd/audio-talk-ai
 BUILD_DIR := ./build
 
 # Build for current platform

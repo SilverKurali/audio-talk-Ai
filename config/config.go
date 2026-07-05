@@ -7,13 +7,88 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/c/just-talk-go/hotkey"
+	"gitee.com/AY77-OP/audio-talk-ai/hotkey"
 )
 
 type Config struct {
-	Voice   VoiceConfig   `toml:"voice"`
-	Debug   DebugConfig   `toml:"debug"`
-	Overlay OverlayConfig `toml:"overlay"`
+	Voice   VoiceConfig         `toml:"voice"`
+	ASRs    []ASRProviderConfig `toml:"asr_providers"`
+	Debug   DebugConfig         `toml:"debug"`
+	Overlay OverlayConfig       `toml:"overlay"`
+}
+
+type ASRProviderConfig struct {
+	Name       string `toml:"name"`
+	Type       string `toml:"type"`
+	Default    bool   `toml:"default,omitempty"`
+	// Doubao fields
+	AppKey     string `toml:"app_key"`
+	AccessKey  string `toml:"access_key"`
+	ResourceID string `toml:"resource_id"`
+	// OpenAI fields
+	ApiKey  string `toml:"api_key"`
+	Model   string `toml:"model"`
+	BaseURL string `toml:"base_url"`
+	// iFlytek fields
+	AppID     string `toml:"app_id"`
+	ApiSecret string `toml:"api_secret"`
+	DWA       string `toml:"dwa"`
+}
+
+// ProviderCfgMap converts the provider config to a map for the ASR factory.
+func (p *ASRProviderConfig) ProviderCfgMap() map[string]interface{} {
+	return map[string]interface{}{
+		"app_key":     p.AppKey,
+		"access_key":  p.AccessKey,
+		"resource_id": p.ResourceID,
+		"api_key":     p.ApiKey,
+		"model":       p.Model,
+		"base_url":    p.BaseURL,
+		"app_id":      p.AppID,
+		"api_secret":  p.ApiSecret,
+		"dwa":         p.DWA,
+	}
+}
+
+// ResolveASRProviders returns the configured ASR providers.
+// If [[asr_providers]] is configured, returns those.
+// Otherwise falls back to building a single "doubao" provider from [voice] fields.
+func (c *Config) ResolveASRProviders() []ASRProviderConfig {
+	if len(c.ASRs) > 0 {
+		return c.ASRs
+	}
+	if c.Voice.AppKey != "" || c.Voice.AccessKey != "" {
+		return []ASRProviderConfig{{
+			Name:       "doubao",
+			Type:       "doubao",
+			Default:    true,
+			AppKey:     c.Voice.AppKey,
+			AccessKey:  c.Voice.AccessKey,
+			ResourceID: c.Voice.ResourceID,
+		}}
+	}
+	return nil
+}
+
+// DefaultASRProvider returns the name of the default ASR provider.
+func (c *Config) DefaultASRProvider() string {
+	providers := c.ResolveASRProviders()
+	if len(providers) == 0 {
+		return ""
+	}
+	for _, p := range providers {
+		if p.Default {
+			return p.Name
+		}
+	}
+	return providers[0].Name
+}
+
+// UpdateASRDefault sets the named provider as default and clears others.
+func (c *Config) UpdateASRDefault(name string) {
+	for i := range c.ASRs {
+		c.ASRs[i].Default = c.ASRs[i].Name == name
+	}
 }
 
 type DebugConfig struct {
@@ -79,10 +154,10 @@ func Load(path string) (*Config, error) {
 func FindConfig() string {
 	candidates := []string{"./config.toml"}
 	if home, err := os.UserHomeDir(); err == nil {
-		candidates = append(candidates, filepath.Join(home, ".config", "just-talk", "config.toml"))
+		candidates = append(candidates, filepath.Join(home, ".config", "audio-talk-ai", "config.toml"))
 	}
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
-		candidates = append(candidates, filepath.Join(xdg, "just-talk", "config.toml"))
+		candidates = append(candidates, filepath.Join(xdg, "audio-talk-ai", "config.toml"))
 	}
 	for _, p := range candidates {
 		if _, err := os.Stat(p); err == nil {
@@ -96,7 +171,7 @@ func Save(cfg *Config) error {
 	path := FindConfig()
 	if path == "" {
 		home, _ := os.UserHomeDir()
-		path = filepath.Join(home, ".config", "just-talk", "config.toml")
+		path = filepath.Join(home, ".config", "audio-talk-ai", "config.toml")
 		os.MkdirAll(filepath.Dir(path), 0755)
 	}
 	f, err := os.Create(path)

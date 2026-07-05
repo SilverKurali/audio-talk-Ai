@@ -4,7 +4,7 @@ This file gives coding agents concise guidance for working in this repository.
 
 ## Project
 
-Just Talk is a desktop voice input tool. It records with a global hotkey, sends audio to streaming ASR, then copies recognized text to the clipboard or submits it into the focused input field.
+Audio Talk AI is a desktop voice input tool. It records with a global hotkey, sends audio to streaming ASR, then copies recognized text to the clipboard or submits it into the focused input field.
 
 The current supported desktop targets are Linux and macOS. Windows is not implemented.
 
@@ -15,22 +15,24 @@ This project uses native platform APIs and requires cgo for supported desktop bu
 ```bash
 make build              # Build for the current platform
 make run                # Run on the current platform
-make test               # Run all tests
+make test               # Run all tests (uses -v)
 go test ./...           # Faster default test command
-go test ./... -tags no_x11
-CGO_ENABLED=1 go build -o build/just-talk ./cmd/just-talk
+go test ./... -tags no_x11  # Skip X11 cgo deps (useful on headless or Wayland-only systems)
+CGO_ENABLED=1 go build -o build/audio-talk-ai ./cmd/audio-talk-ai
 ```
+
+Build tags: `no_x11` disables X11 cgo code (hotkeys, overlay, autotype). macOS files use `darwin && cgo`. Windows provider exists but is not a supported target.
 
 Do not add or preserve non-cgo macOS fallback builds. A build that compiles but cannot provide native hotkeys, recording, clipboard, auto-submit, or overlay is worse than an explicit build failure.
 
 Useful runtime commands:
 
 ```bash
-just-talk               # TUI mode, default
-just-talk --no-tui      # daemon mode
-just-talk --doctor      # startup environment check
-just-talk --backend x11
-just-talk --backend wayland
+audio-talk-ai               # TUI mode, default
+audio-talk-ai --no-tui      # daemon mode
+audio-talk-ai --doctor      # startup environment check
+audio-talk-ai --backend x11
+audio-talk-ai --backend wayland
 ```
 
 `JUST_TALK_BACKEND` or `--backend` can force `x11`, `wayland`, or `darwin`. `mock` exists for internal provider testing but is not part of the normal user path.
@@ -51,13 +53,13 @@ macOS:
 - Clipboard uses NSPasteboard.
 - Auto-submit posts native keyboard events.
 - Overlay uses an AppKit `NSPanel` helper process.
-- Users grant Accessibility and Microphone permissions to the terminal app that launches Just Talk, not to a separate `.app` bundle.
+- Users grant Accessibility and Microphone permissions to the terminal app that launches Audio Talk AI, not to a separate `.app` bundle.
 - Full Xcode is not required, but Apple Command Line Tools must provide `clang` and the macOS SDK.
 
 ## Architecture
 
 ```text
-cmd/just-talk/main.go
+cmd/audio-talk-ai/main.go
   -> config.Load
   -> doctor.Run
   -> hotkey.NewProvider

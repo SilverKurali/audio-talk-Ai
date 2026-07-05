@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c/just-talk-go/config"
-	"github.com/c/just-talk-go/hotkey"
-	"github.com/c/just-talk-go/plugins/voice"
+	"gitee.com/AY77-OP/audio-talk-ai/config"
+	"gitee.com/AY77-OP/audio-talk-ai/hotkey"
+	"gitee.com/AY77-OP/audio-talk-ai/plugins/voice"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -49,36 +49,142 @@ type field struct {
 }
 
 type Model struct {
-	w, h        int
-	ready       bool
-	info        hotkey.ProviderInfo
-	logs        []string
-	devices     []string
-	cfg         *config.Config
-	debug       bool
-	showLogs    bool
-	OnSave      func(*config.Config) error
-	fields      []field
-	cursor      int
-	editing     bool
-	helpVisible bool
-	logExpanded bool
+	w, h          int
+	ready         bool
+	info          hotkey.ProviderInfo
+	logs          []string
+	devices       []string
+	cfg           *config.Config
+	debug         bool
+	showLogs      bool
+	OnSave        func(*config.Config) error
+	fields        []field
+	cursor        int
+	editing       bool
+	helpVisible   bool
+	logExpanded   bool
+	providerNames []string
+	providerIdx   int
+	providerField int // index of the asr_provider field in fields, -1 if absent
 }
 
 func New(cfg *config.Config) *Model {
-	vc := cfg.Voice
+	providers := cfg.ResolveASRProviders()
+	names := make([]string, len(providers))
+	pIdx := 0
+	for i, p := range providers {
+		names[i] = p.Name
+		if p.Default {
+			pIdx = i
+		}
+	}
+	m := &Model{
+		cfg:           cfg,
+		logs:          make([]string, 0, 100),
+		cursor:        -1,
+		showLogs:      true,
+		providerNames: names,
+		providerIdx:   pIdx,
+		providerField: -1,
+	}
+	m.rebuildFields()
+	return m
+}
+
+func (m *Model) rebuildFields() {
+	vc := m.cfg.Voice
 	ti := func(v string) textinput.Model { t := textinput.New(); t.SetValue(v); t.Cursor.Blink = false; return t }
+
 	fs := []field{
 		{label: "语音输入", key: "enabled", help: "关闭后不注册热键", fType: fToggle, boolVal: vc.Enabled},
 		{label: "热键", key: "push_to_talk", help: "例: Alt+Super / F9 / Ctrl+Alt+Tab；不支持字母、数字、标点、空格等普通字符键", fType: fString, input: ti(vc.PushToTalk)},
 		{label: "模式", key: "mode", help: "toggle 切换 / hold 按住", fType: fSelect, opts: []string{"toggle", "hold"}, optIdx: idxOf([]string{"toggle", "hold"}, vc.Mode)},
-		{label: "App Key", key: "app_key", help: "火山 App ID", fType: fString, input: ti(vc.AppKey)},
-		{label: "Access Key", key: "access_key", help: "火山 Access Token", fType: fString, input: ti(vc.AccessKey)},
-		{label: "自动上屏", key: "auto_submit", help: "识别后自动粘贴", fType: fToggle, boolVal: vc.AutoSubmit},
-		{label: "停止延迟(ms)", key: "stop_delay_ms", help: "松手后补录毫秒", fType: fString, input: ti(fmt.Sprintf("%d", vc.StopDelayMs))},
-		{label: "热词", key: "hotwords", help: "逗号分隔术语", fType: fString, input: ti(strings.Join(vc.Hotwords, ", "))},
 	}
-	return &Model{cfg: cfg, fields: fs, logs: make([]string, 0, 100), cursor: -1, showLogs: true}
+
+	// Provider selector (only when multiple providers)
+	m.providerField = -1
+	if len(m.providerNames) > 1 {
+		m.providerField = len(fs)
+		fs = append(fs, field{label: "ASR 提供商", key: "asr_provider", help: "选择语音识别服务", fType: fSelect, opts: m.providerNames, optIdx: m.providerIdx})
+	}
+
+	// Provider-specific credential fields
+	fs = append(fs, m.credentialFields()...)
+
+	fs = append(fs,
+		field{label: "自动上屏", key: "auto_submit", help: "识别后自动粘贴", fType: fToggle, boolVal: vc.AutoSubmit},
+		field{label: "停止延迟(ms)", key: "stop_delay_ms", help: "松手后补录毫秒", fType: fString, input: ti(fmt.Sprintf("%d", vc.StopDelayMs))},
+		field{label: "热词", key: "hotwords", help: "逗号分隔术语", fType: fString, input: ti(strings.Join(vc.Hotwords, ", "))},
+	)
+	m.fields = fs
+}
+
+// credentialFields returns provider-specific input fields based on the selected provider type.
+func (m *Model) credentialFields() []field {
+	ti := func(v string) textinput.Model { t := textinput.New(); t.SetValue(v); t.Cursor.Blink = false; return t }
+
+	if len(m.providerNames) == 0 {
+		// Legacy single-provider mode: show Doubao fields from [voice]
+		return []field{
+			{label: "App Key", key: "app_key", help: "火山 App ID", fType: fString, input: ti(m.cfg.Voice.AppKey)},
+			{label: "Access Key", key: "access_key", help: "火山 Access Token", fType: fString, input: ti(m.cfg.Voice.AccessKey)},
+		}
+	}
+
+	// Multi-provider mode: show fields for the selected provider
+	var p config.ASRProviderConfig
+	if m.providerIdx < len(m.cfg.ASRs) {
+		p = m.cfg.ASRs[m.providerIdx]
+	}
+
+	switch p.Type {
+	case "doubao":
+		return []field{
+			{label: "App Key", key: "p_app_key", help: "火山 App ID", fType: fString, input: ti(p.AppKey)},
+			{label: "Access Key", key: "p_access_key", help: "火山 Access Token", fType: fString, input: ti(p.AccessKey)},
+		}
+	case "openai-realtime", "openai-whisper":
+		fields := []field{
+			{label: "API Key", key: "p_api_key", help: "OpenAI API Key", fType: fString, input: ti(p.ApiKey)},
+			{label: "Model", key: "p_model", help: "模型名", fType: fString, input: ti(p.Model)},
+		}
+		if p.Type == "openai-whisper" {
+			fields = append(fields, field{label: "Endpoint", key: "p_base_url", help: "API 端点（留空用默认）", fType: fString, input: ti(p.BaseURL)})
+		}
+		return fields
+	case "mimo-asr":
+		return []field{
+			{label: "API Key", key: "p_api_key", help: "MiMo API Key", fType: fString, input: ti(p.ApiKey)},
+			{label: "Model", key: "p_model", help: "模型名（默认 mimo-v2.5-asr）", fType: fString, input: ti(p.Model)},
+			{label: "Endpoint", key: "p_base_url", help: "API 端点（留空用默认）", fType: fString, input: ti(p.BaseURL)},
+		}
+	case "xfyun-spark":
+		return []field{
+			{label: "App ID", key: "p_app_id", help: "讯飞 App ID", fType: fString, input: ti(p.AppID)},
+			{label: "API Key", key: "p_api_key", help: "讯飞 API Key", fType: fString, input: ti(p.ApiKey)},
+			{label: "API Secret", key: "p_api_secret", help: "讯飞 API Secret", fType: fString, input: ti(p.ApiSecret)},
+			{label: "动态修正", key: "p_dwa", help: "留空关闭，wpgs 开启", fType: fString, input: ti(p.DWA)},
+		}
+	default:
+		return nil
+	}
+}
+
+// switchProvider changes the selected provider and rebuilds credential fields.
+func (m *Model) switchProvider(newIdx int) {
+	if newIdx == m.providerIdx || newIdx < 0 || newIdx >= len(m.providerNames) {
+		return
+	}
+	// Save current credential field values to the old provider
+	m.saveProviderFields(m.providerIdx)
+	m.providerIdx = newIdx
+	// Rebuild fields, preserving cursor position where possible
+	oldCursor := m.cursor
+	m.rebuildFields()
+	// Adjust cursor if it was in the credential area
+	if oldCursor >= len(m.fields) {
+		m.cursor = len(m.fields) - 1
+	}
 }
 
 func (m *Model) SetDebug(debug bool) {
@@ -135,6 +241,7 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 		}
 		switch f.fType {
 		case fSelect:
+			oldIdx := f.optIdx
 			switch k {
 			case "j", "down":
 				f.optIdx++
@@ -146,6 +253,10 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 				if f.optIdx < 0 {
 					f.optIdx = len(f.opts) - 1
 				}
+			}
+			// If this is the provider selector and the index changed, rebuild fields
+			if f.key == "asr_provider" && f.optIdx != oldIdx {
+				m.switchProvider(f.optIdx)
 			}
 		case fToggle:
 			switch k {
@@ -208,6 +319,7 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 	}
 	return nil
 }
+
 func (m *Model) save() {
 	next := *m.cfg
 	vc := &next.Voice
@@ -219,10 +331,8 @@ func (m *Model) save() {
 			vc.PushToTalk = f.input.Value()
 		case "mode":
 			vc.Mode = f.opts[f.optIdx]
-		case "app_key":
-			vc.AppKey = f.input.Value()
-		case "access_key":
-			vc.AccessKey = f.input.Value()
+		case "asr_provider":
+			next.UpdateASRDefault(f.opts[f.optIdx])
 		case "auto_submit":
 			vc.AutoSubmit = f.boolVal
 		case "stop_delay_ms":
@@ -231,6 +341,8 @@ func (m *Model) save() {
 			vc.Hotwords = splitList(f.input.Value())
 		}
 	}
+	// Save provider-specific credential fields
+	m.saveProviderFieldsTo(&next, m.providerIdx)
 	combo, err := config.ParseHotkey(vc.PushToTalk)
 	if err != nil {
 		m.logf("❌ 热键格式错误: %s", err)
@@ -253,6 +365,38 @@ func (m *Model) save() {
 	if m.OnSave != nil {
 		if err := m.OnSave(m.cfg); err != nil {
 			m.logf("❌ 热键注册失败: %s", err)
+		}
+	}
+}
+
+// saveProviderFields writes current credential field values back to cfg.ASRs[pIdx].
+func (m *Model) saveProviderFields(pIdx int) {
+	m.saveProviderFieldsTo(m.cfg, pIdx)
+}
+
+func (m *Model) saveProviderFieldsTo(cfg *config.Config, pIdx int) {
+	if pIdx < 0 || pIdx >= len(cfg.ASRs) {
+		return
+	}
+	p := &cfg.ASRs[pIdx]
+	for _, f := range m.fields {
+		switch f.key {
+		case "p_app_key":
+			p.AppKey = f.input.Value()
+		case "p_access_key":
+			p.AccessKey = f.input.Value()
+		case "p_api_key":
+			p.ApiKey = f.input.Value()
+		case "p_api_secret":
+			p.ApiSecret = f.input.Value()
+		case "p_model":
+			p.Model = f.input.Value()
+		case "p_base_url":
+			p.BaseURL = f.input.Value()
+		case "p_app_id":
+			p.AppID = f.input.Value()
+		case "p_dwa":
+			p.DWA = f.input.Value()
 		}
 	}
 }
@@ -445,7 +589,8 @@ func (m *Model) renderField(i int, f field) string {
 	switch f.fType {
 	case fString:
 		v := f.input.Value()
-		if f.key == "access_key" && !editing && len(v) > 8 {
+		// Mask sensitive fields
+		if !editing && isSecretField(f.key) && len(v) > 8 {
 			v = v[:8] + "***"
 		}
 		if editing {
@@ -465,6 +610,14 @@ func (m *Model) renderField(i int, f field) string {
 		return vStyle.Render(v)
 	}
 	return ""
+}
+
+func isSecretField(key string) bool {
+	switch key {
+	case "access_key", "p_access_key", "p_api_key", "p_api_secret":
+		return true
+	}
+	return false
 }
 
 func (m *Model) logf(format string, args ...interface{}) {

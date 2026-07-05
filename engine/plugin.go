@@ -8,8 +8,8 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/c/just-talk-go/config"
-	"github.com/c/just-talk-go/hotkey"
+	"gitee.com/AY77-OP/audio-talk-ai/config"
+	"gitee.com/AY77-OP/audio-talk-ai/hotkey"
 )
 
 // Plugin is the interface for all engine plugins.

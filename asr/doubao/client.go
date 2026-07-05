@@ -1,4 +1,4 @@
-package voice
+package doubao
 
 import (
 	"context"
@@ -9,36 +9,10 @@ import (
 	"strings"
 	"sync"
 
+	"gitee.com/AY77-OP/audio-talk-ai/asr"
 	"github.com/coder/websocket"
 	"github.com/google/uuid"
 )
-
-type ASRConfig struct {
-	AppKey     string
-	AccessKey  string
-	ResourceID string
-	Language   string
-	Hotwords   []string
-}
-
-type ASRClient struct {
-	cfg       ASRConfig
-	logger    *slog.Logger
-	conn      *websocket.Conn
-	connMu    sync.Mutex
-	resultCh  chan ASRResult
-	done      chan struct{}
-	final     chan struct{}
-	finalOnce sync.Once
-	textMu    sync.RWMutex
-	lastText  string
-}
-
-type ASRResult struct {
-	Text    string
-	IsFinal bool
-	Error   error
-}
 
 const (
 	hdrVersion       = 0x10
@@ -49,24 +23,54 @@ const (
 	hdrRawAudio      = 0x00
 )
 
-func NewASRClient(cfg ASRConfig, logger *slog.Logger) *ASRClient {
-	return &ASRClient{
-		cfg: cfg, logger: logger,
-		resultCh: make(chan ASRResult, 64),
-		lastText: "",
-		done:     make(chan struct{}),
-		final:    make(chan struct{}),
-	}
+func init() {
+	asr.Register("doubao", New)
 }
 
-func (c *ASRClient) Connect(ctx context.Context) error {
+type client struct {
+	common     asr.Common
+	appKey     string
+	accessKey  string
+	resourceID string
+	logger     *slog.Logger
+	conn       *websocket.Conn
+	connMu     sync.Mutex
+	resultCh   chan asr.Result
+	done       chan struct{}
+	final      chan struct{}
+	finalOnce  sync.Once
+	textMu     sync.RWMutex
+	lastText   string
+}
+
+// New creates a Doubao/ByteDance SAUC ASR client.
+func New(common asr.Common, providerCfg map[string]interface{}, logger *slog.Logger) (asr.Client, error) {
+	appKey, _ := providerCfg["app_key"].(string)
+	accessKey, _ := providerCfg["access_key"].(string)
+	resourceID, _ := providerCfg["resource_id"].(string)
+	if resourceID == "" {
+		resourceID = "volc.bigasr.sauc.duration"
+	}
+	if appKey == "" || accessKey == "" {
+		return nil, fmt.Errorf("doubao: app_key and access_key are required")
+	}
+	return &client{
+		common: common, appKey: appKey, accessKey: accessKey,
+		resourceID: resourceID, logger: logger,
+		resultCh: make(chan asr.Result, 64),
+		done:     make(chan struct{}),
+		final:    make(chan struct{}),
+	}, nil
+}
+
+func (c *client) Connect(ctx context.Context) error {
 	url := "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async"
-	c.logger.Info("connecting to ASR", "url", url)
+	c.logger.Info("connecting to ASR", "url", url, "provider", "doubao")
 	conn, resp, err := websocket.Dial(ctx, url, &websocket.DialOptions{
 		HTTPHeader: map[string][]string{
-			"X-Api-App-Key":     {c.cfg.AppKey},
-			"X-Api-Access-Key":  {c.cfg.AccessKey},
-			"X-Api-Resource-Id": {c.cfg.ResourceID},
+			"X-Api-App-Key":     {c.appKey},
+			"X-Api-Access-Key":  {c.accessKey},
+			"X-Api-Resource-Id": {c.resourceID},
 			"X-Api-Request-Id":  {uuid.New().String()},
 			"X-Api-Connect-Id":  {uuid.New().String()},
 			"X-Api-Sequence":    {"-1"},
@@ -83,11 +87,11 @@ func (c *ASRClient) Connect(ctx context.Context) error {
 		conn.Close(websocket.StatusInternalError, "init failed")
 		return fmt.Errorf("send init: %w", err)
 	}
-	c.logger.Info("ASR connected")
+	c.logger.Info("ASR connected", "provider", "doubao")
 	return nil
 }
 
-func (c *ASRClient) SendAudio(ctx context.Context, pcm []byte, isLast bool) error {
+func (c *client) SendAudio(ctx context.Context, pcm []byte, isLast bool) error {
 	c.connMu.Lock()
 	defer c.connMu.Unlock()
 	flags := byte(0x00)
@@ -100,17 +104,17 @@ func (c *ASRClient) SendAudio(ctx context.Context, pcm []byte, isLast bool) erro
 	return c.conn.Write(ctx, websocket.MessageBinary, append(append(header, size...), pcm...))
 }
 
-func (c *ASRClient) Results() <-chan ASRResult { return c.resultCh }
-func (c *ASRClient) Done() <-chan struct{}     { return c.done }
-func (c *ASRClient) Final() <-chan struct{}    { return c.final }
+func (c *client) Results() <-chan asr.Result { return c.resultCh }
+func (c *client) Done() <-chan struct{}      { return c.done }
+func (c *client) Final() <-chan struct{}     { return c.final }
 
-func (c *ASRClient) LastText() string {
+func (c *client) LastText() string {
 	c.textMu.RLock()
 	defer c.textMu.RUnlock()
 	return c.lastText
 }
 
-func (c *ASRClient) ReceiveLoop(ctx context.Context) {
+func (c *client) ReceiveLoop(ctx context.Context) {
 	defer close(c.resultCh)
 	defer close(c.done)
 	for {
@@ -122,26 +126,26 @@ func (c *ASRClient) ReceiveLoop(ctx context.Context) {
 	}
 }
 
-func (c *ASRClient) Close() error {
+func (c *client) Close() error {
 	if c.conn != nil {
 		return c.conn.Close(websocket.StatusNormalClosure, "done")
 	}
 	return nil
 }
 
-func (c *ASRClient) sendFullClientRequest(ctx context.Context) error {
+func (c *client) sendFullClientRequest(ctx context.Context) error {
 	request := map[string]interface{}{
 		"model_name": "bigmodel", "enable_itn": true, "enable_punc": true,
 		"enable_ddc": false, "enable_word": false,
 		"enable_nonstream": true, "result_type": "full", "show_utterances": true,
 	}
-	if len(c.cfg.Hotwords) > 0 {
-		if contextJSON, err := hotwordsContext(c.cfg.Hotwords); err == nil && contextJSON != "" {
+	if len(c.common.Hotwords) > 0 {
+		if contextJSON, err := hotwordsContext(c.common.Hotwords); err == nil && contextJSON != "" {
 			request["corpus"] = map[string]interface{}{"context": contextJSON}
 		}
 	}
 	payload := map[string]interface{}{
-		"user":    map[string]string{"uid": "just-talk"},
+		"user":    map[string]string{"uid": "audio-talk-ai"},
 		"audio":   map[string]interface{}{"format": "pcm", "rate": 16000, "bits": 16, "channel": 1, "codec": "raw"},
 		"request": request,
 	}
@@ -176,7 +180,7 @@ func hotwordsContext(words []string) (string, error) {
 	return string(b), nil
 }
 
-func (c *ASRClient) parseResponse(data []byte) {
+func (c *client) parseResponse(data []byte) {
 	if len(data) < 12 {
 		return
 	}
@@ -213,7 +217,7 @@ func (c *ASRClient) parseResponse(data []byte) {
 		c.textMu.Lock()
 		c.lastText = text
 		c.textMu.Unlock()
-		c.resultCh <- ASRResult{Text: text, IsFinal: isFinal}
+		c.resultCh <- asr.Result{Text: text, IsFinal: isFinal}
 		if isFinal {
 			c.finalOnce.Do(func() { close(c.final) })
 		}
