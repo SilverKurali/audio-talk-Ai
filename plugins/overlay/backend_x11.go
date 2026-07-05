@@ -219,6 +219,14 @@ func (b *x11Backend) Show(label string, color statusColor) error {
 	return nil
 }
 
+func (b *x11Backend) Refresh() {
+	if b.dpy == nil || !b.visible {
+		return
+	}
+	C.XRaiseWindow(b.dpy, b.win)
+	C.XFlush(b.dpy)
+}
+
 func (b *x11Backend) Hide() error {
 	if b.dpy == nil || !b.visible {
 		return nil

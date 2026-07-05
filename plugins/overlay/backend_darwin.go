@@ -54,6 +54,10 @@ func (b *darwinBackend) Show(label string, color statusColor) error {
 	return b.send(helperCommand{Cmd: "show", Label: label, R: color.R, G: color.G, B: color.B})
 }
 
+func (b *darwinBackend) Refresh() {
+	// macOS overlay is managed by helper process, no refresh needed
+}
+
 func (b *darwinBackend) Hide() error {
 	slog.Default().Debug("macOS overlay hide")
 	return b.send(helperCommand{Cmd: "hide"})

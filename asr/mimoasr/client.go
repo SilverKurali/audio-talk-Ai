@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -117,7 +118,14 @@ func (c *client) transcribeAndDeliver() {
 		return
 	}
 
-	c.logger.Info("sending audio to MiMo ASR", "bytes", len(pcm))
+	c.logger.Info("sending audio to MiMo ASR", "bytes", len(pcm), "endpoint", c.endpoint)
+	// Debug: save audio to file for inspection
+	if debugFile, err := os.CreateTemp("", "mimo-debug-*.wav"); err == nil {
+		wav := pcmToWAV(pcm, 16000, 1)
+		debugFile.Write(wav)
+		debugFile.Close()
+		c.logger.Info("debug audio saved", "file", debugFile.Name(), "wav_bytes", len(wav))
+	}
 	text, err := c.transcribe(pcm)
 	if err != nil {
 		c.resultCh <- asr.Result{Error: err}
@@ -182,6 +190,7 @@ func (c *client) transcribe(pcm []byte) (string, error) {
 	defer resp.Body.Close()
 
 	respBody, _ := io.ReadAll(resp.Body)
+	c.logger.Info("MiMo ASR response", "status", resp.StatusCode, "body", truncate(string(respBody), 300))
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("mimo-asr API: HTTP %d: %s", resp.StatusCode, truncate(string(respBody), 200))
 	}

@@ -157,8 +157,21 @@ func (b *waylandBackend) Show(label string, color statusColor) error {
 	C.wl_surface_damage_buffer(b.surface, 0, 0, C.int32_t(b.w), C.int32_t(b.h))
 	C.wl_surface_commit(b.surface)
 	C.wl_display_flush(b.display)
+	C.wl_display_roundtrip(b.display)
 	b.visible = true
 	return nil
+}
+
+func (b *waylandBackend) Refresh() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.display == nil || b.closed || b.destroyed || !b.visible {
+		return
+	}
+	C.wl_surface_damage_buffer(b.surface, 0, 0, C.int32_t(b.w), C.int32_t(b.h))
+	C.wl_surface_commit(b.surface)
+	C.wl_display_flush(b.display)
+	C.wl_display_roundtrip(b.display)
 }
 
 func (b *waylandBackend) Hide() error {

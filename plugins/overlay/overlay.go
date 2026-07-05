@@ -14,6 +14,7 @@ type backend interface {
 	Show(label string, color statusColor) error
 	Hide() error
 	Close() error
+	Refresh()
 }
 
 type statusColor struct {
@@ -56,6 +57,8 @@ func (p *Plugin) Start(ctx context.Context) error {
 
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
+	refreshTicker := time.NewTicker(2 * time.Second)
+	defer refreshTicker.Stop()
 	p.logger.Info("overlay started")
 	for {
 		select {
@@ -63,6 +66,11 @@ func (p *Plugin) Start(ctx context.Context) error {
 			return ctx.Err()
 		case <-ticker.C:
 			p.sync(voice.TUIStatus())
+		case <-refreshTicker.C:
+			// Periodically re-commit the surface to keep it visible
+			if p.lastVisible {
+				p.backend.Refresh()
+			}
 		}
 	}
 }
@@ -79,6 +87,7 @@ func (p *Plugin) sync(status voice.TUIVoiceStatus) {
 	if status.State == p.lastState && label == p.lastLabel && visible == p.lastVisible {
 		return
 	}
+	p.logger.Info("overlay sync", "state", status.State, "label", label, "visible", visible, "lastState", p.lastState)
 	p.lastState, p.lastLabel, p.lastVisible = status.State, label, visible
 
 	if !visible {
@@ -88,7 +97,7 @@ func (p *Plugin) sync(status voice.TUIVoiceStatus) {
 		return
 	}
 	if err := p.backend.Show(label, color); err != nil {
-		p.logger.Debug("overlay show failed", "error", err)
+		p.logger.Info("overlay show failed", "error", err)
 	}
 }
 
