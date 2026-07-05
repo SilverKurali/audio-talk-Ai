@@ -160,7 +160,8 @@ push_to_talk = "Option+Command"
 
 ## 致谢
 
-本项目基于 [github.com/c/just-talk-go](https://github.com/c/just-talk-go) 开发，感谢原作者的开源贡献。
+- 语音输入核心基于 [github.com/c/just-talk-go](https://github.com/c/just-talk-go) 开发
+- 可断开会话（di 模式）基于 [github.com/whoamihappyhacking/di](https://github.com/whoamihappyhacking/di) 实现
 
 ## 许可证
 

@@ -160,7 +160,8 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ## Credits
 
-This project is based on [github.com/c/just-talk-go](https://github.com/c/just-talk-go). Thanks to the original author for the open-source contribution.
+- Voice input core based on [github.com/c/just-talk-go](https://github.com/c/just-talk-go)
+- Detachable session (di mode) based on [github.com/whoamihappyhacking/di](https://github.com/whoamihappyhacking/di)
 
 ## License
 
