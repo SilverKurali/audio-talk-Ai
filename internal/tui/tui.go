@@ -71,6 +71,7 @@ type Model struct {
 	providerField   int    // index of the asr_provider field in fields, -1 if absent
 	background      bool   // user requested background mode
 	lastAddedType   string // last added provider type, used as default in add_provider dropdown
+	previewType     string // provider type being previewed in "添加服务商" (empty = no preview)
 }
 
 func New(cfg *config.Config) *Model {
@@ -127,7 +128,15 @@ func (m *Model) rebuildFields() {
 	// "添加服务商" selector
 	providerTypes := []string{"doubao", "openai-realtime", "openai-whisper", "mimo-asr", "xfyun-spark"}
 	addIdx := idxOf(providerTypes, m.lastAddedType)
-	fs = append(fs, field{label: "添加服务商", key: "add_provider", help: "选择类型后按 Enter 添加", fType: fSelect, opts: providerTypes, optIdx: addIdx})
+	if m.previewType != "" {
+		addIdx = idxOf(providerTypes, m.previewType)
+	}
+	fs = append(fs, field{label: "添加服务商", key: "add_provider", help: "选择类型后填写配置，按 Enter 添加", fType: fSelect, opts: providerTypes, optIdx: addIdx})
+
+	// Preview credential fields for the type being added
+	if m.previewType != "" {
+		fs = append(fs, m.previewCredentialFields(m.previewType)...)
+	}
 
 	// "删除服务商" action (only when there are providers)
 	if len(m.cfg.ASRs) > 0 {
@@ -193,6 +202,43 @@ func (m *Model) credentialFields() []field {
 	}
 }
 
+// previewCredentialFields returns empty credential fields for a provider type being previewed.
+func (m *Model) previewCredentialFields(providerType string) []field {
+	ti := func(v string) textinput.Model { t := textinput.New(); t.SetValue(v); t.Cursor.Blink = false; return t }
+
+	switch providerType {
+	case "doubao":
+		return []field{
+			{label: "  App Key", key: "new_app_key", help: "火山 App ID", fType: fString, input: ti("")},
+			{label: "  Access Key", key: "new_access_key", help: "火山 Access Token", fType: fString, input: ti("")},
+		}
+	case "openai-realtime", "openai-whisper":
+		fields := []field{
+			{label: "  API Key", key: "new_api_key", help: "OpenAI API Key", fType: fString, input: ti("")},
+			{label: "  Model", key: "new_model", help: "模型名", fType: fString, input: ti("")},
+		}
+		if providerType == "openai-whisper" {
+			fields = append(fields, field{label: "  Endpoint", key: "new_base_url", help: "API 端点（留空用默认）", fType: fString, input: ti("")})
+		}
+		return fields
+	case "mimo-asr":
+		return []field{
+			{label: "  API Key", key: "new_api_key", help: "MiMo API Key", fType: fString, input: ti("")},
+			{label: "  Model", key: "new_model", help: "模型名（默认 mimo-v2.5-asr）", fType: fString, input: ti("")},
+			{label: "  Endpoint", key: "new_base_url", help: "API 端点（留空用默认）", fType: fString, input: ti("")},
+		}
+	case "xfyun-spark":
+		return []field{
+			{label: "  App ID", key: "new_app_id", help: "讯飞 App ID", fType: fString, input: ti("")},
+			{label: "  API Key", key: "new_api_key", help: "讯飞 API Key", fType: fString, input: ti("")},
+			{label: "  API Secret", key: "new_api_secret", help: "讯飞 API Secret", fType: fString, input: ti("")},
+			{label: "  动态修正", key: "new_dwa", help: "留空关闭，wpgs 开启", fType: fString, input: ti("")},
+		}
+	default:
+		return nil
+	}
+}
+
 // switchProvider changes the selected provider and rebuilds credential fields.
 func (m *Model) switchProvider(newIdx int) {
 	if newIdx == m.providerIdx || newIdx < 0 || newIdx >= len(m.providerNames) {
@@ -210,7 +256,7 @@ func (m *Model) switchProvider(newIdx int) {
 	}
 }
 
-// addProvider creates a new provider entry and switches to it.
+// addProvider creates a new provider entry from preview fields and switches to it.
 func (m *Model) addProvider(providerType string) {
 	// Capture current legacy field values before rebuilding
 	legacyAppKey := m.fieldValue("app_key")
@@ -223,7 +269,6 @@ func (m *Model) addProvider(providerType string) {
 	if len(m.cfg.ASRs) == 0 {
 		appKey := m.cfg.Voice.AppKey
 		accessKey := m.cfg.Voice.AccessKey
-		// Also pick up values from legacy fields if voice config was empty
 		if appKey == "" {
 			appKey = legacyAppKey
 		}
@@ -242,7 +287,6 @@ func (m *Model) addProvider(providerType string) {
 	}
 
 	name := providerType
-	// Ensure unique name
 	seen := make(map[string]bool)
 	for _, n := range m.providerNames {
 		seen[n] = true
@@ -257,18 +301,27 @@ func (m *Model) addProvider(providerType string) {
 		}
 	}
 
+	// Build new provider with values from preview fields
 	newProvider := config.ASRProviderConfig{
-		Name:    name,
-		Type:    providerType,
-		Default: len(m.cfg.ASRs) == 0, // first provider is default
+		Name:      name,
+		Type:      providerType,
+		Default:   len(m.cfg.ASRs) == 0,
+		AppKey:    m.fieldValue("new_app_key"),
+		AccessKey: m.fieldValue("new_access_key"),
+		ApiKey:    m.fieldValue("new_api_key"),
+		Model:     m.fieldValue("new_model"),
+		BaseURL:   m.fieldValue("new_base_url"),
+		AppID:     m.fieldValue("new_app_id"),
+		ApiSecret: m.fieldValue("new_api_secret"),
+		DWA:       m.fieldValue("new_dwa"),
 	}
 	m.cfg.ASRs = append(m.cfg.ASRs, newProvider)
 
-	// Rebuild names and switch to new provider
 	m.providerNames = append(m.providerNames, name)
 	m.providerIdx = len(m.cfg.ASRs) - 1
-
 	m.lastAddedType = providerType
+	m.previewType = "" // clear preview
+
 	m.rebuildFields()
 	m.logf("✅ 已添加服务商: %s (%s)", name, providerType)
 }
@@ -367,6 +420,10 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 		case "esc":
 			m.editing = false
 			f.input.Blur()
+			if f.key == "add_provider" {
+				m.previewType = ""
+				m.rebuildFields()
+			}
 			return nil
 		case "enter":
 			m.editing = false
@@ -401,6 +458,19 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 			// If this is the provider selector and the index changed, rebuild fields
 			if f.key == "asr_provider" && f.optIdx != oldIdx {
 				m.switchProvider(f.optIdx)
+			}
+			// If this is the add_provider selector, show preview fields
+			if f.key == "add_provider" && f.optIdx != oldIdx {
+				m.previewType = f.opts[f.optIdx]
+				m.rebuildFields()
+				// Restore cursor to add_provider field
+				for i, ff := range m.fields {
+					if ff.key == "add_provider" {
+						m.cursor = i
+						m.editing = true
+						break
+					}
+				}
 			}
 		case fToggle:
 			switch k {
