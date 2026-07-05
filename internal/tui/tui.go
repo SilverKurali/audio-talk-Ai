@@ -223,7 +223,7 @@ func (m *Model) previewCredentialFields(providerType string) []field {
 	case "xiaomi-mimo-asr", "xiaomi-mimo-asr-TokenPlan":
 		return []field{
 			{label: "API Key", key: "new_api_key", help: "MiMo API Key", fType: fString, input: ti("")},
-			{label: "Model", key: "new_model", help: "模型名（默认 mimo-v2.5-asr）", fType: fString, input: ti("")},
+			{label: "Model", key: "new_model", help: "当前仅支持 mimo-v2.5-asr", fType: fString, input: ti("mimo-v2.5-asr")},
 			{label: "Endpoint", key: "new_base_url", help: "API 端点（留空用默认）", fType: fString, input: ti("")},
 		}
 	case "xfyun-spark":
