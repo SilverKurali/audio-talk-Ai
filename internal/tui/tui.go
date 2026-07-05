@@ -125,17 +125,19 @@ func (m *Model) rebuildFields() {
 	// Provider-specific credential fields
 	fs = append(fs, m.credentialFields()...)
 
-	// "添加服务商" selector
+	// "选择服务商" selector
 	providerTypes := []string{"doubao", "openai-realtime", "openai-whisper", "mimo-asr", "xfyun-spark"}
 	addIdx := idxOf(providerTypes, m.lastAddedType)
 	if m.previewType != "" {
 		addIdx = idxOf(providerTypes, m.previewType)
 	}
-	fs = append(fs, field{label: "添加服务商", key: "add_provider", help: "选择类型后填写配置，按 Enter 添加", fType: fSelect, opts: providerTypes, optIdx: addIdx})
+	fs = append(fs, field{label: "选择服务商", key: "add_provider", help: "选择类型后配置凭据", fType: fSelect, opts: providerTypes, optIdx: addIdx})
 
 	// Preview credential fields for the type being added
 	if m.previewType != "" {
 		fs = append(fs, m.previewCredentialFields(m.previewType)...)
+		// Confirm button
+		fs = append(fs, field{label: "添加当前配置的服务商", key: "confirm_add", help: "按 Enter 确认添加", fType: fSelect, opts: []string{"否", "是"}, optIdx: 0})
 	}
 
 	// "删除服务商" action (only when there are providers)
@@ -206,30 +208,30 @@ func (m *Model) previewCredentialFields(providerType string) []field {
 	switch providerType {
 	case "doubao":
 		return []field{
-			{label: "  App Key", key: "new_app_key", help: "火山 App ID", fType: fString, input: ti("")},
-			{label: "  Access Key", key: "new_access_key", help: "火山 Access Token", fType: fString, input: ti("")},
+			{label: "App Key", key: "new_app_key", help: "火山 App ID", fType: fString, input: ti("")},
+			{label: "Access Key", key: "new_access_key", help: "火山 Access Token", fType: fString, input: ti("")},
 		}
 	case "openai-realtime", "openai-whisper":
 		fields := []field{
-			{label: "  API Key", key: "new_api_key", help: "OpenAI API Key", fType: fString, input: ti("")},
-			{label: "  Model", key: "new_model", help: "模型名", fType: fString, input: ti("")},
+			{label: "API Key", key: "new_api_key", help: "OpenAI API Key", fType: fString, input: ti("")},
+			{label: "Model", key: "new_model", help: "模型名", fType: fString, input: ti("")},
 		}
 		if providerType == "openai-whisper" {
-			fields = append(fields, field{label: "  Endpoint", key: "new_base_url", help: "API 端点（留空用默认）", fType: fString, input: ti("")})
+			fields = append(fields, field{label: "Endpoint", key: "new_base_url", help: "API 端点（留空用默认）", fType: fString, input: ti("")})
 		}
 		return fields
 	case "mimo-asr":
 		return []field{
-			{label: "  API Key", key: "new_api_key", help: "MiMo API Key", fType: fString, input: ti("")},
-			{label: "  Model", key: "new_model", help: "模型名（默认 mimo-v2.5-asr）", fType: fString, input: ti("")},
-			{label: "  Endpoint", key: "new_base_url", help: "API 端点（留空用默认）", fType: fString, input: ti("")},
+			{label: "API Key", key: "new_api_key", help: "MiMo API Key", fType: fString, input: ti("")},
+			{label: "Model", key: "new_model", help: "模型名（默认 mimo-v2.5-asr）", fType: fString, input: ti("")},
+			{label: "Endpoint", key: "new_base_url", help: "API 端点（留空用默认）", fType: fString, input: ti("")},
 		}
 	case "xfyun-spark":
 		return []field{
-			{label: "  App ID", key: "new_app_id", help: "讯飞 App ID", fType: fString, input: ti("")},
-			{label: "  API Key", key: "new_api_key", help: "讯飞 API Key", fType: fString, input: ti("")},
-			{label: "  API Secret", key: "new_api_secret", help: "讯飞 API Secret", fType: fString, input: ti("")},
-			{label: "  动态修正", key: "new_dwa", help: "留空关闭，wpgs 开启", fType: fString, input: ti("")},
+			{label: "App ID", key: "new_app_id", help: "讯飞 App ID", fType: fString, input: ti("")},
+			{label: "API Key", key: "new_api_key", help: "讯飞 API Key", fType: fString, input: ti("")},
+			{label: "API Secret", key: "new_api_secret", help: "讯飞 API Secret", fType: fString, input: ti("")},
+			{label: "动态修正", key: "new_dwa", help: "留空关闭，wpgs 开启", fType: fString, input: ti("")},
 		}
 	default:
 		return nil
@@ -400,15 +402,14 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 		case "enter":
 			m.editing = false
 			f.input.Blur()
-			// Enter on a preview field → create provider with filled values
-			if strings.HasPrefix(f.key, "new_") {
-				m.addProvider(m.previewType)
-				return nil
-			}
 			if f.key == "add_provider" {
-				// Just show preview, don't add yet
+				// Show preview fields for selected type
 				m.previewType = f.opts[f.optIdx]
 				m.rebuildFields()
+				return nil
+			}
+			if f.key == "confirm_add" && f.optIdx == 1 {
+				m.addProvider(m.previewType)
 				return nil
 			}
 			if f.key == "del_provider" && f.optIdx == 1 {
