@@ -444,7 +444,7 @@ func (m *Model) View() string {
 		return "loading..."
 	}
 	var b strings.Builder
-	b.WriteString(tStyle.Render("🎙️ 🗣️ Just Talk") + "\n")
+	b.WriteString(tStyle.Render("🎙️ 🗣️ Audio Talk AI") + "\n")
 	b.WriteString(vStyle.Render("减少用键盘的次数，改用口喷吧。") + "\n")
 	b.WriteString(m.renderVoiceStats() + "\n\n")
 	b.WriteString(lStyle.Render("── 配置 (e 编辑, s 保存, h 帮助, j/k 导航) ──") + "\n")
