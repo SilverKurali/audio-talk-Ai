@@ -213,18 +213,33 @@ func (m *Model) switchProvider(newIdx int) {
 
 // addProvider creates a new provider entry and switches to it.
 func (m *Model) addProvider(providerType string) {
+	// Capture current legacy field values before rebuilding
+	legacyAppKey := m.fieldValue("app_key")
+	legacyAccessKey := m.fieldValue("access_key")
+
 	// Save current provider fields first
 	m.saveProviderFields(m.providerIdx)
 
 	// If converting from legacy mode, create a provider entry from voice config
-	if len(m.cfg.ASRs) == 0 && (m.cfg.Voice.AppKey != "" || m.cfg.Voice.AccessKey != "") {
-		m.cfg.ASRs = append(m.cfg.ASRs, config.ASRProviderConfig{
-			Name:      "doubao",
-			Type:      "doubao",
-			Default:   true,
-			AppKey:    m.cfg.Voice.AppKey,
-			AccessKey: m.cfg.Voice.AccessKey,
-		})
+	if len(m.cfg.ASRs) == 0 {
+		appKey := m.cfg.Voice.AppKey
+		accessKey := m.cfg.Voice.AccessKey
+		// Also pick up values from legacy fields if voice config was empty
+		if appKey == "" {
+			appKey = legacyAppKey
+		}
+		if accessKey == "" {
+			accessKey = legacyAccessKey
+		}
+		if appKey != "" || accessKey != "" {
+			m.cfg.ASRs = append(m.cfg.ASRs, config.ASRProviderConfig{
+				Name:      "doubao",
+				Type:      "doubao",
+				Default:   true,
+				AppKey:    appKey,
+				AccessKey: accessKey,
+			})
+		}
 	}
 
 	name := providerType
@@ -287,6 +302,16 @@ func (m *Model) deleteProvider(idx int) {
 
 	m.rebuildFields()
 	m.logf("✅ 已删除服务商: %s", name)
+}
+
+// fieldValue returns the current value of a field by key.
+func (m *Model) fieldValue(key string) string {
+	for _, f := range m.fields {
+		if f.key == key {
+			return f.input.Value()
+		}
+	}
+	return ""
 }
 
 func (m *Model) SetDebug(debug bool) {
