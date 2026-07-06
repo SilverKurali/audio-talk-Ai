@@ -1,6 +1,6 @@
 # Audio Talk AI
 
-[English](README.en.md)
+[English](README.en.md) | [项目结构](PROJECT_STRUCTURE.md)
 
 减少用键盘的次数，改用口喷吧。
 

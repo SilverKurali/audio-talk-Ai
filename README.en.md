@@ -1,6 +1,6 @@
 # Audio Talk AI
 
-[中文](README.md)
+[中文](README.md) | [Project Structure](PROJECT_STRUCTURE.md)
 
 Type less, speak more.
 
