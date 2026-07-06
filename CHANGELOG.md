@@ -46,6 +46,11 @@ All notable project changes are tracked here.
 - Ctrl+] detach now works in GNOME Terminal (CSI u 3-part format support).
 - WebUI config field name casing fixed (lowercase API response).
 - WebUI save voice config no longer overwrites provider entries.
+- iFlytek Spark ASR complete fix:
+  - Switched from `coder/websocket` to `gorilla/websocket` — iFlytek server silently ignored frames from `coder/websocket` (likely due to permessage-deflate negotiation); gorilla/websocket works correctly.
+  - Audio volume reduced by ÷3 before sending — microphone produces saturated/clipped PCM (constant ±32768), which iFlytek's VAD cannot detect as speech. MiMo handles this via deep learning, but iFlytek requires cleaner audio.
+  - Dynamic correction (dwa=wpgs) parsing fixed: `pgs` and `rg` fields are inside the base64-decoded text JSON, not in the outer response JSON. Now uses a segment map (`sn` → text) to correctly handle `apd` (append) and `rpl` (replace) operations, preventing duplicate text accumulation.
+  - Empty results (status=2 with no text) now correctly signal `Final()` channel, preventing 15-second timeout.
 
 ## 2026-05-30
 
