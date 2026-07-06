@@ -112,7 +112,8 @@ audio-talk-ai/
 │   └── daudio-talk-ai             # 可断开会话的 shell 包装脚本
 │
 ├── docs/
-│   └── screenshot-tui.png         # TUI 截图
+│   ├── screenshot-tui.png         # TUI 截图
+│   └── screenshot-webui.png       # WebUI 截图
 │
 ├── Makefile                       # 构建/安装/测试/清理目标
 ├── go.mod                         # Go 模块定义

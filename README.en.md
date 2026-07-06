@@ -8,6 +8,16 @@ Audio Talk AI is a desktop voice input tool. It records audio with a global hotk
 
 Supports multiple ASR providers with one-click switching in the TUI.
 
+## Screenshots
+
+### TUI
+
+![TUI](docs/screenshot-tui.png)
+
+### Web UI
+
+![WebUI](docs/screenshot-webui.png)
+
 ## Features
 
 - Global hotkey recording with `toggle` (press to start, press again to stop) and `hold` (press and speak) modes.

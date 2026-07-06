@@ -8,6 +8,16 @@ Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局
 
 支持多个语音识别服务商，可在 TUI 中一键切换。
 
+## 截图
+
+### TUI 界面
+
+![TUI](docs/screenshot-tui.png)
+
+### Web 管理界面
+
+![WebUI](docs/screenshot-webui.png)
+
 ## 功能
 
 - 全局快捷键录音，支持 `toggle`（按一下开始、再按一下停止）和 `hold`（按住说话）两种模式。
