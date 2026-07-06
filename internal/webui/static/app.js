@@ -115,23 +115,23 @@ function getHotkeyValue() {
 // Load config
 async function loadConfig() {
   const cfg = await api('GET', '/config');
-  setHotkeyValue(cfg.Voice.push_to_talk || 'F9');
-  document.getElementById('cfg-mode').value = cfg.Voice.mode || 'toggle';
-  document.getElementById('cfg-auto-submit').value = cfg.Voice.auto_submit ? 'true' : 'false';
-  document.getElementById('cfg-stop-delay').value = cfg.Voice.stop_delay_ms || 0;
-  document.getElementById('cfg-hotwords').value = (cfg.Voice.hotwords || []).join(', ');
+  setHotkeyValue(cfg.voice.push_to_talk || 'F9');
+  document.getElementById('cfg-mode').value = cfg.voice.mode || 'toggle';
+  document.getElementById('cfg-auto-submit').value = cfg.voice.auto_submit ? 'true' : 'false';
+  document.getElementById('cfg-stop-delay').value = cfg.voice.stop_delay_ms || 0;
+  document.getElementById('cfg-hotwords').value = (cfg.voice.hotwords || []).join(', ');
 }
 
 // Save voice config
 async function saveVoiceConfig() {
-  const vc = {
-    push_to_talk: getHotkeyValue(),
-    mode: document.getElementById('cfg-mode').value,
-    auto_submit: document.getElementById('cfg-auto-submit').value === 'true',
-    stop_delay_ms: parseInt(document.getElementById('cfg-stop-delay').value) || 0,
-    hotwords: document.getElementById('cfg-hotwords').value.split(/[,，]/).map(s => s.trim()).filter(Boolean),
-  };
-  await api('PUT', '/config/voice', vc);
+  // Load full config first, then only update the fields we manage
+  const cfg = await api('GET', '/config');
+  cfg.voice.push_to_talk = getHotkeyValue();
+  cfg.voice.mode = document.getElementById('cfg-mode').value;
+  cfg.voice.auto_submit = document.getElementById('cfg-auto-submit').value === 'true';
+  cfg.voice.stop_delay_ms = parseInt(document.getElementById('cfg-stop-delay').value) || 0;
+  cfg.voice.hotwords = document.getElementById('cfg-hotwords').value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+  await api('PUT', '/config/voice', cfg.voice);
   toast('语音设置已保存');
 }
 
