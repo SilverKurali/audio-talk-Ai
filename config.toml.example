@@ -71,3 +71,8 @@ access_key = "your_access_key"
 [overlay]
 enabled = true
 position = "bottom-center"
+
+# Web 管理界面（浏览器访问配置和历史记录）
+[web]
+enabled = true
+port = 8391        # 浏览器访问 http://localhost:8391

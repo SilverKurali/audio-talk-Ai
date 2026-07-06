@@ -11,28 +11,29 @@ import (
 )
 
 type Config struct {
-	Voice   VoiceConfig         `toml:"voice"`
-	ASRs    []ASRProviderConfig `toml:"asr_providers"`
-	Debug   DebugConfig         `toml:"debug"`
-	Overlay OverlayConfig       `toml:"overlay"`
+	Voice   VoiceConfig         `toml:"voice" json:"voice"`
+	ASRs    []ASRProviderConfig `toml:"asr_providers" json:"asr_providers"`
+	Debug   DebugConfig         `toml:"debug" json:"debug"`
+	Overlay OverlayConfig      `toml:"overlay" json:"overlay"`
+	Web     WebConfig           `toml:"web" json:"web"`
 }
 
 type ASRProviderConfig struct {
-	Name       string `toml:"name"`
-	Type       string `toml:"type"`
-	Default    bool   `toml:"default,omitempty"`
+	Name       string `toml:"name" json:"name"`
+	Type       string `toml:"type" json:"type"`
+	Default    bool   `toml:"default,omitempty" json:"default"`
 	// Doubao fields
-	AppKey     string `toml:"app_key"`
-	AccessKey  string `toml:"access_key"`
-	ResourceID string `toml:"resource_id"`
+	AppKey     string `toml:"app_key" json:"app_key"`
+	AccessKey  string `toml:"access_key" json:"access_key"`
+	ResourceID string `toml:"resource_id" json:"resource_id"`
 	// OpenAI fields
-	ApiKey  string `toml:"api_key"`
-	Model   string `toml:"model"`
-	BaseURL string `toml:"base_url"`
+	ApiKey  string `toml:"api_key" json:"api_key"`
+	Model   string `toml:"model" json:"model"`
+	BaseURL string `toml:"base_url" json:"base_url"`
 	// iFlytek fields
-	AppID     string `toml:"app_id"`
-	ApiSecret string `toml:"api_secret"`
-	DWA       string `toml:"dwa"`
+	AppID     string `toml:"app_id" json:"app_id"`
+	ApiSecret string `toml:"api_secret" json:"api_secret"`
+	DWA       string `toml:"dwa" json:"dwa"`
 }
 
 // ProviderCfgMap converts the provider config to a map for the ASR factory.
@@ -92,30 +93,35 @@ func (c *Config) UpdateASRDefault(name string) {
 }
 
 type DebugConfig struct {
-	Enabled bool     `toml:"enabled"`
-	Hotkeys []string `toml:"hotkeys"`
+	Enabled bool     `toml:"enabled" json:"enabled"`
+	Hotkeys []string `toml:"hotkeys" json:"hotkeys"`
 }
 
 type OverlayConfig struct {
-	Enabled     bool    `toml:"enabled"`
-	Position    string  `toml:"position"`
-	IdleVisible bool    `toml:"idle_visible"`
-	Scale       float64 `toml:"scale"`
+	Enabled     bool    `toml:"enabled" json:"enabled"`
+	Position    string  `toml:"position" json:"position"`
+	IdleVisible bool    `toml:"idle_visible" json:"idle_visible"`
+	Scale       float64 `toml:"scale" json:"scale"`
+}
+
+type WebConfig struct {
+	Enabled bool `toml:"enabled" json:"enabled"`
+	Port    int  `toml:"port" json:"port"`
 }
 
 type VoiceConfig struct {
-	Enabled     bool     `toml:"enabled"`
-	Mode        string   `toml:"mode"`
-	PushToTalk  string   `toml:"push_to_talk"`
-	Device      string   `toml:"device"`
-	Gain        int      `toml:"gain"`
-	StopDelayMs int      `toml:"stop_delay_ms"`
-	Language    string   `toml:"language"`
-	AutoSubmit  bool     `toml:"auto_submit"`
-	AppKey      string   `toml:"app_key"`
-	AccessKey   string   `toml:"access_key"`
-	ResourceID  string   `toml:"resource_id"`
-	Hotwords    []string `toml:"hotwords"`
+	Enabled     bool     `toml:"enabled" json:"enabled"`
+	Mode        string   `toml:"mode" json:"mode"`
+	PushToTalk  string   `toml:"push_to_talk" json:"push_to_talk"`
+	Device      string   `toml:"device" json:"device"`
+	Gain        int      `toml:"gain" json:"gain"`
+	StopDelayMs int      `toml:"stop_delay_ms" json:"stop_delay_ms"`
+	Language    string   `toml:"language" json:"language"`
+	AutoSubmit  bool     `toml:"auto_submit" json:"auto_submit"`
+	AppKey      string   `toml:"app_key" json:"app_key"`
+	AccessKey   string   `toml:"access_key" json:"access_key"`
+	ResourceID  string   `toml:"resource_id" json:"resource_id"`
+	Hotwords    []string `toml:"hotwords" json:"hotwords"`
 }
 
 func Default() *Config {
@@ -126,6 +132,9 @@ func Default() *Config {
 		},
 		Overlay: OverlayConfig{
 			Enabled: true, Position: "bottom-center", IdleVisible: false, Scale: 1.0,
+		},
+		Web: WebConfig{
+			Enabled: true, Port: 8391,
 		},
 	}
 }

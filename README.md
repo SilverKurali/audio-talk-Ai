@@ -76,6 +76,22 @@ audio-talk-ai --list       # 列出活跃会话
 audio-talk-ai --detach <name>  # 从另一个终端断开会话
 ```
 
+### Web 管理界面
+
+启动后浏览器打开 `http://localhost:8391`，可以：
+
+- 配置语音设置（热键、模式、自动上屏等）
+- 添加/删除/编辑 ASR 服务商
+- 查看转写历史记录
+
+端口可在 TUI 中修改，或在配置文件中设置：
+
+```toml
+[web]
+enabled = true
+port = 8391
+```
+
 ## 配置
 
 配置文件路径：`~/.config/audio-talk-ai/config.toml`
@@ -140,6 +156,14 @@ access_key = "your_access_key"
 # type = "xiaomi-mimo-asr-TokenPlan"
 # api_key = "your_mimo_api_key"
 # model = "mimo-v2.5-asr"
+```
+
+### Web 管理界面配置
+
+```toml
+[web]
+enabled = true
+port = 8391
 ```
 
 ### 热键说明

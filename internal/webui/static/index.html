@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio Talk AI</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="nav-brand">Audio Talk AI</div>
+  <div class="nav-links">
+    <a href="#" class="nav-link active" data-page="config">配置</a>
+    <a href="#" class="nav-link" data-page="history">历史</a>
+  </div>
+</nav>
+
+<main>
+  <!-- 配置页 -->
+  <div id="page-config" class="page active">
+    <div class="card">
+      <h2>语音设置</h2>
+      <div class="form-grid">
+        <label>热键</label>
+        <div>
+          <select id="cfg-hotkey-preset" onchange="onHotkeyPresetChange()">
+            <option value="F9">F9</option>
+            <option value="F8">F8</option>
+            <option value="Alt+Super">Alt+Super</option>
+            <option value="Ctrl+Alt">Ctrl+Alt</option>
+            <option value="Ctrl+Shift">Ctrl+Shift</option>
+            <option value="Alt+F8">Alt+F8</option>
+            <option value="Alt+F9">Alt+F9</option>
+            <option value="Ctrl+Alt+Tab">Ctrl+Alt+Tab</option>
+            <option value="Option+Command">Option+Command (macOS)</option>
+            <option value="custom">自定义...</option>
+          </select>
+          <input type="text" id="cfg-push-to-talk" placeholder="输入自定义热键" style="display:none;margin-top:6px">
+        </div>
+        <label>模式</label>
+        <select id="cfg-mode">
+          <option value="toggle">toggle（按一下开始，再按停止）</option>
+          <option value="hold">hold（按住说话）</option>
+        </select>
+        <label>自动上屏</label>
+        <select id="cfg-auto-submit">
+          <option value="true">开启</option>
+          <option value="false">关闭</option>
+        </select>
+        <label>停止延迟 (ms)</label>
+        <input type="number" id="cfg-stop-delay" min="0" max="5000">
+        <label>热词</label>
+        <input type="text" id="cfg-hotwords" placeholder="逗号分隔，如：项目名,人名,术语">
+      </div>
+      <button class="btn btn-primary" onclick="saveVoiceConfig()">保存语音设置</button>
+    </div>
+
+    <div class="card">
+      <h2>ASR 服务商</h2>
+      <div id="provider-list"></div>
+      <button class="btn btn-secondary" onclick="showAddProvider()">+ 添加服务商</button>
+    </div>
+
+    <div class="card" id="add-provider-card" style="display:none">
+      <h2>添加服务商</h2>
+      <div class="form-grid">
+        <label>类型</label>
+        <select id="add-type" onchange="updateAddFields()">
+          <option value="doubao">豆包</option>
+          <option value="openai-realtime">OpenAI Realtime</option>
+          <option value="openai-whisper">OpenAI Whisper</option>
+          <option value="xiaomi-mimo-asr">小米 MiMo</option>
+          <option value="xiaomi-mimo-asr-TokenPlan">小米 MiMo Token Plan</option>
+          <option value="xfyun-spark">讯飞星火</option>
+        </select>
+      </div>
+      <div id="add-fields"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="addProvider()">确认添加</button>
+        <button class="btn btn-secondary" onclick="hideAddProvider()">取消</button>
+      </div>
+    </div>
+
+    <div id="edit-provider-modal" class="modal" style="display:none">
+      <div class="modal-content">
+        <h2>编辑服务商: <span id="edit-provider-name"></span></h2>
+        <div id="edit-fields"></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveProvider()">保存</button>
+          <button class="btn btn-secondary" onclick="hideEditProvider()">取消</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 历史页 -->
+  <div id="page-history" class="page">
+    <div class="card">
+      <h2>统计</h2>
+      <div class="stats-bar">
+        <span>历史 <strong id="h-sessions">0</strong> 次</span>
+        <span>总字数 <strong id="h-chars">0</strong></span>
+        <span>总时长 <strong id="h-duration">0</strong>s</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>转写记录</h2>
+      <table>
+        <thead>
+          <tr><th>时间</th><th>服务商</th><th>文本</th><th>时长</th><th>字数</th></tr>
+        </thead>
+        <tbody id="history-body"></tbody>
+      </table>
+      <div class="pagination">
+        <button class="btn btn-secondary" id="prev-page" onclick="prevPage()" disabled>上一页</button>
+        <span id="page-info"></span>
+        <button class="btn btn-secondary" id="next-page" onclick="nextPage()" disabled>下一页</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="status-bar">
+  <span id="recording-status">待机</span>
+  <span id="status-detail"></span>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

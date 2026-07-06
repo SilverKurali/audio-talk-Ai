@@ -110,6 +110,15 @@ func DisableTUILog() {
 	tuilogMu.Unlock()
 }
 
+// TranscriptionCallback is called when a transcription completes.
+type TranscriptionCallback func(text, provider string, duration time.Duration)
+
+var onTranscription TranscriptionCallback
+
+func SetTranscriptionCallback(cb TranscriptionCallback) {
+	onTranscription = cb
+}
+
 func TUIStats() TUIVoiceStats {
 	tuiStatsMu.Lock()
 	defer tuiStatsMu.Unlock()
@@ -257,6 +266,7 @@ type VoicePlugin struct {
 	stopTimer              *time.Timer
 	stopAt                 time.Time
 	startedAt              time.Time
+	providerName           string
 	sessionID              uint64
 	sessionGen             uint64
 	recorder               *Recorder
@@ -277,13 +287,14 @@ type VoicePlugin struct {
 }
 
 type recordingSession struct {
-	sessionID   uint64
-	recorder    *Recorder
-	asrClient   asr.Client
-	asrCancel   context.CancelFunc
-	autoSubmit  bool
-	userStopped bool
-	startedAt   time.Time
+	sessionID    uint64
+	recorder     *Recorder
+	asrClient    asr.Client
+	asrCancel    context.CancelFunc
+	autoSubmit   bool
+	userStopped  bool
+	startedAt    time.Time
+	providerName string
 }
 
 func NewVoicePlugin() *VoicePlugin     { return &VoicePlugin{stopDelayMs: defaultStopDelayMs} }
@@ -554,6 +565,7 @@ func (p *VoicePlugin) startRecording() {
 		return
 	}
 	pout("🎤 开始录音... (后端: %s, ASR: %s)", rec.Backend(), providerCfg.Name)
+	p.providerName = providerCfg.Name
 	ctx, cancel := context.WithCancel(context.Background())
 	p.sessionID++
 	p.sessionGen++
@@ -730,13 +742,14 @@ func (p *VoicePlugin) detachRecordingLocked() *recordingSession {
 		return nil
 	}
 	session := &recordingSession{
-		sessionID:   p.sessionID,
-		recorder:    p.recorder,
-		asrClient:   p.asrClient,
-		asrCancel:   p.asrCancel,
-		autoSubmit:  p.autoSubmit,
-		userStopped: p.userStopped,
-		startedAt:   p.startedAt,
+		sessionID:    p.sessionID,
+		recorder:     p.recorder,
+		asrClient:    p.asrClient,
+		asrCancel:    p.asrCancel,
+		autoSubmit:   p.autoSubmit,
+		userStopped:  p.userStopped,
+		startedAt:    p.startedAt,
+		providerName: p.providerName,
 	}
 	p.sessionGen++
 	p.recorder, p.asrClient, p.asrCancel = nil, nil, nil
@@ -804,6 +817,9 @@ func (p *VoicePlugin) finishRecordingSession(session *recordingSession) {
 				audioDuration = time.Since(session.startedAt)
 			}
 			recordTUIStats(text, audioDuration)
+			if onTranscription != nil {
+				onTranscription(text, session.providerName, audioDuration)
+			}
 			p.dispatchTextOutput(text, session.autoSubmit)
 		}
 		p.logger.Debug("finish session: closing ASR client")

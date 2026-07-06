@@ -1,0 +1,67 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; }
+
+nav { display: flex; align-items: center; padding: 12px 24px; background: #16213e; border-bottom: 1px solid #0f3460; }
+.nav-brand { font-size: 18px; font-weight: 700; color: #4fc3f7; margin-right: 32px; }
+.nav-links { display: flex; gap: 8px; }
+.nav-link { color: #90a4ae; text-decoration: none; padding: 8px 16px; border-radius: 6px; transition: all 0.2s; }
+.nav-link:hover { background: #1a1a2e; color: #e0e0e0; }
+.nav-link.active { background: #0f3460; color: #4fc3f7; }
+
+main { max-width: 800px; margin: 24px auto; padding: 0 16px; }
+.page { display: none; }
+.page.active { display: block; }
+
+.card { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+.card h2 { font-size: 16px; color: #4fc3f7; margin-bottom: 16px; }
+
+.form-grid { display: grid; grid-template-columns: 120px 1fr; gap: 10px 12px; align-items: center; margin-bottom: 16px; }
+.form-grid label { font-size: 13px; color: #90a4ae; text-align: right; }
+
+input, select { background: #1a1a2e; border: 1px solid #0f3460; color: #e0e0e0; padding: 8px 12px; border-radius: 4px; font-size: 14px; }
+input:focus, select:focus { outline: none; border-color: #4fc3f7; }
+select { cursor: pointer; }
+
+.btn { padding: 8px 20px; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+.btn-primary { background: #4fc3f7; color: #1a1a2e; font-weight: 600; }
+.btn-primary:hover { background: #81d4fa; }
+.btn-secondary { background: #0f3460; color: #90a4ae; }
+.btn-secondary:hover { background: #1a1a2e; color: #e0e0e0; }
+.btn-danger { background: #c62828; color: #fff; }
+.btn-danger:hover { background: #e53935; }
+.btn-small { padding: 4px 12px; font-size: 12px; }
+.btn-row { display: flex; gap: 8px; margin-top: 12px; }
+
+.provider-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #0f3460; border-radius: 6px; margin-bottom: 8px; }
+.provider-item.default { border-color: #4fc3f7; }
+.provider-info { display: flex; align-items: center; gap: 12px; }
+.provider-name { font-weight: 600; }
+.provider-type { font-size: 12px; color: #90a4ae; background: #1a1a2e; padding: 2px 8px; border-radius: 3px; }
+.default-badge { font-size: 11px; color: #4fc3f7; background: rgba(79,195,247,0.1); padding: 2px 8px; border-radius: 3px; }
+.provider-actions { display: flex; gap: 6px; }
+
+.stats-bar { display: flex; gap: 24px; font-size: 14px; }
+.stats-bar strong { color: #4fc3f7; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 8px; color: #90a4ae; border-bottom: 1px solid #0f3460; font-weight: 500; }
+td { padding: 8px; border-bottom: 1px solid #0f3460; vertical-align: top; }
+tr:hover { background: rgba(79,195,247,0.05); }
+.text-cell { max-width: 400px; word-break: break-all; }
+
+.pagination { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 16px; font-size: 13px; color: #90a4ae; }
+
+.status-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 8px 24px; background: #16213e; border-top: 1px solid #0f3460; display: flex; gap: 16px; font-size: 13px; }
+#recording-status { font-weight: 600; }
+#recording-status.idle { color: #90a4ae; }
+#recording-status.recording { color: #66bb6a; }
+#recording-status.error { color: #ef5350; }
+#recording-status.connecting { color: #ffa726; }
+
+.modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.modal-content { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 24px; min-width: 400px; max-width: 500px; }
+
+.toast { position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 6px; font-size: 14px; z-index: 200; animation: fadeIn 0.3s; }
+.toast.success { background: #2e7d32; color: #fff; }
+.toast.error { background: #c62828; color: #fff; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }

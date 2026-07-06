@@ -14,6 +14,8 @@ All notable project changes are tracked here.
   - **Xiaomi MiMo**: batch transcription via REST, supports Chinese/English and dialects.
   - **Xiaomi MiMo Token Plan**: batch transcription, domestic (China) endpoint.
 - ASR provider registry with self-registration via `init()` (similar to `database/sql` drivers).
+- Web management UI at `http://localhost:8391` for configuring providers, voice settings, and viewing transcription history.
+- Transcription history persistence (`~/.local/state/audio-talk-ai/history.json`).
 - TUI provider management: add, remove, and switch ASR providers with dynamic credential fields.
 - TUI select fields show `(e 切换)` hint to indicate interactivity.
 - Visual separator between provider config and add-provider sections in TUI.

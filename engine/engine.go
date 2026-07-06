@@ -32,7 +32,8 @@ type Engine struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
-	mu sync.Mutex
+	mu        sync.Mutex
+	cfgNotify []chan *config.Config
 }
 
 // New creates a new Engine with the given hotkey provider, config, and logger.
@@ -135,11 +136,16 @@ func (e *Engine) Start(waitSignal bool) error {
 	return err
 }
 
-// Stop gracefully shuts down the engine.
-// ReloadConfig reloads configuration and notifies all plugins.
+// ReloadConfig reloads configuration and notifies all plugins and subscribers.
 func (e *Engine) ReloadConfig(cfg *config.Config) error {
 	e.mu.Lock()
 	e.cfg = cfg
+	for _, ch := range e.cfgNotify {
+		select {
+		case ch <- cfg:
+		default:
+		}
+	}
 	e.mu.Unlock()
 	for _, p := range e.plugins {
 		if r, ok := p.(Reloader); ok {
@@ -149,6 +155,15 @@ func (e *Engine) ReloadConfig(cfg *config.Config) error {
 		}
 	}
 	return nil
+}
+
+// OnConfigChange returns a channel that receives the new config whenever ReloadConfig is called.
+func (e *Engine) OnConfigChange() <-chan *config.Config {
+	ch := make(chan *config.Config, 1)
+	e.mu.Lock()
+	e.cfgNotify = append(e.cfgNotify, ch)
+	e.mu.Unlock()
+	return ch
 }
 
 func (e *Engine) Stop() {

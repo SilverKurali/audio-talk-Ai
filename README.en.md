@@ -76,6 +76,22 @@ audio-talk-ai --list       # list active sessions
 audio-talk-ai --detach <name>  # detach a session from another terminal
 ```
 
+### Web Management UI
+
+Open `http://localhost:8391` in your browser to:
+
+- Configure voice settings (hotkey, mode, auto-submit, etc.)
+- Add/remove/edit ASR providers
+- View transcription history
+
+Port can be changed in TUI or in config:
+
+```toml
+[web]
+enabled = true
+port = 8391
+```
+
 ## Configuration
 
 Config file: `~/.config/audio-talk-ai/config.toml`

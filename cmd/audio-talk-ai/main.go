@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"gitee.com/AY77-OP/audio-talk-ai/config"
 	"gitee.com/AY77-OP/audio-talk-ai/engine"
@@ -17,6 +18,7 @@ import (
 	"gitee.com/AY77-OP/audio-talk-ai/internal/doctor"
 	"gitee.com/AY77-OP/audio-talk-ai/internal/session"
 	"gitee.com/AY77-OP/audio-talk-ai/internal/tui"
+	"gitee.com/AY77-OP/audio-talk-ai/internal/webui"
 	"gitee.com/AY77-OP/audio-talk-ai/plugins"
 	"gitee.com/AY77-OP/audio-talk-ai/plugins/overlay"
 	"gitee.com/AY77-OP/audio-talk-ai/plugins/voice"
@@ -169,6 +171,18 @@ func main() {
 		eng.WatchConfig(p)
 	}
 
+	// WebUI and history
+	stateDir := filepath.Join(stateDir(), "audio-talk-ai")
+	os.MkdirAll(stateDir, 0755)
+	historyStore := webui.NewHistoryStore(stateDir)
+	voice.SetTranscriptionCallback(func(text, provider string, duration time.Duration) {
+		historyStore.Add(webui.HistoryEntry{Text: text, Provider: provider, Duration: duration.Seconds()})
+	})
+	if cfg.Web.Enabled && cfg.Web.Port > 0 {
+		webSrv := webui.NewServer(cfg, eng, historyStore, cfg.Web.Port, logger)
+		webSrv.Start()
+	}
+
 	if *useTUI {
 		runTUI(eng, cfg, *debug)
 	} else {
@@ -197,6 +211,13 @@ func runTUI(eng *engine.Engine, cfg *config.Config, debug bool) {
 	}()
 	go func() { model.Update(tui.SetProviderInfo(eng.Provider().Info())) }()
 	p := tea.NewProgram(model, tea.WithAltScreen())
+	// Subscribe to config changes from WebUI
+	cfgCh := eng.OnConfigChange()
+	go func() {
+		for newCfg := range cfgCh {
+			p.Send(tui.ConfigReloadMsg(newCfg))
+		}
+	}()
 	finalModel, err := p.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "TUI error: %v\n", err)
@@ -383,4 +404,12 @@ func pathContains(dir string) bool {
 		}
 	}
 	return false
+}
+
+func stateDir() string {
+	if xdg := os.Getenv("XDG_STATE_HOME"); xdg != "" {
+		return xdg
+	}
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".local", "state")
 }

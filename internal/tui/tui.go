@@ -29,6 +29,12 @@ type devMsg struct {
 	Devices []string
 	Error   error
 }
+type configReloadMsg struct{ cfg *config.Config }
+
+// ConfigReloadMsg creates a message for external config reload (from WebUI).
+func ConfigReloadMsg(cfg *config.Config) tea.Msg {
+	return configReloadMsg{cfg: cfg}
+}
 type fieldType int
 
 const (
@@ -155,6 +161,16 @@ func (m *Model) rebuildFields() {
 		field{label: "自动上屏", key: "auto_submit", help: "识别后自动粘贴", fType: fToggle, boolVal: vc.AutoSubmit},
 		field{label: "停止延迟(ms)", key: "stop_delay_ms", help: "松手后补录毫秒", fType: fString, input: ti(fmt.Sprintf("%d", vc.StopDelayMs))},
 		field{label: "热词", key: "hotwords", help: "逗号分隔术语", fType: fString, input: ti(strings.Join(vc.Hotwords, ", "))},
+	)
+	fs = append(fs, field{label: "── Web 管理界面 ──", key: "sep_web", fType: fSeparator})
+	webEnabled := m.cfg.Web.Enabled
+	webPort := 8391
+	if m.cfg.Web.Port > 0 {
+		webPort = m.cfg.Web.Port
+	}
+	fs = append(fs,
+		field{label: "WebUI", key: "web_enabled", help: "开启后可通过浏览器管理", fType: fToggle, boolVal: webEnabled},
+		field{label: "WebUI 端口", key: "web_port", help: "浏览器访问端口", fType: fString, input: ti(fmt.Sprintf("%d", webPort))},
 	)
 	m.fields = fs
 }
@@ -397,6 +413,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.info = hotkey.ProviderInfo(msg)
 	case refreshMsg:
 		return m, tickRefresh()
+	case configReloadMsg:
+		m.cfg = msg.cfg
+		m.rebuildFields()
+		m.logf("🔄 配置已从外部更新")
+		return m, nil
 	case devMsg:
 		if msg.Error != nil {
 			m.logf("设备: %s", msg.Error)
@@ -581,6 +602,10 @@ func (m *Model) save() {
 			fmt.Sscanf(f.input.Value(), "%d", &vc.StopDelayMs)
 		case "hotwords":
 			vc.Hotwords = splitList(f.input.Value())
+		case "web_enabled":
+			next.Web.Enabled = f.boolVal
+		case "web_port":
+			fmt.Sscanf(f.input.Value(), "%d", &next.Web.Port)
 		}
 	}
 	// Save provider-specific credential fields
@@ -744,6 +769,9 @@ func (m *Model) View() string {
 		}
 	}
 	b.WriteString(hStyle.Render("  j/k 导航 | e 编辑 | h 帮助 | esc 退出编辑 | s 保存 | b 后台运行 | q 退出"))
+	if m.cfg.Web.Enabled && m.cfg.Web.Port > 0 {
+		b.WriteString("\n" + hStyle.Render(fmt.Sprintf("  WebUI: http://localhost:%d", m.cfg.Web.Port)))
+	}
 	return b.String()
 }
 
