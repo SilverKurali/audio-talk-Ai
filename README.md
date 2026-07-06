@@ -6,7 +6,7 @@
 
 Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局快捷键录音，把语音识别结果复制到剪贴板，或直接上屏到当前输入框。适合写代码、聊天、记笔记和处理长文本输入。
 
-支持多个语音识别服务商，可在 TUI 中一键切换。建议搭配https://github.com/whoamihappyhacking/di 虽然使用内置di命令但尚未解决实际问题。
+支持多个语音识别服务商，可在 TUI 中一键切换。建议搭配https://github.com/whoamihappyhacking/di 虽然此分支项目内置di命令但尚未解决实际问题。
 
 ## 功能
 
