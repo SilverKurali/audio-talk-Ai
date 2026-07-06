@@ -16,6 +16,9 @@ All notable project changes are tracked here.
 - ASR provider registry with self-registration via `init()` (similar to `database/sql` drivers).
 - Web management UI at `http://localhost:8391` for configuring providers, voice settings, and viewing transcription history.
 - Transcription history persistence (`~/.local/state/audio-talk-ai/history.json`).
+- Detachable session mode (`--d`/`--di`/`--list`/`--detach`), Ctrl+] or 'b' to detach, daemon auto-restarts TUI.
+- TUI and WebUI real-time sync: WebUI config changes auto-refresh TUI display.
+- Single-instance lock for normal TUI/daemon mode.
 - TUI provider management: add, remove, and switch ASR providers with dynamic credential fields.
 - TUI select fields show `(e 切换)` hint to indicate interactivity.
 - Visual separator between provider config and add-provider sections in TUI.
@@ -40,6 +43,9 @@ All notable project changes are tracked here.
 - TUI switching providers clears add-provider preview, avoiding empty fields overlaying saved credentials.
 - Hotkey double-fire for key-only combos (e.g. F9) fixed in KeyStateTracker.
 - Evdev multi-device duplicate key events deduplicated with 2ms window.
+- Ctrl+] detach now works in GNOME Terminal (CSI u 3-part format support).
+- WebUI config field name casing fixed (lowercase API response).
+- WebUI save voice config no longer overwrites provider entries.
 
 ## 2026-05-30
 

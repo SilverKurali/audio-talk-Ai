@@ -124,8 +124,6 @@ func RunServer(sock string, cmdArgs []string, logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	defer os.Remove(sock)
-	defer os.Remove(MetaPath(sock))
 	defer ln.Close()
 
 	// Find the executable

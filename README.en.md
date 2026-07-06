@@ -58,22 +58,22 @@ make install        # installs to ~/.local/bin/
 ## Usage
 
 ```bash
-audio-talk-ai              # TUI mode (default)
+audio-talk-ai              # TUI mode (default, single instance)
 audio-talk-ai --no-tui     # daemon mode
 audio-talk-ai --doctor     # environment check
 audio-talk-ai --backend wayland   # force Wayland
 audio-talk-ai --backend x11      # force X11
 ```
 
-### Detachable Session (di mode)
+### Detachable Session
 
-TUI mode supports detach/reattach. Press `Ctrl-]` to detach — Audio Talk AI keeps running in the background (hotkeys still work). Reattach later to see the TUI again. Requires `fzf` for session selection.
+Press `Ctrl+]` or `b` to detach — Audio Talk AI keeps running in the background (hotkeys still work). Reattach later with `--di`. Requires `fzf` for session selection.
 
 ```bash
-audio-talk-ai --di         # start a detachable TUI session
-audio-talk-ai --attach     # reattach (fzf picker)
+audio-talk-ai --d          # start a detachable TUI session
+audio-talk-ai --di         # reattach to existing session (fzf picker)
 audio-talk-ai --list       # list active sessions
-audio-talk-ai --detach <name>  # detach a session from another terminal
+audio-talk-ai --detach 1   # stop a session by number
 ```
 
 ### Web Management UI

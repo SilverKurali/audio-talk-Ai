@@ -6,7 +6,7 @@
 
 Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局快捷键录音，把语音识别结果复制到剪贴板，或直接上屏到当前输入框。适合写代码、聊天、记笔记和处理长文本输入。
 
-支持多个语音识别服务商，可在 TUI 中一键切换。建议搭配https://github.com/whoamihappyhacking/di 虽然此分支项目内置di命令但尚未解决实际问题。
+支持多个语音识别服务商，可在 TUI 中一键切换。
 
 ## 功能
 
@@ -58,22 +58,22 @@ make install        # 安装到 ~/.local/bin/
 ## 使用
 
 ```bash
-audio-talk-ai              # TUI 模式（默认）
+audio-talk-ai              # TUI 模式（默认，单实例）
 audio-talk-ai --no-tui     # 后台模式
 audio-talk-ai --doctor     # 环境检查
 audio-talk-ai --backend wayland   # 强制 Wayland
 audio-talk-ai --backend x11      # 强制 X11
 ```
 
-### 可断开会话（di 模式）
+### 可断开会话
 
-TUI 模式支持断开/重连。启动后按 `Ctrl-]` 断开，Audio Talk AI 继续后台运行（热键仍有效），想看界面时再 attach 回来。需要 `fzf` 来选择会话。
+按 `Ctrl+]` 或 `b` 断开，Audio Talk AI 继续后台运行（热键仍有效），想看界面时再恢复。需要 `fzf` 来选择会话。
 
 ```bash
-audio-talk-ai --di         # 启动可断开的 TUI 会话
-audio-talk-ai --attach     # 重新进入（fzf 选择）
+audio-talk-ai --d          # 启动可断开的 TUI 会话
+audio-talk-ai --di         # 恢复已有会话（fzf 选择）
 audio-talk-ai --list       # 列出活跃会话
-audio-talk-ai --detach <name>  # 从另一个终端断开会话
+audio-talk-ai --detach 1   # 按编号停止会话
 ```
 
 ### Web 管理界面

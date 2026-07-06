@@ -20,13 +20,24 @@ const defaultDetachKey = "^]"
 
 // Attach connects to a session socket and enters raw terminal mode.
 func Attach(sock string) error {
-	conn, err := dialSession(sock)
+	var conn net.Conn
+	var err error
+	for i := 0; i < 10; i++ {
+		conn, err = dialSession(sock)
+		if err == nil {
+			break
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
 	if err != nil {
 		RemoveSessionFiles(sock)
-		return err
+		return fmt.Errorf("connect to session: %w", err)
 	}
 	defer conn.Close()
 
+	if !term.IsTerminal(0) {
+		return fmt.Errorf("stdin is not a terminal")
+	}
 	oldTerm, err := term.MakeRaw(0)
 	if err != nil {
 		return err
@@ -196,13 +207,33 @@ func enhancedDetachInput(buf []byte, ctrl byte) bool {
 	s := string(buf[2:])
 	var code, mod int
 	if strings.HasSuffix(s, "u") {
-		if _, err := fmt.Sscanf(s, "%d;%du", &code, &mod); err == nil {
-			return ctrlModifier(mod) && code == key
+		s = strings.TrimSuffix(s, "u")
+		parts := strings.Split(s, ";")
+		switch len(parts) {
+		case 2:
+			if _, err := fmt.Sscanf(parts[0]+";"+parts[1], "%d;%d", &code, &mod); err == nil {
+				return ctrlModifier(mod) && code == key
+			}
+		case 3:
+			var base int
+			if _, err := fmt.Sscanf(parts[0]+";"+parts[1]+";"+parts[2], "%d;%d;%d", &base, &mod, &code); err == nil {
+				return ctrlModifier(mod) && code == key
+			}
 		}
 	}
 	if strings.HasSuffix(s, "~") {
-		if _, err := fmt.Sscanf(s, "27;%d;%d~", &mod, &code); err == nil {
-			return ctrlModifier(mod) && code == key
+		s = strings.TrimSuffix(s, "~")
+		parts := strings.Split(s, ";")
+		switch len(parts) {
+		case 2:
+			if _, err := fmt.Sscanf(parts[0]+";"+parts[1], "%d;%d", &code, &mod); err == nil {
+				return ctrlModifier(mod) && code == key
+			}
+		case 3:
+			var base int
+			if _, err := fmt.Sscanf(parts[0]+";"+parts[1]+";"+parts[2], "%d;%d;%d", &base, &mod, &code); err == nil {
+				return ctrlModifier(mod) && code == key
+			}
 		}
 	}
 	return false

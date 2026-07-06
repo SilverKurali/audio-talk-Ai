@@ -76,7 +76,8 @@ type Model struct {
 	providerNames   []string
 	providerIdx     int
 	providerField   int    // index of the asr_provider field in fields, -1 if absent
-	background      bool   // user requested background mode
+	background      bool   // user requested background mode (non-di)
+	detach          bool   // user requested detach (--d mode)
 	lastAddedType   string // last added provider type, used as default in add_provider dropdown
 	previewType     string // provider type being previewed in "添加服务商" (empty = no preview)
 }
@@ -389,6 +390,16 @@ func (m *Model) WantsBackground() bool {
 	return m.background
 }
 
+// SetDetach configures the model to exit cleanly on 'b' press (for --d mode).
+func (m *Model) SetDetach(v bool) {
+	m.detach = v
+}
+
+// Detached returns true if the user pressed 'b' to detach in --d mode.
+func (m *Model) Detached() bool {
+	return m.detach
+}
+
 func idxOf(opts []string, v string) int {
 	for i, o := range opts {
 		if o == v {
@@ -529,6 +540,9 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 		return tea.Quit
 	case "b":
 		m.save()
+		if m.detach {
+			return tea.Quit
+		}
 		return func() tea.Msg { return BackgroundMsg{} }
 	case "s":
 		m.save()
@@ -768,7 +782,14 @@ func (m *Model) View() string {
 			b.WriteString("  " + dStyle.Render(l) + "\n")
 		}
 	}
-	b.WriteString(hStyle.Render("  j/k 导航 | e 编辑 | h 帮助 | esc 退出编辑 | s 保存 | b 后台运行 | q 退出"))
+	hint := "  j/k 导航 | e 编辑 | h 帮助 | esc 退出编辑 | s 保存"
+	if m.detach {
+		hint += " | b 断开"
+	} else {
+		hint += " | b 后台运行"
+	}
+	hint += " | q 退出"
+	b.WriteString(hStyle.Render(hint))
 	if m.cfg.Web.Enabled && m.cfg.Web.Port > 0 {
 		b.WriteString("\n" + hStyle.Render(fmt.Sprintf("  WebUI: http://localhost:%d", m.cfg.Web.Port)))
 	}

@@ -7,9 +7,11 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"gitee.com/AY77-OP/audio-talk-ai/config"
@@ -37,29 +39,43 @@ func main() {
 	overlayHelper := flag.Bool("overlay-helper", false, "run macOS overlay helper")
 	overlayPosition := flag.String("overlay-position", "top-right", "overlay helper position")
 	overlayScale := flag.Float64("overlay-scale", 1.0, "overlay helper scale")
-	// Session (di) flags
-	diMode := flag.Bool("di", false, "start in detachable TUI session")
-	attachMode := flag.Bool("attach", false, "attach to existing session (fzf)")
+	// Session flags
+	dStart := flag.Bool("d", false, "start new detachable TUI session")
+	dReattach := flag.Bool("di", false, "reattach to existing session")
 	listMode := flag.Bool("list", false, "list active sessions")
 	detachName := flag.String("detach", "", "detach a session by name")
-	tuiDirect := flag.Bool("tui-direct", false, "internal: run TUI directly (used by --di server)")
+	tuiDirect := flag.Bool("tui-direct", false, "internal: run TUI directly (used by --d server)")
+	detachMode := flag.Bool("detach-mode", false, "internal: enable 'b' detach key (used by --d server)")
+	serverSock := flag.String("server", "", "internal: run as PTY server daemon")
 	flag.Parse()
 
+	// Handle --server (daemon mode for PTY server, restart TUI on exit)
+	if *serverSock != "" {
+		// Write PID file for --detach
+		pidFile := *serverSock + ".pid"
+		os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", os.Getpid())), 0644)
+		// Clean up on SIGTERM
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGTERM)
+		go func() {
+			<-sigCh
+			os.Remove(*serverSock)
+			os.Remove(pidFile)
+			os.Remove(session.MetaPath(*serverSock))
+			os.Exit(0)
+		}()
+
+		for {
+			err := session.RunServer(*serverSock, []string{os.Args[0], "--tui-direct", "--detach-mode"}, slog.Default())
+			if err != nil {
+				os.Exit(1)
+			}
+			// TUI exited, restart it
+			time.Sleep(200 * time.Millisecond)
+		}
+	}
+
 	// Handle session commands first (before any other logic)
-	if *diMode {
-		if err := runDiMode(); err != nil {
-			fmt.Fprintf(os.Stderr, "di error: %v\n", err)
-			os.Exit(1)
-		}
-		return
-	}
-	if *attachMode {
-		if err := session.PickAndAttach(); err != nil {
-			fmt.Fprintf(os.Stderr, "attach error: %v\n", err)
-			os.Exit(1)
-		}
-		return
-	}
 	if *listMode {
 		if err := runListSessions(); err != nil {
 			fmt.Fprintf(os.Stderr, "list error: %v\n", err)
@@ -73,11 +89,31 @@ func main() {
 			fmt.Fprintf(os.Stderr, "session dir error: %v\n", err)
 			os.Exit(1)
 		}
-		sock := filepath.Join(dir, *detachName+".sock")
-		if err := session.DetachSession(sock); err != nil {
-			fmt.Fprintf(os.Stderr, "detach error: %v\n", err)
-			os.Exit(1)
+		// Support index numbers (1, 2, ...) from --list
+		sockName := *detachName
+		if idx, parseErr := fmt.Sscanf(*detachName, "%d"); idx == 1 && parseErr == nil {
+			var n int
+			fmt.Sscanf(*detachName, "%d", &n)
+			sessions, _ := session.AllSessions()
+			if n >= 1 && n <= len(sessions) {
+				sockName = filepath.Base(sessions[n-1].Sock)
+				sockName = strings.TrimSuffix(sockName, ".sock")
+			}
 		}
+		sock := filepath.Join(dir, sockName+".sock")
+		session.DetachSession(sock) // best effort
+		// Kill daemon via PID file
+		pidData, err := os.ReadFile(sock + ".pid")
+		if err == nil {
+			var pid int
+			fmt.Sscanf(string(pidData), "%d", &pid)
+			if proc, err := os.FindProcess(pid); err == nil {
+				proc.Signal(syscall.SIGTERM)
+			}
+		}
+		os.Remove(sock)
+		os.Remove(sock + ".pid")
+		os.Remove(session.MetaPath(sock))
 		fmt.Println("detached")
 		return
 	}
@@ -104,6 +140,52 @@ func main() {
 	if *tuiDirect {
 		*useTUI = true
 	}
+
+	// --d/--di: detachable session
+	if *dStart {
+		// Check if a daemon is already running
+		dir, _ := session.SessionDir()
+		if sessions, _ := session.AllSessions(); len(sessions) > 0 {
+			for _, s := range sessions {
+				pidFile := s.Sock + ".pid"
+				if pidData, err := os.ReadFile(pidFile); err == nil {
+					var pid int
+					fmt.Sscanf(string(pidData), "%d", &pid)
+					if proc, err := os.FindProcess(pid); err == nil && proc.Signal(syscall.Signal(0)) == nil {
+						fmt.Fprintf(os.Stderr, "会话已在运行中，使用 audio-talk-ai --di 恢复\n")
+						os.Exit(1)
+					}
+				}
+			}
+			// Stale sessions found, clean up
+			for _, s := range sessions {
+				os.Remove(s.Sock)
+				os.Remove(s.Sock + ".pid")
+				os.Remove(session.MetaPath(s.Sock))
+			}
+			_ = dir
+		}
+		if err := runDiMode(); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+	if *dReattach {
+		if err := session.PickAndAttach(); err != nil {
+			fmt.Fprintf(os.Stderr, "attach error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	// Prevent duplicate instances for normal TUI/daemon mode
+	lockFile := acquireLock()
+	if lockFile == nil {
+		fmt.Fprintln(os.Stderr, "audio-talk-ai is already running.")
+		os.Exit(1)
+	}
+	defer releaseLock(lockFile)
 
 	logLevel := slog.LevelInfo
 	if *verbose {
@@ -184,7 +266,7 @@ func main() {
 	}
 
 	if *useTUI {
-		runTUI(eng, cfg, *debug)
+		runTUI(eng, cfg, *debug, *detachMode)
 	} else {
 		runDaemon(eng)
 	}
@@ -198,11 +280,12 @@ func runDaemon(eng *engine.Engine) {
 	}
 }
 
-func runTUI(eng *engine.Engine, cfg *config.Config, debug bool) {
+func runTUI(eng *engine.Engine, cfg *config.Config, debug bool, detach bool) {
 	voice.SetupTUILog()
 	voice.SetOutput(io.Discard)
 	model := tui.New(cfg)
 	model.SetDebug(debug)
+	model.SetDetach(detach)
 	model.OnSave = func(c *config.Config) error { return eng.ReloadConfig(c) }
 	go func() {
 		if err := eng.Start(false); err != nil && err != context.Canceled {
@@ -254,7 +337,6 @@ func runDiMode() error {
 		return err
 	}
 
-	// Find our own executable path
 	exe, err := os.Executable()
 	if err != nil {
 		return err
@@ -266,19 +348,42 @@ func runDiMode() error {
 	sock := session.UniqueSocketPath(dir, "audio-talk-ai")
 	meta := session.SessionMeta{
 		Name:    filepath.Base(sock),
-		Command: []string{exe, "--tui-direct"},
+		Command: []string{exe, "--tui-direct", "--detach-mode"},
 	}
 	if err := session.WriteMeta(sock, meta); err != nil {
 		return err
 	}
 
-	fmt.Printf("starting detachable session: %s\n", filepath.Base(sock))
-	fmt.Printf("  socket: %s\n", sock)
-	fmt.Printf("  detach: Ctrl-]\n")
-	fmt.Printf("  reattach: audio-talk-ai --attach\n")
-	fmt.Println()
+	// Fork a daemon to run the PTY server (detached from terminal)
+	devNull, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
+	if err != nil {
+		return err
+	}
+	defer devNull.Close()
+	cmd := exec.Command(exe, "--server", sock)
+	cmd.Stdin = devNull
+	cmd.Stdout = devNull
+	cmd.Stderr = devNull
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("start daemon: %w", err)
+	}
+	cmd.Process.Release()
 
-	return session.RunServer(sock, []string{exe, "--tui-direct"}, slog.Default())
+	// Wait for socket to be ready
+	for i := 0; i < 30; i++ {
+		time.Sleep(100 * time.Millisecond)
+		if session.IsSocket(sock) {
+			break
+		}
+	}
+	if !session.IsSocket(sock) {
+		return fmt.Errorf("server did not start")
+	}
+
+	fmt.Println("  detach: Ctrl+] or b")
+	fmt.Println("  reattach: audio-talk-ai --di")
+	return session.Attach(sock)
 }
 
 func runListSessions() error {
@@ -290,12 +395,12 @@ func runListSessions() error {
 		fmt.Println("no active sessions")
 		return nil
 	}
-	for _, s := range sessions {
+	for i, s := range sessions {
 		name := s.Meta.Name
 		if name == "" {
 			name = filepath.Base(s.Sock)
 		}
-		fmt.Printf("%-32s  %s\n", name, s.Meta.PWD)
+		fmt.Printf("  [%d] %-32s  %s\n", i+1, name, s.Meta.PWD)
 	}
 	return nil
 }
@@ -412,4 +517,40 @@ func stateDir() string {
 	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".local", "state")
+}
+
+func lockPath() string {
+	runtime := os.Getenv("XDG_RUNTIME_DIR")
+	if runtime == "" {
+		runtime = "/tmp"
+	}
+	return filepath.Join(runtime, "audio-talk-ai.lock")
+}
+
+func acquireLock() *os.File {
+	f, err := os.OpenFile(lockPath(), os.O_CREATE|os.O_RDWR, 0600)
+	if err != nil {
+		return nil
+	}
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+		f.Close()
+		return nil
+	}
+	return f
+}
+
+func releaseLock(f *os.File) {
+	if f != nil {
+		syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+		f.Close()
+		os.Remove(lockPath())
+	}
+}
+
+func processAlive(pid int) bool {
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	return proc.Signal(syscall.Signal(0)) == nil
 }

@@ -1,0 +1,13 @@
+#!/bin/bash
+# daudio-talk-ai — detachable Audio Talk AI
+# If active sessions exist, reattach; otherwise start a new one.
+
+BIN="$(dirname "$0")/audio-talk-ai"
+
+# Check for active sessions
+OUTPUT=$("$BIN" --list 2>/dev/null)
+if echo "$OUTPUT" | grep -qv "^no active"; then
+    exec "$BIN" --di
+else
+    exec "$BIN" --d
+fi

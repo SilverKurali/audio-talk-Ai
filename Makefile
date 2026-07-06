@@ -11,6 +11,8 @@ build:
 # Install to ~/.local/bin
 install: build
 	$(BUILD_DIR)/$(APP_NAME) --install
+	chmod +x bin/daudio-talk-ai
+	cp bin/daudio-talk-ai ~/.local/bin/daudio-talk-ai
 
 # Run (current platform)
 run:
