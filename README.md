@@ -213,12 +213,13 @@ push_to_talk = "Option+Command"
 You are helping a user install Audio Talk AI, a desktop voice input tool.
 
 STEPS:
-1. Clone: git clone https://gitee.com/AY77-OP/audio-talk-ai.git && cd audio-talk-ai
-2. Install dependencies (Linux): sudo apt install golang-go build-essential libx11-dev libxtst-dev libxext-dev libxinerama-dev libwayland-dev
-3. Build: make build
-4. Install: make install
-5. Configure: edit ~/.config/audio-talk-ai/config.toml — user must provide at least one ASR provider's API keys (see config.toml.example for all provider options)
-6. Run: audio-talk-ai
+1. Clone the repo. Primary: git clone https://gitee.com/AY77-OP/audio-talk-ai.git. Mirror: git clone https://github.com/SilverKurali/audio-talk-Ai.git. Use whichever is accessible to the user.
+2. cd into the cloned directory.
+3. Install dependencies (Linux): sudo apt install golang-go build-essential libx11-dev libxtst-dev libxext-dev libxinerama-dev libwayland-dev
+4. Build: make build
+5. Install: make install
+6. Configure: edit ~/.config/audio-talk-ai/config.toml — user must provide at least one ASR provider's API keys (see config.toml.example for all provider options)
+7. Run: audio-talk-ai
 
 IMPORTANT RULES:
 - Always reply in the same language the user writes in (Chinese→Chinese, English→English, etc.).
