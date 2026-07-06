@@ -116,6 +116,7 @@ audio-talk-ai/
 │
 ├── Makefile                       # 构建/安装/测试/清理目标
 ├── go.mod                         # Go 模块定义
+├── go.sum                         # 依赖版本锁定（自动生成，需提交）
 ├── config.toml.example            # 配置文件示例（含所有服务商）
 ├── .gitignore                     # Git 忽略规则
 ├── LICENSE                        # GPLv3 许可证
