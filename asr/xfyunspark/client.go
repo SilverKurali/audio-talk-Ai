@@ -94,31 +94,48 @@ func (c *client) buildAuthURL() string {
 		c.host)
 }
 
+const frameSize = 1280 // 40ms at 16kHz 16-bit mono
+
 func (c *client) SendAudio(ctx context.Context, pcm []byte, isLast bool) error {
 	c.connMu.Lock()
 	defer c.connMu.Unlock()
 
-	c.seq++
-	status := 1 // intermediate
-	if c.seq == 1 {
-		status = 0 // first
-	}
-	if isLast {
-		status = 2 // last
+	offset := 0
+	for offset < len(pcm) {
+		end := offset + frameSize
+		if end > len(pcm) {
+			end = len(pcm)
+		}
+		chunk := pcm[offset:end]
+		offset = end
+
+		c.seq++
+		status := 1 // intermediate
+		if c.seq == 1 {
+			status = 0 // first
+		}
+
+		frame := c.buildFrame(chunk, status)
+		data, _ := json.Marshal(frame)
+		if err := c.conn.Write(ctx, websocket.MessageText, data); err != nil {
+			return err
+		}
 	}
 
-	frame := c.buildFrame(pcm, status)
-	data, _ := json.Marshal(frame)
-	return c.conn.Write(ctx, websocket.MessageText, data)
+	// Send last frame marker (empty audio, status=2)
+	if isLast {
+		c.seq++
+		frame := c.buildFrame(nil, 2)
+		data, _ := json.Marshal(frame)
+		return c.conn.Write(ctx, websocket.MessageText, data)
+	}
+	return nil
 }
 
 func (c *client) buildFrame(pcm []byte, status int) map[string]interface{} {
 	header := map[string]interface{}{
 		"app_id": c.appID,
 		"status": status,
-	}
-	if c.seq == 1 {
-		header["res_id"] = "hot_words"
 	}
 
 	payload := map[string]interface{}{
