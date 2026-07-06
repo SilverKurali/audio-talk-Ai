@@ -48,9 +48,24 @@ func Attach(sock string) error {
 	go watchWindowSize(conn)
 
 	done := make(chan struct{})
+	firstData := make(chan struct{})
 	go func() {
-		_, _ = io.Copy(os.Stdout, conn)
-		close(done)
+		buf := make([]byte, 4096)
+		first := true
+		for {
+			n, err := conn.Read(buf)
+			if n > 0 {
+				if first {
+					close(firstData)
+					first = false
+				}
+				os.Stdout.Write(buf[:n])
+			}
+			if err != nil {
+				close(done)
+				return
+			}
+		}
 	}()
 
 	inputErr := make(chan error, 1)
@@ -79,6 +94,16 @@ func Attach(sock string) error {
 		}
 	}()
 
+	// Wait for first data with timeout (prevents hanging on dead sessions)
+	select {
+	case <-firstData:
+		// Got data, continue normal flow
+	case <-time.After(5 * time.Second):
+		return fmt.Errorf("连接会话超时，可能 TUI 还没启动")
+	case <-done:
+		return nil
+	}
+
 	select {
 	case <-done:
 		return nil
@@ -91,16 +116,23 @@ func Attach(sock string) error {
 }
 
 // PickAndAttach uses fzf to select a session and attach to it.
+// If only one session exists, attaches directly without fzf.
 func PickAndAttach() error {
-	if _, err := exec.LookPath("fzf"); err != nil {
-		return errors.New("fzf is not installed; install it or use --list to find session names")
-	}
 	sessions, err := AllSessions()
 	if err != nil {
 		return err
 	}
 	if len(sessions) == 0 {
 		return errors.New("no active sessions found")
+	}
+	// Single session: attach directly
+	if len(sessions) == 1 {
+		return Attach(sessions[0].Sock)
+	}
+	// Multiple sessions: use fzf
+	if _, err := exec.LookPath("fzf"); err != nil {
+		// No fzf, attach to first session
+		return Attach(sessions[0].Sock)
 	}
 	lines := make([]string, 0, len(sessions))
 	for _, s := range sessions {
@@ -180,6 +212,10 @@ func watchWindowSize(w io.Writer) {
 func isDetachInput(buf []byte) bool {
 	key := detachKeyByte()
 	if len(buf) == 1 && buf[0] == key {
+		return true
+	}
+	// In --d mode, 'b' also triggers detach (same as Ctrl+])
+	if os.Getenv("AUDIO_TALK_DETACH") == "1" && len(buf) == 1 && buf[0] == 'b' {
 		return true
 	}
 	return enhancedDetachInput(buf, key)

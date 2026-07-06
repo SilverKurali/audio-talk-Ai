@@ -31,6 +31,9 @@ Useful runtime commands:
 audio-talk-ai               # TUI mode, default
 audio-talk-ai --no-tui      # daemon mode
 audio-talk-ai --doctor      # startup environment check
+audio-talk-ai --d           # detachable TUI session
+audio-talk-ai --di          # reattach to existing session
+audio-talk-ai --list        # list active sessions
 audio-talk-ai --backend x11
 audio-talk-ai --backend wayland
 ```

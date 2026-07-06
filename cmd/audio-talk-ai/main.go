@@ -65,14 +65,14 @@ func main() {
 			os.Exit(0)
 		}()
 
-		for {
-			err := session.RunServer(*serverSock, []string{os.Args[0], "--tui-direct", "--detach-mode"}, slog.Default())
-			if err != nil {
-				os.Exit(1)
-			}
-			// TUI exited, restart it
-			time.Sleep(200 * time.Millisecond)
+		if err := session.RunServer(*serverSock, []string{os.Args[0], "--tui-direct", "--detach-mode"}, slog.Default()); err != nil {
+			os.Exit(1)
 		}
+		// Child exited (user pressed 'q'), clean up and stop
+		os.Remove(*serverSock)
+		os.Remove(pidFile)
+		os.Remove(session.MetaPath(*serverSock))
+		return
 	}
 
 	// Handle session commands first (before any other logic)
@@ -91,9 +91,8 @@ func main() {
 		}
 		// Support index numbers (1, 2, ...) from --list
 		sockName := *detachName
-		if idx, parseErr := fmt.Sscanf(*detachName, "%d"); idx == 1 && parseErr == nil {
-			var n int
-			fmt.Sscanf(*detachName, "%d", &n)
+		var n int
+		if _, err := fmt.Sscanf(*detachName, "%d", &n); err == nil && n > 0 {
 			sessions, _ := session.AllSessions()
 			if n >= 1 && n <= len(sessions) {
 				sockName = filepath.Base(sessions[n-1].Sock)
@@ -383,6 +382,8 @@ func runDiMode() error {
 
 	fmt.Println("  detach: Ctrl+] or b")
 	fmt.Println("  reattach: audio-talk-ai --di")
+	// Set env so Attach layer intercepts 'b' as detach
+	os.Setenv("AUDIO_TALK_DETACH", "1")
 	return session.Attach(sock)
 }
 

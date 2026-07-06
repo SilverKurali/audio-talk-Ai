@@ -67,14 +67,19 @@ audio-talk-ai --backend x11      # 强制 X11
 
 ### 可断开会话
 
-按 `Ctrl+]` 或 `b` 断开，Audio Talk AI 继续后台运行（热键仍有效），想看界面时再恢复。需要 `fzf` 来选择会话。
+启动后按 `Ctrl+]` 或 `b` 断开，Audio Talk AI 继续后台运行（热键仍有效）。按 `q` 结束会话。需要 `fzf` 来选择会话（仅一个会话时自动连接）。
 
 ```bash
 audio-talk-ai --d          # 启动可断开的 TUI 会话
-audio-talk-ai --di         # 恢复已有会话（fzf 选择）
+audio-talk-ai --di         # 恢复已有会话
 audio-talk-ai --list       # 列出活跃会话
 audio-talk-ai --detach 1   # 按编号停止会话
 ```
+
+| 按键 | 作用 |
+|------|------|
+| `Ctrl+]` 或 `b` | 断开到后台（会话保留） |
+| `q` | 结束会话 |
 
 ### Web 管理界面
 

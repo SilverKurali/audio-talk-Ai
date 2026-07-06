@@ -67,14 +67,19 @@ audio-talk-ai --backend x11      # force X11
 
 ### Detachable Session
 
-Press `Ctrl+]` or `b` to detach — Audio Talk AI keeps running in the background (hotkeys still work). Reattach later with `--di`. Requires `fzf` for session selection.
+Press `Ctrl+]` or `b` to detach — Audio Talk AI keeps running in the background (hotkeys still work). Press `q` to end the session. Requires `fzf` for session selection (auto-connects when only one session exists).
 
 ```bash
 audio-talk-ai --d          # start a detachable TUI session
-audio-talk-ai --di         # reattach to existing session (fzf picker)
+audio-talk-ai --di         # reattach to existing session
 audio-talk-ai --list       # list active sessions
 audio-talk-ai --detach 1   # stop a session by number
 ```
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+]` or `b` | Detach to background (session preserved) |
+| `q` | End session |
 
 ### Web Management UI
 

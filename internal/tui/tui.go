@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -78,6 +79,7 @@ type Model struct {
 	providerField   int    // index of the asr_provider field in fields, -1 if absent
 	background      bool   // user requested background mode (non-di)
 	detach          bool   // user requested detach (--d mode)
+	userDetach      bool   // user pressed 'b' to detach
 	lastAddedType   string // last added provider type, used as default in add_provider dropdown
 	previewType     string // provider type being previewed in "添加服务商" (empty = no preview)
 }
@@ -390,14 +392,14 @@ func (m *Model) WantsBackground() bool {
 	return m.background
 }
 
+// Detached returns true if the user pressed 'b' to detach in --d mode.
+func (m *Model) Detached() bool {
+	return m.userDetach
+}
+
 // SetDetach configures the model to exit cleanly on 'b' press (for --d mode).
 func (m *Model) SetDetach(v bool) {
 	m.detach = v
-}
-
-// Detached returns true if the user pressed 'b' to detach in --d mode.
-func (m *Model) Detached() bool {
-	return m.detach
 }
 
 func idxOf(opts []string, v string) int {
@@ -537,12 +539,13 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 	// Navigation mode
 	switch k {
 	case "q", "ctrl+c":
+		if m.detach {
+			os.Remove(os.Getenv("AUDIO_TALK_SOCK"))
+			return tea.Quit
+		}
 		return tea.Quit
 	case "b":
 		m.save()
-		if m.detach {
-			return tea.Quit
-		}
 		return func() tea.Msg { return BackgroundMsg{} }
 	case "s":
 		m.save()

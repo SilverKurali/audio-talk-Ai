@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/creack/pty"
 )
@@ -111,6 +112,79 @@ func (s *Server) handle(conn net.Conn) {
 // RunServer starts a PTY server that forks the given command.
 // The command runs in a PTY; clients connect via Unix socket to interact with it.
 func RunServer(sock string, cmdArgs []string, logger *slog.Logger) error {
+	return runServerOnce(sock, cmdArgs, logger)
+}
+
+// RunServerWithRestart keeps the listener alive and restarts the child process when it exits.
+// The listener is only closed when the socket file is removed externally (e.g. user pressed 'q').
+func RunServerWithRestart(sock string, cmdArgs []string, logger *slog.Logger) error {
+	if len(cmdArgs) == 0 {
+		return errors.New("session: no command specified")
+	}
+
+	if err := os.MkdirAll(filepath.Dir(sock), 0o700); err != nil {
+		return err
+	}
+	_ = os.Remove(sock)
+
+	ln, err := net.Listen("unix", sock)
+	if err != nil {
+		return err
+	}
+	defer ln.Close()
+
+	exe, err := exec.LookPath(cmdArgs[0])
+	if err != nil {
+		exe = cmdArgs[0]
+	}
+
+	for {
+		// Check if socket was removed externally (user pressed 'q')
+		if !IsSocket(sock) {
+			logger.Info("socket removed, stopping daemon")
+			return nil
+		}
+
+		logger.Info("starting child process", "command", cmdArgs)
+		cmd := exec.Command(exe, cmdArgs[1:]...)
+		cmd.Env = append(os.Environ(), "AUDIO_TALK_SOCK="+sock)
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true, Setctty: true, Ctty: 0}
+
+		ptmx, err := pty.Start(cmd)
+		if err != nil {
+			logger.Error("start PTY failed", "error", err)
+			return fmt.Errorf("session: start PTY: %w", err)
+		}
+
+		server := &Server{master: ptmx, clients: map[net.Conn]struct{}{}}
+		go server.broadcastPTY()
+
+		// Accept clients in background
+		acceptDone := make(chan struct{})
+		go func() {
+			for {
+				conn, err := ln.Accept()
+				if err != nil {
+					close(acceptDone)
+					return
+				}
+				server.add(conn)
+				go server.handle(conn)
+			}
+		}()
+
+		// Wait for child to exit (don't close listener!)
+		cmd.Wait()
+		ptmx.Close()
+		server.closeClients()
+		logger.Info("child process exited, restarting...")
+
+		// Brief pause before restart
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
+func runServerOnce(sock string, cmdArgs []string, logger *slog.Logger) error {
 	if len(cmdArgs) == 0 {
 		return errors.New("session: no command specified")
 	}
@@ -134,7 +208,7 @@ func RunServer(sock string, cmdArgs []string, logger *slog.Logger) error {
 	}
 
 	cmd := exec.Command(exe, cmdArgs[1:]...)
-	cmd.Env = os.Environ()
+	cmd.Env = append(os.Environ(), "AUDIO_TALK_SOCK="+sock)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true, Setctty: true, Ctty: 0}
 
 	ptmx, err := pty.Start(cmd)

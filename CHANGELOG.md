@@ -16,7 +16,7 @@ All notable project changes are tracked here.
 - ASR provider registry with self-registration via `init()` (similar to `database/sql` drivers).
 - Web management UI at `http://localhost:8391` for configuring providers, voice settings, and viewing transcription history.
 - Transcription history persistence (`~/.local/state/audio-talk-ai/history.json`).
-- Detachable session mode (`--d`/`--di`/`--list`/`--detach`), Ctrl+] or 'b' to detach, daemon auto-restarts TUI.
+- Detachable session mode (`--d`/`--di`/`--list`/`--detach`), `Ctrl+]` or `b` to detach, `q` to end session.
 - TUI and WebUI real-time sync: WebUI config changes auto-refresh TUI display.
 - Single-instance lock for normal TUI/daemon mode.
 - TUI provider management: add, remove, and switch ASR providers with dynamic credential fields.
