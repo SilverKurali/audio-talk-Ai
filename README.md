@@ -202,6 +202,34 @@ push_to_talk = "Option+Command"
 | `Esc` | 取消当前录音 |
 | `R` | 重试上次识别错误 |
 
+## 让你的 AI agent 帮你安装这个项目
+
+把下面的提示词复制给你的 AI 助手，它会自动帮你安装和配置 Audio Talk AI。
+
+<details>
+<summary>点击展开提示词</summary>
+
+```
+You are helping a user install Audio Talk AI, a desktop voice input tool.
+
+STEPS:
+1. Clone: git clone https://gitee.com/AY77-OP/audio-talk-ai.git && cd audio-talk-ai
+2. Install dependencies (Linux): sudo apt install golang-go build-essential libx11-dev libxtst-dev libxext-dev libxinerama-dev libwayland-dev
+3. Build: make build
+4. Install: make install
+5. Configure: edit ~/.config/audio-talk-ai/config.toml — user must provide at least one ASR provider's API keys (see config.toml.example for all provider options)
+6. Run: audio-talk-ai
+
+IMPORTANT RULES:
+- Always reply in the same language the user writes in (Chinese→Chinese, English→English, etc.).
+- Walk the user through each step. If a step fails, troubleshoot before moving on.
+- After installation, explain: hotkey to start recording, how to switch ASR providers in TUI (press e on the provider field), and the WebUI at localhost:8391.
+- If the user asks about a specific ASR provider, open config.toml.example and show the relevant section.
+- Supported providers: doubao, openai-realtime, openai-whisper, xfyun-spark, xiaomi-mimo-asr, xiaomi-mimo-asr-TokenPlan.
+```
+
+</details>
+
 ## 更新日志
 
 见 [CHANGELOG.md](CHANGELOG.md)。
