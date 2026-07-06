@@ -105,9 +105,28 @@
     </div>
     <div class="card">
       <h2>转写记录</h2>
+      <div class="history-toolbar">
+        <div class="toolbar-left">
+          <span class="select-hint" onclick="toggleSelectAll()">全选</span>
+          <button class="btn btn-danger btn-small" onclick="deleteSelected()">删除选中</button>
+        </div>
+        <div class="toolbar-right">
+          <span class="date-display" id="date-from-display" onclick="openDatePicker('from')">选择开始日期 ▼</span>
+          <span>至</span>
+          <span class="date-display" id="date-to-display" onclick="openDatePicker('to')">选择结束日期 ▼</span>
+          <button class="btn btn-danger btn-small" onclick="deleteByDate()">删除日期范围</button>
+          <button class="btn btn-secondary btn-small" onclick="exportHistory('txt')">导出 TXT</button>
+          <button class="btn btn-secondary btn-small" onclick="exportHistory('json')">导出 JSON</button>
+        </div>
+      </div>
+      <div id="date-picker-popup" class="date-picker-popup" style="display:none">
+        <div class="dp-level" id="dp-years"></div>
+        <div class="dp-level" id="dp-months" style="display:none"></div>
+        <div class="dp-level" id="dp-days" style="display:none"></div>
+      </div>
       <table>
         <thead>
-          <tr><th>时间</th><th>服务商</th><th>文本</th><th>时长</th><th>字数</th></tr>
+          <tr><th><input type="checkbox" id="select-all-head" onclick="syncSelectAll(this.checked)"></th><th>时间</th><th>服务商</th><th>文本</th><th>时长</th><th>字数</th></tr>
         </thead>
         <tbody id="history-body"></tbody>
       </table>
@@ -125,6 +144,7 @@
   <span id="status-detail"></span>
 </div>
 
+<script src="datepicker.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -75,6 +76,104 @@ func (h *HistoryStore) Stats() (sessions int, chars int, duration float64) {
 		duration += e.Duration
 	}
 	return len(h.items), chars, duration
+}
+
+// DeleteByIDs removes entries by their IDs.
+func (h *HistoryStore) DeleteByIDs(ids []int) int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	idSet := make(map[int]bool)
+	for _, id := range ids {
+		idSet[id] = true
+	}
+	filtered := h.items[:0]
+	deleted := 0
+	for _, item := range h.items {
+		if idSet[item.ID] {
+			deleted++
+			continue
+		}
+		filtered = append(filtered, item)
+	}
+	h.items = filtered
+	h.save()
+	return deleted
+}
+
+// DeleteByDateRange removes entries between from and to (inclusive).
+func (h *HistoryStore) DeleteByDateRange(from, to time.Time) int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	filtered := h.items[:0]
+	deleted := 0
+	for _, item := range h.items {
+		if !item.CreatedAt.Before(from) && !item.CreatedAt.After(to) {
+			deleted++
+			continue
+		}
+		filtered = append(filtered, item)
+	}
+	h.items = filtered
+	h.save()
+	return deleted
+}
+
+// ExportAll returns all entries (newest first) for export.
+func (h *HistoryStore) ExportAll() []HistoryEntry {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	sorted := make([]HistoryEntry, len(h.items))
+	copy(sorted, h.items)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].CreatedAt.After(sorted[j].CreatedAt)
+	})
+	return sorted
+}
+
+// DateStats returns distinct dates that have records, grouped by year→month→days.
+func (h *HistoryStore) DateStats() map[string]map[string][]int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	stats := make(map[string]map[string][]int)
+	for _, e := range h.items {
+		y := e.CreatedAt.Format("2006")
+		m := e.CreatedAt.Format("01")
+		d := e.CreatedAt.Format("02")
+		if stats[y] == nil {
+			stats[y] = make(map[string][]int)
+		}
+		day, _ := strconv.Atoi(d)
+		exists := false
+		for _, dd := range stats[y][m] {
+			if dd == day {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			stats[y][m] = append(stats[y][m], day)
+		}
+	}
+	// Sort days within each month
+	for y := range stats {
+		for m := range stats[y] {
+			sort.Ints(stats[y][m])
+		}
+	}
+	return stats
+}
+
+// TrimIfExceeds removes oldest entries if count exceeds max.
+func (h *HistoryStore) TrimIfExceeds(max int) int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if len(h.items) <= max {
+		return 0
+	}
+	excess := len(h.items) - max
+	h.items = h.items[excess:]
+	h.save()
+	return excess
 }
 
 func (h *HistoryStore) load() {

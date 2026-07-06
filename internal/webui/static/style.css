@@ -12,7 +12,7 @@ main { max-width: 800px; margin: 24px auto; padding: 0 16px; }
 .page { display: none; }
 .page.active { display: block; }
 
-.card { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+.card { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 20px; margin-bottom: 16px; position: relative; }
 .card h2 { font-size: 16px; color: #4fc3f7; margin-bottom: 16px; }
 
 .form-grid { display: grid; grid-template-columns: 120px 1fr; gap: 10px 12px; align-items: center; margin-bottom: 16px; }
@@ -65,3 +65,21 @@ tr:hover { background: rgba(79,195,247,0.05); }
 .toast.success { background: #2e7d32; color: #fff; }
 .toast.error { background: #c62828; color: #fff; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+.history-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #0f3460; }
+.toolbar-left { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.toolbar-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.toolbar-right label { font-size: 12px; color: #90a4ae; cursor: default; }
+input[type=checkbox] { cursor: pointer; width: 16px; height: 16px; accent-color: #4fc3f7; }
+.select-hint { color: #4fc3f7; font-size: 13px; cursor: pointer; padding: 4px 0; user-select: none; text-decoration: underline; text-underline-offset: 2px; }
+
+.date-display { padding: 4px 10px; background: #1a1a2e; border: 1px solid #0f3460; border-radius: 4px; font-size: 13px; color: #4fc3f7; cursor: pointer; user-select: none; white-space: nowrap; }
+.date-display:hover { border-color: #4fc3f7; }
+
+.date-picker-popup { position: fixed; z-index: 1000; background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); max-height: 50vh; overflow-y: auto; min-width: 200px; }
+.dp-level { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.dp-level:last-child { margin-bottom: 0; }
+.dp-item { padding: 6px 12px; background: #1a1a2e; border: 1px solid #0f3460; border-radius: 4px; font-size: 13px; color: #e0e0e0; cursor: pointer; transition: all 0.15s; user-select: none; }
+.dp-item:hover { border-color: #4fc3f7; color: #4fc3f7; }
+.dp-item.active { background: #4fc3f7; color: #1a1a2e; border-color: #4fc3f7; }
+.dp-label { font-size: 11px; color: #90a4ae; margin-bottom: 4px; width: 100%; }

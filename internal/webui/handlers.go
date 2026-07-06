@@ -2,12 +2,23 @@ package webui
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"gitee.com/AY77-OP/audio-talk-ai/config"
 	"gitee.com/AY77-OP/audio-talk-ai/plugins/voice"
 )
+
+var PROVIDER_DISPLAY = map[string]string{
+	"doubao":                  "豆包",
+	"openai-realtime":         "OpenAI Realtime",
+	"openai-whisper":          "OpenAI Whisper",
+	"xfyun-spark":             "讯飞星火",
+	"xiaomi-mimo-asr":         "小米 MiMo",
+	"xiaomi-mimo-asr-TokenPlan": "小米 MiMo Token Plan",
+}
 
 func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json")
@@ -194,6 +205,69 @@ func (s *Server) handleGetHistory(w http.ResponseWriter, r *http.Request) {
 		"chars":    chars,
 		"duration": duration,
 	})
+}
+
+// GET /api/history/dates — returns distinct dates with records for date picker
+func (s *Server) handleGetDateStats(w http.ResponseWriter, r *http.Request) {
+	stats := s.history.DateStats()
+	writeJSON(w, 200, stats)
+}
+
+// DELETE /api/history — batch delete by IDs or date range
+// Body: {"ids": [1,2,3]} or {"from": "2026-01-01", "to": "2026-01-31"}
+func (s *Server) handleDeleteHistory(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		IDs  []int  `json:"ids"`
+		From string `json:"from"`
+		To   string `json:"to"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		writeJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+	if len(req.IDs) > 0 {
+		deleted := s.history.DeleteByIDs(req.IDs)
+		writeJSON(w, 200, map[string]int{"deleted": deleted})
+		return
+	}
+	if req.From != "" && req.To != "" {
+		from, err1 := time.Parse("2006-01-02", req.From)
+		to, err2 := time.Parse("2006-01-02", req.To)
+		if err1 != nil || err2 != nil {
+			writeJSON(w, 400, map[string]string{"error": "invalid date format, use YYYY-MM-DD"})
+			return
+		}
+		to = to.Add(24*time.Hour - time.Second) // include the entire end day
+		deleted := s.history.DeleteByDateRange(from, to)
+		writeJSON(w, 200, map[string]int{"deleted": deleted})
+		return
+	}
+	writeJSON(w, 400, map[string]string{"error": "provide ids or date range"})
+}
+
+// GET /api/history/export?format=txt|json
+func (s *Server) handleExportHistory(w http.ResponseWriter, r *http.Request) {
+	format := r.URL.Query().Get("format")
+	if format == "" {
+		format = "txt"
+	}
+	items := s.history.ExportAll()
+	if format == "json" {
+		w.Header().Set("Content-Disposition", `attachment; filename="history.json"`)
+		writeJSON(w, 200, items)
+		return
+	}
+	// TXT export
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Content-Disposition", `attachment; filename="history.txt"`)
+	for _, item := range items {
+		ts := item.CreatedAt.Format("2006-01-02 15:04:05")
+		provider := PROVIDER_DISPLAY[item.Provider]
+		if provider == "" {
+			provider = item.Provider
+		}
+		fmt.Fprintf(w, "[%s] (%s) %.1fs\n%s\n\n", ts, provider, item.Duration, item.Text)
+	}
 }
 
 // GET /api/status

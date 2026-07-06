@@ -271,10 +271,11 @@ async function loadHistory() {
 
   const tbody = document.getElementById('history-body');
   if (!data.items || data.items.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="color:#90a4ae;text-align:center">暂无记录</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="color:#90a4ae;text-align:center">暂无记录</td></tr>';
   } else {
     tbody.innerHTML = data.items.map(item => `
       <tr>
+        <td><input type="checkbox" class="history-checkbox" value="${item.id}"></td>
         <td>${formatTime(item.created_at)}</td>
         <td>${PROVIDER_NAMES[item.provider] || item.provider || '-'}</td>
         <td class="text-cell">${escapeHtml(item.text)}</td>
@@ -284,11 +285,59 @@ async function loadHistory() {
     `).join('');
   }
 
+  document.getElementById('select-all-head').checked = false;
+  syncSelectAll(false);
   const totalPages = Math.ceil(data.total / PAGE_SIZE);
   const currentPage = Math.floor(historyOffset / PAGE_SIZE) + 1;
   document.getElementById('page-info').textContent = currentPage + ' / ' + totalPages;
   document.getElementById('prev-page').disabled = historyOffset <= 0;
   document.getElementById('next-page').disabled = historyOffset + PAGE_SIZE >= data.total;
+}
+
+function toggleSelectAll() {
+  const header = document.getElementById('select-all-head');
+  header.checked = !header.checked;
+  document.querySelectorAll('.history-checkbox').forEach(cb => cb.checked = header.checked);
+}
+
+function syncSelectAll(checked) {
+  document.querySelectorAll('.history-checkbox').forEach(cb => cb.checked = checked);
+}
+
+function getSelectedIDs() {
+  return Array.from(document.querySelectorAll('.history-checkbox:checked')).map(cb => parseInt(cb.value));
+}
+
+async function deleteSelected() {
+  const ids = getSelectedIDs();
+  if (ids.length === 0) { toast('请先选择记录', 'error'); return; }
+  if (!confirm(`确定删除 ${ids.length} 条记录？`)) return;
+  try {
+    const res = await api('DELETE', '/history', { ids });
+    toast(`已删除 ${res.deleted} 条`);
+    loadHistory();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function deleteByDate() {
+  const from = document.getElementById('date-from-display').dataset.date;
+  const to = document.getElementById('date-to-display').dataset.date;
+  if (!from || !to) { toast('请选择开始和结束日期', 'error'); return; }
+  if (!confirm(`确定删除 ${from} 至 ${to} 的所有记录？`)) return;
+  try {
+    const res = await api('DELETE', '/history', { from, to });
+    toast(`已删除 ${res.deleted} 条`);
+    document.getElementById('date-from-display').textContent = '选择开始日期 ▼';
+    document.getElementById('date-to-display').textContent = '选择结束日期 ▼';
+    document.getElementById('date-from-display').dataset.date = '';
+    document.getElementById('date-to-display').dataset.date = '';
+    dpDateStats = null; // refresh date stats
+    loadHistory();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function exportHistory(format) {
+  window.open('/api/history/export?format=' + format, '_blank');
 }
 
 function prevPage() {
@@ -326,5 +375,6 @@ async function pollStatus() {
 // Init
 loadConfig();
 loadProviders();
+initDatePicker();
 setInterval(pollStatus, 2000);
 pollStatus();

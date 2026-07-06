@@ -49,6 +49,9 @@ func (s *Server) Start() {
 	mux.HandleFunc("DELETE /api/providers/{name}", s.handleDeleteProvider)
 	mux.HandleFunc("PUT /api/providers-default/{name}", s.handleSetDefault)
 	mux.HandleFunc("GET /api/history", s.handleGetHistory)
+	mux.HandleFunc("DELETE /api/history", s.handleDeleteHistory)
+	mux.HandleFunc("GET /api/history/export", s.handleExportHistory)
+	mux.HandleFunc("GET /api/history/dates", s.handleGetDateStats)
 	mux.HandleFunc("GET /api/status", s.handleGetStatus)
 
 	go func() {
