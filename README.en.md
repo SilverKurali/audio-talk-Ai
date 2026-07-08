@@ -59,7 +59,7 @@ xcode-select --install
 ```
 
 ```bash
-git clone https://gitee.com/AY77-OP/audio-talk-ai.git
+git clone https://github.com/SilverKurali/audio-talk-Ai.git
 cd audio-talk-ai
 make build          # or go build -o build/audio-talk-ai ./cmd/audio-talk-ai
 make install        # installs to ~/.local/bin/
@@ -205,7 +205,7 @@ Copy the prompt below to your AI assistant — it will install and configure Aud
 You are helping a user install Audio Talk AI, a desktop voice input tool.
 
 STEPS:
-1. Clone the repo. Primary: git clone https://gitee.com/AY77-OP/audio-talk-ai.git. Mirror: git clone https://github.com/SilverKurali/audio-talk-Ai.git. Use whichever is accessible to the user.
+1. Clone the repo. Primary: git clone https://github.com/SilverKurali/audio-talk-Ai.git. Mirror: git clone https://gitee.com/AY77-OP/audio-talk-ai.git. Use whichever is accessible to the user.
 2. cd into the cloned directory.
 3. Install dependencies (Linux): sudo apt install golang-go build-essential libx11-dev libxtst-dev libxext-dev libxinerama-dev libwayland-dev
 4. Build: make build
