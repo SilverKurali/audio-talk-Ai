@@ -144,7 +144,7 @@ async function loadProviders() {
 function renderProviders() {
   const container = document.getElementById('provider-list');
   if (providers.length === 0) {
-    container.innerHTML = '<p style="color:#90a4ae;font-size:13px">暂无服务商，请添加。</p>';
+    container.innerHTML = '<div class="empty-state">暂无服务商，点击下方按钮添加。</div>';
     return;
   }
   container.innerHTML = providers.map((p, i) => `
@@ -256,10 +256,26 @@ function buildFieldsHTML(fields, prefix) {
       ).join('')}</select>`;
     } else {
       const isSecret = f.key.includes('secret') || f.key.includes('key') || f.key.includes('access');
-      input = `<input type="${isSecret ? 'password' : 'text'}" id="${id}" placeholder="${f.placeholder || ''}">`;
+      if (isSecret) {
+        input = `<div class="input-wrap">`
+          + `<input type="password" id="${id}" placeholder="${f.placeholder || ''}">`
+          + `<button type="button" class="input-eye" title="显示/隐藏" onclick="toggleSecret('${id}', this)">&#128065;</button>`
+          + `</div>`;
+      } else {
+        input = `<input type="text" id="${id}" placeholder="${f.placeholder || ''}">`;
+      }
     }
     return `<label>${f.label}</label>${input}`;
   }).join('') + '</div>';
+}
+
+// Toggle secret field visibility
+function toggleSecret(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const show = el.type === 'password';
+  el.type = show ? 'text' : 'password';
+  btn.style.color = show ? 'var(--accent)' : '';
 }
 
 // History
@@ -267,11 +283,24 @@ async function loadHistory() {
   const data = await api('GET', '/history?offset=' + historyOffset + '&limit=' + PAGE_SIZE);
   document.getElementById('h-sessions').textContent = data.sessions;
   document.getElementById('h-chars').textContent = data.chars;
-  document.getElementById('h-duration').textContent = Math.round(data.duration);
+  const el = document.getElementById('h-duration');
+  el.textContent = formatDuration(data.duration, el._fmt);
+  if (!el._bound) {
+    el._fmt = 's';
+    el._sec = data.duration;
+    el._bound = true;
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', function() {
+      this._fmt = this._fmt === 's' ? 'hms' : 's';
+      this.textContent = formatDuration(this._sec, this._fmt);
+    });
+  } else {
+    el._sec = data.duration;
+  }
 
   const tbody = document.getElementById('history-body');
   if (!data.items || data.items.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="color:#90a4ae;text-align:center">暂无记录</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">暂无记录</div></td></tr>';
   } else {
     tbody.innerHTML = data.items.map(item => `
       <tr>
@@ -292,6 +321,19 @@ async function loadHistory() {
   document.getElementById('page-info').textContent = currentPage + ' / ' + totalPages;
   document.getElementById('prev-page').disabled = historyOffset <= 0;
   document.getElementById('next-page').disabled = historyOffset + PAGE_SIZE >= data.total;
+}
+
+function formatDuration(sec, fmt) {
+  sec = Math.round(sec) || 0;
+  if (fmt === 'hms') {
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    let t = '';
+    if (h > 0) t += h + 'H';
+    if (m > 0 || h > 0) t += m + 'M';
+    t += s + 'S';
+    return t;
+  }
+  return String(sec);
 }
 
 function toggleSelectAll() {

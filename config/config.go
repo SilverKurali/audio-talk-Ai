@@ -186,13 +186,28 @@ func MigratePlaintextSecrets(cfgPath string, logger *slog.Logger) error {
 		return fmt.Errorf("no config file to migrate")
 	}
 
+	// Inspect the on-disk data WITHOUT decrypting it. Migration only makes
+	// sense when there are still plaintext (non-enc:) secrets on disk. If
+	// everything is already encrypted (or empty) there is nothing to do and
+	// we must not rewrite/lose the file.
+	raw := mustLoadPlain(path)
+	if !hasPlaintextSecrets(raw) {
+		return nil
+	}
+
 	key, err := loadKey()
 	if err != nil {
 		return err
 	}
 
+	// Use the decrypted live config as the source of truth for the round trip.
+	cfg, err := Load(path)
+	if err != nil {
+		return err
+	}
+
 	// Encrypt a clone of the live (plaintext) config.
-	tmp := cloneForSave(mustLoadPlain(path))
+	tmp := cloneForSave(cfg)
 	if err := tmp.encryptSecrets(key); err != nil {
 		return fmt.Errorf("encrypt: %w", err)
 	}
@@ -202,7 +217,7 @@ func MigratePlaintextSecrets(cfgPath string, logger *slog.Logger) error {
 	if err := verify.decryptSecrets(key); err != nil {
 		return fmt.Errorf("encrypted data is not reversible: %w", err)
 	}
-	if !secretsEqual(mustLoadPlain(path), verify) {
+	if !secretsEqual(cfg, verify) {
 		return fmt.Errorf("encrypted data does not round-trip to original plaintext")
 	}
 
@@ -222,6 +237,23 @@ func MigratePlaintextSecrets(cfgPath string, logger *slog.Logger) error {
 	}
 	logger.Info("migrated plaintext secrets to encrypted storage", "backup", backup)
 	return nil
+}
+
+// hasPlaintextSecrets reports whether any credential field holds a live
+// plaintext value (non-empty and not already encrypted with the enc: prefix).
+func hasPlaintextSecrets(cfg *Config) bool {
+	for i := range cfg.ASRs {
+		p := &cfg.ASRs[i]
+		if isPlaintext(p.AppKey) || isPlaintext(p.AccessKey) || isPlaintext(p.ResourceID) ||
+			isPlaintext(p.ApiKey) || isPlaintext(p.AppID) || isPlaintext(p.ApiSecret) || isPlaintext(p.DWA) {
+			return true
+		}
+	}
+	return isPlaintext(cfg.Voice.AppKey) || isPlaintext(cfg.Voice.AccessKey) || isPlaintext(cfg.Voice.ResourceID)
+}
+
+func isPlaintext(s string) bool {
+	return s != "" && !strings.HasPrefix(s, encPrefix)
 }
 
 // mustLoadPlain loads the config from disk as plaintext (no decryption, no
@@ -245,16 +277,17 @@ func copyFile(src, dst string) error {
 	return os.WriteFile(dst, data, 0600)
 }
 
-// secretsEqual reports whether the credential-bearing fields of two configs
-// are identical (used to verify an encrypt/decrypt round trip).
+// secretsEqual reports whether two configs carry identical data after a
+// decrypt round-trip. It compares the full provider and voice structs (not
+// just credential fields) so that non-secret-but-persisted fields such as
+// Model and BaseURL are also verified to survive the round trip.
 func secretsEqual(a, b *Config) bool {
 	if len(a.ASRs) != len(b.ASRs) {
 		return false
 	}
 	for i := range a.ASRs {
 		x, y := a.ASRs[i], b.ASRs[i]
-		if x.AppKey != y.AppKey || x.AccessKey != y.AccessKey || x.ResourceID != y.ResourceID ||
-			x.ApiKey != y.ApiKey || x.AppID != y.AppID || x.ApiSecret != y.ApiSecret || x.DWA != y.DWA {
+		if x != y {
 			return false
 		}
 	}
