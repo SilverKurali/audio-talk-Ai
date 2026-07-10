@@ -277,17 +277,22 @@ func copyFile(src, dst string) error {
 	return os.WriteFile(dst, data, 0600)
 }
 
-// secretsEqual reports whether two configs carry identical data after a
-// decrypt round-trip. It compares the full provider and voice structs (not
-// just credential fields) so that non-secret-but-persisted fields such as
-// Model and BaseURL are also verified to survive the round trip.
+// secretsEqual reports whether the credential-bearing fields of two configs
+// are identical after a decrypt round-trip. Only the fields that are actually
+// encrypted/decrypted are compared, so that non-secret fields (Type, Default,
+// Language, Model, BaseURL, ...) whose values may differ due to load-time
+// default normalization do not cause a false round-trip mismatch.
 func secretsEqual(a, b *Config) bool {
 	if len(a.ASRs) != len(b.ASRs) {
 		return false
 	}
 	for i := range a.ASRs {
 		x, y := a.ASRs[i], b.ASRs[i]
-		if x != y {
+		// 只比较真正被加密/解密的凭据字段，避免 Load 与 mustLoadPlain
+		// 在非密文字段（Type/Default/Language/Model 等）上的归一化差异
+		// 误判 round-trip 失败。
+		if x.AppKey != y.AppKey || x.AccessKey != y.AccessKey || x.ResourceID != y.ResourceID ||
+			x.ApiKey != y.ApiKey || x.AppID != y.AppID || x.ApiSecret != y.ApiSecret || x.DWA != y.DWA {
 			return false
 		}
 	}

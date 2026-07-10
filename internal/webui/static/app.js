@@ -293,6 +293,7 @@ async function loadHistory() {
     el.addEventListener('click', function() {
       this._fmt = this._fmt === 's' ? 'hms' : 's';
       this.textContent = formatDuration(this._sec, this._fmt);
+      document.getElementById('h-duration-label').textContent = this._fmt === 's' ? '总时长 (s)' : '总时长 (H/M/S)';
     });
   } else {
     el._sec = data.duration;
