@@ -5,7 +5,7 @@
 ```
 audio-talk-ai/
 ├── cmd/audio-talk-ai/
-│   └── main.go                    # 程序入口，CLI 参数解析，启动 TUI/daemon/WebUI
+│   └── main.go                    # 程序入口，CLI 参数解析，明文密钥安全迁移，启动 TUI/daemon/WebUI
 │
 ├── asr/                           # ASR（语音识别）抽象层
 │   ├── asr.go                     # Client 接口定义、Common 配置、Result 类型
@@ -17,7 +17,9 @@ audio-talk-ai/
 │   └── mimoasr/client.go          # 小米 MiMo 批量 ASR，REST API，Chat Completions 格式
 │
 ├── config/
-│   └── config.go                  # 配置加载/保存（TOML），热键解析，ASR 服务商管理
+│   ├── config.go                  # 配置加载/保存（TOML），热键解析，ASR 服务商管理，明文密钥安全迁移
+│   ├── crypto.go                  # AES-256-GCM 密钥加密/解密（密文前缀 enc:，nonce 拼入密文），明文密钥自动安全迁移
+│   └── crypto_test.go             # 加密往返单元测试（含空串与密文前缀校验）
 │
 ├── engine/                        # 插件引擎
 │   ├── engine.go                  # 引擎生命周期：启动/停止/配置热重载/配置变更通知
@@ -52,7 +54,7 @@ audio-talk-ai/
 │   │   └── clipboard_no_cmd.go    # 无命令行工具时的 stub
 │   │
 │   ├── doctor/                    # 启动环境检查
-│   │   ├── doctor.go              # Doctor 接口和通用检查
+│   │   ├── doctor.go              # Doctor 接口、通用检查（含密钥加密状态与钥匙文件权限）
 │   │   ├── asr_check.go           # ASR 配置验证（检查必填字段）
 │   │   ├── doctor_linux.go        # Linux 环境检查（evdev 权限、wl-clipboard 等）
 │   │   ├── doctor_darwin.go       # macOS 环境检查（辅助功能权限等）
