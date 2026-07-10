@@ -217,6 +217,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Migrate any still-plaintext secrets to encrypted-at-rest on first run.
+	// The migration is safe-by-construction: it never overwrites the live
+	// config unless the encrypted bytes round-trip back to the same plaintext
+	// and a backup of the original file exists.
+	if config.HasPlaintextSecrets(cfg) {
+		if err := config.MigratePlaintextSecrets(*cfgPath, logger); err != nil {
+			logger.Error("failed to encrypt config secrets (config left unchanged)", "error", err)
+		}
+	}
+
 	if *backend == "" {
 		*backend = os.Getenv("JUST_TALK_BACKEND")
 	}

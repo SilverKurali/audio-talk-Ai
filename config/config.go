@@ -2,26 +2,27 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"gitee.com/AY77-OP/audio-talk-ai/hotkey"
+	"github.com/BurntSushi/toml"
 )
 
 type Config struct {
 	Voice   VoiceConfig         `toml:"voice" json:"voice"`
 	ASRs    []ASRProviderConfig `toml:"asr_providers" json:"asr_providers"`
 	Debug   DebugConfig         `toml:"debug" json:"debug"`
-	Overlay OverlayConfig      `toml:"overlay" json:"overlay"`
+	Overlay OverlayConfig       `toml:"overlay" json:"overlay"`
 	Web     WebConfig           `toml:"web" json:"web"`
 }
 
 type ASRProviderConfig struct {
-	Name       string `toml:"name" json:"name"`
-	Type       string `toml:"type" json:"type"`
-	Default    bool   `toml:"default,omitempty" json:"default"`
+	Name    string `toml:"name" json:"name"`
+	Type    string `toml:"type" json:"type"`
+	Default bool   `toml:"default,omitempty" json:"default"`
 	// Doubao fields
 	AppKey     string `toml:"app_key" json:"app_key"`
 	AccessKey  string `toml:"access_key" json:"access_key"`
@@ -157,6 +158,130 @@ func Load(path string) (*Config, error) {
 	if err := toml.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("parse config %s: %w", path, err)
 	}
+	key, err := loadKey()
+	if err != nil {
+		return nil, err
+	}
+	if err := cfg.decryptSecrets(key); err != nil {
+		return nil, fmt.Errorf("decrypt config %s: %w", path, err)
+	}
+	return cfg, nil
+}
+
+// MigratePlaintextSecrets encrypts any plaintext secrets in the on-disk config
+// and rewrites it, but only after proving the encryption is reversible. It
+// never destroys the user's data:
+//   - it first backs up the original file to <path>.bak before writing;
+//   - it encrypts a clone, then immediately decrypts it and compares against
+//     the live plaintext; only if they match is the encrypted copy written.
+//
+// On any failure the original config is left untouched and the error is
+// returned so the caller can keep running with the in-memory plaintext.
+func MigratePlaintextSecrets(cfgPath string, logger *slog.Logger) error {
+	path := cfgPath
+	if path == "" {
+		path = FindConfig()
+	}
+	if path == "" {
+		return fmt.Errorf("no config file to migrate")
+	}
+
+	key, err := loadKey()
+	if err != nil {
+		return err
+	}
+
+	// Encrypt a clone of the live (plaintext) config.
+	tmp := cloneForSave(mustLoadPlain(path))
+	if err := tmp.encryptSecrets(key); err != nil {
+		return fmt.Errorf("encrypt: %w", err)
+	}
+
+	// Prove the encrypted clone decrypts back to identical plaintext.
+	verify := cloneForSave(tmp)
+	if err := verify.decryptSecrets(key); err != nil {
+		return fmt.Errorf("encrypted data is not reversible: %w", err)
+	}
+	if !secretsEqual(mustLoadPlain(path), verify) {
+		return fmt.Errorf("encrypted data does not round-trip to original plaintext")
+	}
+
+	// Safety net: keep the original around.
+	backup := path + ".bak"
+	if err := copyFile(path, backup); err != nil {
+		return fmt.Errorf("backup: %w", err)
+	}
+
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if err := toml.NewEncoder(f).Encode(tmp); err != nil {
+		return err
+	}
+	logger.Info("migrated plaintext secrets to encrypted storage", "backup", backup)
+	return nil
+}
+
+// mustLoadPlain loads the config from disk as plaintext (no decryption, no
+// default-overlay side effects on the caller) for migration comparison.
+func mustLoadPlain(path string) *Config {
+	cfg := Default()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		// Caller has already established the file exists; ignore read edge cases.
+		return cfg
+	}
+	_ = toml.Unmarshal(data, cfg)
+	return cfg
+}
+
+func copyFile(src, dst string) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, data, 0600)
+}
+
+// secretsEqual reports whether the credential-bearing fields of two configs
+// are identical (used to verify an encrypt/decrypt round trip).
+func secretsEqual(a, b *Config) bool {
+	if len(a.ASRs) != len(b.ASRs) {
+		return false
+	}
+	for i := range a.ASRs {
+		x, y := a.ASRs[i], b.ASRs[i]
+		if x.AppKey != y.AppKey || x.AccessKey != y.AccessKey || x.ResourceID != y.ResourceID ||
+			x.ApiKey != y.ApiKey || x.AppID != y.AppID || x.ApiSecret != y.ApiSecret || x.DWA != y.DWA {
+			return false
+		}
+	}
+	return a.Voice.AppKey == b.Voice.AppKey && a.Voice.AccessKey == b.Voice.AccessKey && a.Voice.ResourceID == b.Voice.ResourceID
+}
+
+// LoadRaw parses the config file as-is, without decrypting secrets. It is used
+// by the doctor to inspect how secrets are stored on disk (plaintext vs
+// encrypted), independent of the in-memory decrypted view.
+func LoadRaw(path string) (*Config, error) {
+	cfg := Default()
+	if path == "" {
+		path = FindConfig()
+	}
+	if path == "" {
+		return cfg, nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return cfg, nil
+		}
+		return nil, fmt.Errorf("read config %s: %w", path, err)
+	}
+	if err := toml.Unmarshal(data, cfg); err != nil {
+		return nil, fmt.Errorf("parse config %s: %w", path, err)
+	}
 	return cfg, nil
 }
 
@@ -181,14 +306,163 @@ func Save(cfg *Config) error {
 	if path == "" {
 		home, _ := os.UserHomeDir()
 		path = filepath.Join(home, ".config", "audio-talk-ai", "config.toml")
-		os.MkdirAll(filepath.Dir(path), 0755)
 	}
-	f, err := os.Create(path)
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+	key, err := loadKey()
+	if err != nil {
+		return err
+	}
+	// Encrypt only a detached copy so the live in-memory config stays plaintext
+	// for the running process (the engine still needs usable secrets).
+	tmp := cloneForSave(cfg)
+	if err := tmp.encryptSecrets(key); err != nil {
+		return err
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return toml.NewEncoder(f).Encode(cfg)
+	return toml.NewEncoder(f).Encode(tmp)
+}
+
+// cloneForSave deep-copies the parts that get encrypted so Save never mutates
+// the caller's config (which the running engine relies on as plaintext).
+func cloneForSave(cfg *Config) *Config {
+	c := *cfg
+	c.ASRs = make([]ASRProviderConfig, len(cfg.ASRs))
+	for i, p := range cfg.ASRs {
+		c.ASRs[i] = p
+	}
+	c.Voice = cfg.Voice
+	c.Debug = cfg.Debug
+	c.Overlay = cfg.Overlay
+	c.Web = cfg.Web
+	return &c
+}
+
+// encryptSecrets encrypts every credential field in place. Already-encrypted
+// values (enc: prefix) are left untouched so repeated saves don't double-wrap.
+func (c *Config) encryptSecrets(key []byte) error {
+	for i := range c.ASRs {
+		p := &c.ASRs[i]
+		if err := encryptField(&p.AppKey, key); err != nil {
+			return err
+		}
+		if err := encryptField(&p.AccessKey, key); err != nil {
+			return err
+		}
+		if err := encryptField(&p.ResourceID, key); err != nil {
+			return err
+		}
+		if err := encryptField(&p.ApiKey, key); err != nil {
+			return err
+		}
+		if err := encryptField(&p.AppID, key); err != nil {
+			return err
+		}
+		if err := encryptField(&p.ApiSecret, key); err != nil {
+			return err
+		}
+		if err := encryptField(&p.DWA, key); err != nil {
+			return err
+		}
+	}
+	if err := encryptField(&c.Voice.AppKey, key); err != nil {
+		return err
+	}
+	if err := encryptField(&c.Voice.AccessKey, key); err != nil {
+		return err
+	}
+	if err := encryptField(&c.Voice.ResourceID, key); err != nil {
+		return err
+	}
+	return nil
+}
+
+// decryptSecrets reverses encryptSecrets on load.
+func (c *Config) decryptSecrets(key []byte) error {
+	for i := range c.ASRs {
+		p := &c.ASRs[i]
+		if err := decryptField(&p.AppKey, key); err != nil {
+			return err
+		}
+		if err := decryptField(&p.AccessKey, key); err != nil {
+			return err
+		}
+		if err := decryptField(&p.ResourceID, key); err != nil {
+			return err
+		}
+		if err := decryptField(&p.ApiKey, key); err != nil {
+			return err
+		}
+		if err := decryptField(&p.AppID, key); err != nil {
+			return err
+		}
+		if err := decryptField(&p.ApiSecret, key); err != nil {
+			return err
+		}
+		if err := decryptField(&p.DWA, key); err != nil {
+			return err
+		}
+	}
+	if err := decryptField(&c.Voice.AppKey, key); err != nil {
+		return err
+	}
+	if err := decryptField(&c.Voice.AccessKey, key); err != nil {
+		return err
+	}
+	if err := decryptField(&c.Voice.ResourceID, key); err != nil {
+		return err
+	}
+	return nil
+}
+
+func encryptField(p *string, key []byte) error {
+	if *p == "" || strings.HasPrefix(*p, encPrefix) {
+		return nil
+	}
+	e, err := encryptString([]byte(*p), key)
+	if err != nil {
+		return err
+	}
+	*p = e
+	return nil
+}
+
+func decryptField(p *string, key []byte) error {
+	if *p == "" || !strings.HasPrefix(*p, encPrefix) {
+		return nil
+	}
+	d, err := decryptString(*p, key)
+	if err != nil {
+		return err
+	}
+	*p = d
+	return nil
+}
+
+// HasPlaintextSecrets reports whether any credential is still stored in the
+// clear (no enc: prefix). Used to migrate existing configs on startup.
+func HasPlaintextSecrets(c *Config) bool {
+	for i := range c.ASRs {
+		p := c.ASRs[i]
+		if isPlaintextSecret(p.AppKey) || isPlaintextSecret(p.AccessKey) ||
+			isPlaintextSecret(p.ResourceID) || isPlaintextSecret(p.ApiKey) ||
+			isPlaintextSecret(p.AppID) || isPlaintextSecret(p.ApiSecret) ||
+			isPlaintextSecret(p.DWA) {
+			return true
+		}
+	}
+	return isPlaintextSecret(c.Voice.AppKey) ||
+		isPlaintextSecret(c.Voice.AccessKey) ||
+		isPlaintextSecret(c.Voice.ResourceID)
+}
+
+func isPlaintextSecret(s string) bool {
+	return s != "" && !strings.HasPrefix(s, encPrefix)
 }
 
 // ---- Hotkey parser ----

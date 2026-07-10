@@ -6,6 +6,8 @@ All notable project changes are tracked here.
 
 ### New
 
+- At-rest encryption for API secrets in `config.toml`: plaintext credentials are now encrypted with AES-256-GCM on first run and stored as `enc:<base64>`; a per-user key file (`~/.config/audio-talk-ai/key`, mode 0600) is used for decryption. Migration is safe: the original config is backed up and the encrypted bytes are verified to round-trip before any file is overwritten.
+- Doctor `密钥加密` check reports plaintext-secrets warnings, missing/over-permissive key files, and overall at-rest safety.
 - Multi-provider ASR system: support 6 speech recognition services with dynamic switching in TUI.
   - **Doubao** (ByteDance Volcengine): streaming ASR via binary WebSocket protocol.
   - **OpenAI Realtime**: streaming ASR via JSON WebSocket, supports gpt-4o-transcribe / gpt-4o-mini-transcribe / whisper-1.
