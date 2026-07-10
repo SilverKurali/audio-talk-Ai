@@ -111,6 +111,15 @@ port = 8391
 
 Config file: `~/.config/audio-talk-ai/config.toml`
 
+### Secret Encryption & Migration
+
+Starting from this version, API secrets in the config are stored encrypted with **AES-256-GCM** as `enc:<base64>`. The decryption key lives in `~/.config/audio-talk-ai/key` (mode `0600`, readable only by you). Plaintext secrets exist in memory only while the program runs.
+
+- **Upgrading from a plaintext config**: on first launch (or first save) with the new version, plaintext secrets are encrypted and written back automatically. The original file is backed up and the ciphertext is verified to decrypt correctly before anything is overwritten, so your data is never destroyed.
+- **Downgrading to an old version is NOT compatible**: old versions do not understand the `enc:` prefix and will treat the ciphertext as the real key, causing auth failures. If you must downgrade, view and note the plaintext secrets from the TUI / WebUI before downgrading.
+- **Backup & migration**: treat `config.toml` and `key` as a pair. Copying only the encrypted config without `key` (or lacking `key` on another machine) makes the ciphertext undecryptable and the program won't start.
+- **Health check**: run `audio-talk-ai --doctor` and look at the "密钥加密" (secret encryption) item to confirm there are no plaintext secrets and the key file permissions are correct.
+
 ### Basic Config
 
 ```toml
