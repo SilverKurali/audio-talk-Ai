@@ -229,19 +229,23 @@ You are helping a user install Audio Talk AI (桌面语音输入工具).
 
 INSTALLATION — prefer Method A (预编译二进制, ~9MB, 无需编译环境).
 
+REPOSITORIES (use whichever is accessible to the user):
+- Gitee (primary, China-friendly): https://gitee.com/AY77-OP/audio-talk-ai
+- GitHub (mirror, international): https://github.com/SilverKurali/audio-talk-Ai
+
 Method A — Pre-built binary (recommended):
 1. TMPDIR=$(mktemp -d) && cd "$TMPDIR"
-2. curl -L -o audio-talk-ai https://gitee.com/AY77-OP/audio-talk-ai/releases/download/v0.1.0/audio-talk-ai
+2. Download binary from Gitee Release: curl -L -o audio-talk-ai https://gitee.com/AY77-OP/audio-talk-ai/releases/download/v0.1.0/audio-talk-ai (if Gitee is unreachable, shallow-clone the GitHub mirror and build via Method B)
 3. chmod +x audio-talk-ai && sudo mv audio-talk-ai /usr/local/bin/
 4. mkdir -p ~/.config/audio-talk-ai
-5. curl -L -o ~/.config/audio-talk-ai/config.toml.example https://gitee.com/AY77-OP/audio-talk-ai/raw/master/config.toml.example
+5. Download config example (pick accessible source): curl -L -o ~/.config/audio-talk-ai/config.toml.example https://gitee.com/AY77-OP/audio-talk-ai/raw/master/config.toml.example
 6. If ~/.config/audio-talk-ai/config.toml does NOT exist, copy the example as starting point: cp ~/.config/audio-talk-ai/config.toml.example ~/.config/audio-talk-ai/config.toml
 7. Cleanup: cd ~ && rm -rf "$TMPDIR"
 8. If download fails → fall back to Method B.
 
 Method B — Build from source (fallback, needs Go 1.25+):
 1. TMPDIR=$(mktemp -d) && cd "$TMPDIR"
-2. git clone --depth 1 https://gitee.com/AY77-OP/audio-talk-ai.git .
+2. git clone --depth 1 <repo_url> .  (use Gitee or GitHub URL from above)
 3. Install deps (Linux): sudo apt install -y build-essential libx11-dev libxtst-dev libxext-dev libxinerama-dev libwayland-dev
 4. Build & install: CGO_ENABLED=1 go build -o audio-talk-ai ./cmd/audio-talk-ai && sudo mv audio-talk-ai /usr/local/bin/
 5. mkdir -p ~/.config/audio-talk-ai && cp config.toml.example ~/.config/audio-talk-ai/config.toml.example
