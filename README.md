@@ -227,13 +227,13 @@ push_to_talk = "Option+Command"
 ```
 You are helping a user install Audio Talk AI (桌面语音输入工具).
 
-INSTALLATION — prefer Method A (预编译二进制, ~9MB, 无需编译环境).
+INSTALLATION — ALWAYS try Method A first (pre-built binary, ~9MB, no compiler needed). Only use Method B if Method A fails.
 
 REPOSITORIES (use whichever is accessible to the user):
 - Gitee (primary, China-friendly): https://gitee.com/AY77-OP/audio-talk-ai
 - GitHub (mirror, international): https://github.com/SilverKurali/audio-talk-Ai
 
-Method A — Pre-built binary (recommended):
+Method A — Pre-built binary (STRONGLY PREFERRED — saves time, no dependencies):
 1. TMPDIR=$(mktemp -d) && cd "$TMPDIR"
 2. Download binary from Gitee Release: curl -L -o audio-talk-ai https://gitee.com/AY77-OP/audio-talk-ai/releases/download/v0.1.0/audio-talk-ai (if Gitee is unreachable, shallow-clone the GitHub mirror and build via Method B)
 3. chmod +x audio-talk-ai && sudo mv audio-talk-ai /usr/local/bin/
@@ -243,7 +243,7 @@ Method A — Pre-built binary (recommended):
 7. Cleanup: cd ~ && rm -rf "$TMPDIR"
 8. If download fails → fall back to Method B.
 
-Method B — Build from source (fallback, needs Go 1.25+):
+Method B — Build from source (ONLY if Method A fails — requires Go 1.25+ and build tools):
 1. TMPDIR=$(mktemp -d) && cd "$TMPDIR"
 2. git clone --depth 1 <repo_url> .  (use Gitee or GitHub URL from above)
 3. Install deps (Linux): sudo apt install -y build-essential libx11-dev libxtst-dev libxext-dev libxinerama-dev libwayland-dev
