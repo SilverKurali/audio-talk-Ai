@@ -219,20 +219,35 @@ Copy the prompt below to your AI assistant — it will install and configure Aud
 ```
 You are helping a user install Audio Talk AI, a desktop voice input tool.
 
-STEPS:
-1. Clone the repo. Primary: git clone https://gitee.com/AY77-OP/audio-talk-ai.git. Mirror: git clone https://github.com/SilverKurali/audio-talk-Ai.git. Use whichever is accessible to the user.
-2. cd into the cloned directory.
-3. Install dependencies (Linux): sudo apt install golang-go build-essential libx11-dev libxtst-dev libxext-dev libxinerama-dev libwayland-dev
-4. Build: make build
-5. Install: make install
-6. Configure: edit ~/.config/audio-talk-ai/config.toml — user must provide at least one ASR provider's API keys (see config.toml.example for all provider options)
-7. Run: audio-talk-ai
+INSTALLATION — prefer Method A (pre-built binary, ~9MB, no build tools needed).
+
+Method A — Pre-built binary (recommended):
+1. TMPDIR=$(mktemp -d) && cd "$TMPDIR"
+2. curl -L -o audio-talk-ai https://gitee.com/AY77-OP/audio-talk-ai/releases/download/v0.1.0/audio-talk-ai
+3. chmod +x audio-talk-ai && sudo mv audio-talk-ai /usr/local/bin/
+4. mkdir -p ~/.config/audio-talk-ai
+5. curl -L -o ~/.config/audio-talk-ai/config.toml.example https://gitee.com/AY77-OP/audio-talk-ai/raw/master/config.toml.example
+6. If ~/.config/audio-talk-ai/config.toml does NOT exist, copy the example as starting point: cp ~/.config/audio-talk-ai/config.toml.example ~/.config/audio-talk-ai/config.toml
+7. Cleanup: cd ~ && rm -rf "$TMPDIR"
+8. If download fails → fall back to Method B.
+
+Method B — Build from source (fallback, needs Go 1.25+):
+1. TMPDIR=$(mktemp -d) && cd "$TMPDIR"
+2. git clone --depth 1 https://gitee.com/AY77-OP/audio-talk-ai.git .
+3. Install deps (Linux): sudo apt install -y build-essential libx11-dev libxtst-dev libxext-dev libxinerama-dev libwayland-dev
+4. Build & install: CGO_ENABLED=1 go build -o audio-talk-ai ./cmd/audio-talk-ai && sudo mv audio-talk-ai /usr/local/bin/
+5. mkdir -p ~/.config/audio-talk-ai && cp config.toml.example ~/.config/audio-talk-ai/config.toml.example
+6. If ~/.config/audio-talk-ai/config.toml does NOT exist: cp config.toml.example ~/.config/audio-talk-ai/config.toml
+7. Cleanup: cd ~ && rm -rf "$TMPDIR"
+
+CONFIGURE:
+- Edit ~/.config/audio-talk-ai/config.toml — user must fill in at least one ASR provider's API keys.
+- For provider details, read ~/.config/audio-talk-ai/config.toml.example or docs/asr-providers-guide.md from the repo.
 
 IMPORTANT RULES:
 - Always reply in the same language the user writes in (Chinese→Chinese, English→English, etc.).
 - Walk the user through each step. If a step fails, troubleshoot before moving on.
-- After installation, explain: hotkey to start recording, how to switch ASR providers in TUI (press e on the provider field), and the WebUI at localhost:8391.
-- If the user asks about a specific ASR provider, open config.toml.example and show the relevant section.
+- After installation, explain: hotkey (default F9) to start recording, how to switch ASR providers in TUI (press e on the provider field), and the WebUI at http://localhost:8391.
 - Supported providers: doubao, openai-realtime, openai-whisper, xfyun-spark, xfyun-iat, xfyun-rtasr, xfyun-rtasr-std, xfyun-lfasr, xfyun-lfasr-llm, xfyun-lfasr-fast, xiaomi-mimo-asr, xiaomi-mimo-asr-TokenPlan.
 ```
 
