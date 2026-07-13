@@ -19,7 +19,14 @@ import (
 const defaultEndpoint = "https://api.openai.com/v1/audio/transcriptions"
 
 func init() {
-	asr.Register("openai-whisper", New)
+	asr.RegisterWithMeta("openai-whisper", New, asr.ProviderMeta{
+		DisplayName: "OpenAI Whisper",
+		Fields: []asr.FieldDef{
+			{Key: "api_key", Label: "API Key", Help: "OpenAI API Key", Type: asr.FieldSecret, Secret: true},
+			{Key: "model", Label: "Model", Help: "模型名", Type: asr.FieldText, Default: "whisper-1"},
+			{Key: "base_url", Label: "Endpoint", Help: "API 端点（留空用默认）", Type: asr.FieldText},
+		},
+	})
 }
 
 type client struct {

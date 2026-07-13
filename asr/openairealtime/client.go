@@ -17,7 +17,13 @@ import (
 const defaultURL = "wss://api.openai.com/v1/realtime"
 
 func init() {
-	asr.Register("openai-realtime", New)
+	asr.RegisterWithMeta("openai-realtime", New, asr.ProviderMeta{
+		DisplayName: "OpenAI Realtime",
+		Fields: []asr.FieldDef{
+			{Key: "api_key", Label: "API Key", Help: "OpenAI API Key", Type: asr.FieldSecret, Secret: true},
+			{Key: "model", Label: "Model", Help: "模型名", Type: asr.FieldText, Default: "gpt-4o-mini-transcribe"},
+		},
+	})
 }
 
 type client struct {

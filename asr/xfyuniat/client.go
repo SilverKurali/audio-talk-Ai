@@ -1,4 +1,4 @@
-package xfyunspark
+package xfyuniat
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -19,15 +18,19 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const defaultHost = "iat.xf-yun.com"
+const defaultHost = "iat-api.xfyun.cn"
 
 func init() {
-	asr.RegisterWithMeta("xfyun-spark", New, asr.ProviderMeta{
-		DisplayName: "讯飞星火",
+	asr.RegisterWithMeta("xfyun-iat", New, asr.ProviderMeta{
+		DisplayName: "讯飞语音听写",
 		Fields: []asr.FieldDef{
 			{Key: "app_id", Label: "App ID", Help: "讯飞 App ID", Type: asr.FieldText},
 			{Key: "api_key", Label: "API Key", Help: "讯飞 API Key", Type: asr.FieldSecret, Secret: true},
 			{Key: "api_secret", Label: "API Secret", Help: "讯飞 API Secret", Type: asr.FieldSecret, Secret: true},
+			{Key: "domain", Label: "领域", Help: "应用领域", Type: asr.FieldSelect,
+				Options: []string{"iat", "medical", "gov-seat-assistant", "seat-assistant", "gov-ansys", "gov-nav", "fin-nav", "fin-ansys"},
+				Labels:  []string{"日常用语", "医疗", "政务坐席", "金融坐席", "政务分析", "政务导航", "金融导航", "金融分析"}},
+			{Key: "accent", Label: "方言", Help: "mandarin=普通话, xfime-mianqie=方言免切", Type: asr.FieldText, Default: "mandarin"},
 			{Key: "dwa", Label: "动态修正", Help: "wpgs 开启语音纠偏", Type: asr.FieldSelect, Options: []string{"", "wpgs"}, Labels: []string{"关闭", "wpgs 开启"}},
 		},
 	})
@@ -39,6 +42,8 @@ type client struct {
 	apiKey    string
 	apiSec    string
 	host      string
+	domain    string // iat, medical, gov-seat-assistant, etc.
+	accent    string // mandarin, etc.
 	dwa       string
 	logger    *slog.Logger
 	conn      *websocket.Conn
@@ -50,11 +55,7 @@ type client struct {
 	textMu    sync.RWMutex
 	lastText  string
 	seq       int
-	// DC offset removal
-	dcOffset int32
-	dcCalibrated bool
-	// Dynamic correction segment map (sn → text)
-	segments map[int]string
+	segments  map[int]string
 }
 
 func New(common asr.Common, providerCfg map[string]interface{}, logger *slog.Logger) (asr.Client, error) {
@@ -62,16 +63,24 @@ func New(common asr.Common, providerCfg map[string]interface{}, logger *slog.Log
 	apiKey, _ := providerCfg["api_key"].(string)
 	apiSec, _ := providerCfg["api_secret"].(string)
 	if appID == "" || apiKey == "" || apiSec == "" {
-		return nil, fmt.Errorf("xfyun-spark: app_id, api_key, api_secret are required")
+		return nil, fmt.Errorf("xfyun-iat: app_id, api_key, api_secret are required")
 	}
 	host, _ := providerCfg["host"].(string)
 	if host == "" {
 		host = defaultHost
 	}
+	domain, _ := providerCfg["domain"].(string)
+	if domain == "" {
+		domain = "iat"
+	}
+	accent, _ := providerCfg["accent"].(string)
+	if accent == "" {
+		accent = "mandarin"
+	}
 	dwa, _ := providerCfg["dwa"].(string)
 	return &client{
 		common: common, appID: appID, apiKey: apiKey, apiSec: apiSec,
-		host: host, dwa: dwa, logger: logger,
+		host: host, domain: domain, accent: accent, dwa: dwa, logger: logger,
 		resultCh: make(chan asr.Result, 64),
 		done:     make(chan struct{}),
 		final:    make(chan struct{}),
@@ -81,7 +90,7 @@ func New(common asr.Common, providerCfg map[string]interface{}, logger *slog.Log
 
 func (c *client) Connect(ctx context.Context) error {
 	wsURL := c.buildAuthURL()
-	c.logger.Info("connecting to iFlytek Spark ASR", "host", c.host, "app_id", c.appID)
+	c.logger.Info("connecting to iFlytek IAT ASR", "host", c.host, "domain", c.domain, "app_id", c.appID)
 	dialer := websocket.Dialer{
 		HandshakeTimeout: 10 * time.Second,
 	}
@@ -93,20 +102,20 @@ func (c *client) Connect(ctx context.Context) error {
 		return fmt.Errorf("websocket dial: %w", err)
 	}
 	c.conn = conn
-	c.logger.Info("iFlytek Spark ASR connected")
+	c.logger.Info("iFlytek IAT ASR connected")
 	return nil
 }
 
 func (c *client) buildAuthURL() string {
 	now := time.Now().UTC()
 	date := now.Format("Mon, 02 Jan 2006 15:04:05 GMT")
-	signOrigin := fmt.Sprintf("host: %s\ndate: %s\nGET /v1 HTTP/1.1", c.host, date)
+	signOrigin := fmt.Sprintf("host: %s\ndate: %s\nGET /v2/iat HTTP/1.1", c.host, date)
 	mac := hmac.New(sha256.New, []byte(c.apiSec))
 	mac.Write([]byte(signOrigin))
 	signature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
 	authOrigin := fmt.Sprintf(`api_key="%s",algorithm="hmac-sha256",headers="host date request-line",signature="%s"`, c.apiKey, signature)
 	authorization := base64.StdEncoding.EncodeToString([]byte(authOrigin))
-	return fmt.Sprintf("wss://%s/v1?authorization=%s&date=%s&host=%s",
+	return fmt.Sprintf("wss://%s/v2/iat?authorization=%s&date=%s&host=%s",
 		c.host,
 		url.QueryEscape(authorization),
 		url.QueryEscape(date),
@@ -115,18 +124,15 @@ func (c *client) buildAuthURL() string {
 
 const frameSize = 1280 // 40ms at 16kHz 16-bit mono
 
-var pcmDumpFile *os.File
-
 func (c *client) SendAudio(ctx context.Context, pcm []byte, isLast bool) error {
 	c.connMu.Lock()
 	defer c.connMu.Unlock()
 
-	// iFlytek is sensitive to clipping. Reduce volume to prevent saturation.
+	// Reduce volume to prevent clipping (same as xfyun-spark).
 	if len(pcm) > 1 {
 		adjusted := make([]byte, len(pcm))
 		for i := 0; i+1 < len(pcm); i += 2 {
 			s := int32(int16(pcm[i]) | int16(pcm[i+1])<<8)
-			// Divide by 3 to bring clipped audio into normal range
 			v := s / 3
 			if v > 32767 {
 				v = 32767
@@ -149,82 +155,67 @@ func (c *client) SendAudio(ctx context.Context, pcm []byte, isLast bool) error {
 		offset = end
 
 		c.seq++
-		// If this is the last chunk and isLast, use status=2 (per SDK behavior)
 		status := 1
 		if c.seq == 1 {
 			status = 0
 		}
 		if isLast && offset >= len(pcm) {
-			status = 2 // last frame carries the final audio data
+			status = 2
 		}
 
 		frame := c.buildFrame(chunk, status)
 		data, _ := json.Marshal(frame)
 		if c.seq == 1 {
-			c.logger.Info("xfyun first frame", "json", string(data[:min(len(data), 500)]))
+			c.logger.Info("xfyun-iat first frame", "json", string(data[:min(len(data), 500)]))
 		}
 		if err := c.conn.WriteMessage(websocket.TextMessage, data); err != nil {
 			return err
 		}
-		// No delay needed: recorder already produces audio at real-time rate
 	}
 
-	// If isLast but no PCM data, send empty last frame
 	if isLast && len(pcm) == 0 {
 		c.seq++
-		frame := c.buildFrame(nil, 2)
+		frame := map[string]interface{}{
+			"data": map[string]interface{}{
+				"status": 2,
+			},
+		}
 		data, _ := json.Marshal(frame)
-		c.logger.Info("xfyun last frame (empty)")
+		c.logger.Info("xfyun-iat last frame (empty)")
 		return c.conn.WriteMessage(websocket.TextMessage, data)
 	}
 	return nil
 }
 
 func (c *client) buildFrame(pcm []byte, status int) map[string]interface{} {
-	header := map[string]interface{}{
-		"app_id": c.appID,
-		"status": status,
-	}
-
-	payload := map[string]interface{}{
-		"audio": map[string]interface{}{
-			"encoding":    "raw",
-			"sample_rate": 16000,
-			"channels":    1,
-			"bit_depth":   16,
-			"seq":         c.seq,
-			"status":      status,
-			"audio":       base64.StdEncoding.EncodeToString(pcm),
-		},
+	data := map[string]interface{}{
+		"status":   status,
+		"format":   "audio/L16;rate=16000",
+		"encoding": "raw",
+		"audio":    base64.StdEncoding.EncodeToString(pcm),
 	}
 
 	frame := map[string]interface{}{
-		"header":  header,
-		"payload": payload,
+		"data": data,
 	}
 
 	if c.seq == 1 {
-		// Doc: language is fixed to zh_cn for this model (supports zh + en + 202 dialects)
-		parameter := map[string]interface{}{
-			"iat": map[string]interface{}{
-				"domain":   "slm",
-				"language": "zh_cn",
-				"accent":   "mandarin",
-				"eos":      6000,
-				"result": map[string]interface{}{
-					"encoding": "utf8",
-					"compress": "raw",
-					"format":   "json",
-				},
-			},
+		frame["common"] = map[string]interface{}{
+			"app_id": c.appID,
+		}
+		business := map[string]interface{}{
+			"language": "zh_cn",
+			"domain":   c.domain,
+			"accent":   c.accent,
+			"eos":      6000,
 		}
 		if c.dwa != "" {
-			parameter["iat"].(map[string]interface{})["dwa"] = c.dwa
+			business["dwa"] = c.dwa
 		}
 		if len(c.common.Hotwords) > 0 {
-			parameter["iat"].(map[string]interface{})["dhw"] = "dhw=utf-8;" + strings.Join(c.common.Hotwords, "|")
+			business["dhw"] = strings.Join(c.common.Hotwords, ",")
 		}
-		frame["parameter"] = parameter
+		frame["business"] = business
 	}
 
 	return frame
@@ -243,14 +234,13 @@ func (c *client) LastText() string {
 func (c *client) ReceiveLoop(ctx context.Context) {
 	defer close(c.resultCh)
 	defer close(c.done)
-	c.logger.Info("xfyun ReceiveLoop started")
+	c.logger.Info("xfyun-iat ReceiveLoop started")
 	for {
 		_, data, err := c.conn.ReadMessage()
 		if err != nil {
-			c.logger.Info("xfyun ReceiveLoop exited", "error", err)
+			c.logger.Info("xfyun-iat ReceiveLoop exited", "error", err)
 			return
 		}
-		c.logger.Info("xfyun received message", "bytes", len(data))
 		c.handleMessage(data)
 	}
 }
@@ -264,66 +254,48 @@ func (c *client) Close() error {
 
 func (c *client) handleMessage(data []byte) {
 	var msg struct {
-		Header struct {
-			Code    int    `json:"code"`
-			Message string `json:"message"`
-			Status  int    `json:"status"`
-		} `json:"header"`
-		Payload *struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		Sid     string `json:"sid"`
+		Data    *struct {
+			Status int `json:"status"`
 			Result *struct {
-				Text   string `json:"text"`
-				Status int    `json:"status"`
+				Sn  int    `json:"sn"`
+				Ls  bool   `json:"ls"`
+				Pgs string `json:"pgs"`
+				Rg  []int  `json:"rg"`
+				Ws  []struct {
+					Cw []struct {
+						W string `json:"w"`
+					} `json:"cw"`
+				} `json:"ws"`
 			} `json:"result"`
-		} `json:"payload"`
+		} `json:"data"`
 	}
 	if json.Unmarshal(data, &msg) != nil {
 		return
 	}
-	if msg.Header.Code != 0 {
-		errMsg := fmt.Errorf("讯飞错误 %d: %s", msg.Header.Code, msg.Header.Message)
-		c.logger.Error("xfyun ASR error", "code", msg.Header.Code, "message", msg.Header.Message)
+	if msg.Code != 0 {
+		errMsg := fmt.Errorf("讯飞IAT错误 %d: %s", msg.Code, msg.Message)
+		c.logger.Error("xfyun-iat ASR error", "code", msg.Code, "message", msg.Message)
 		c.resultCh <- asr.Result{Error: errMsg}
 		return
 	}
-	if msg.Payload == nil || msg.Payload.Result == nil {
+	if msg.Data == nil || msg.Data.Result == nil {
 		return
 	}
 
-	// Decode the base64 text field to get the actual JSON content
-	decoded, err := base64.StdEncoding.DecodeString(msg.Payload.Result.Text)
-	if err != nil || len(decoded) == 0 {
-		isFinal := msg.Header.Status == 2
-		if isFinal {
-			c.finalOnce.Do(func() { close(c.final) })
-		}
-		return
-	}
-
-	// Parse the decoded JSON to extract text, pgs, rg, sn
-	var textData struct {
-		Sn  int `json:"sn"`
-		Ws  []struct {
-			Cw []struct {
-				W string `json:"w"`
-			} `json:"cw"`
-		} `json:"ws"`
-		Pgs string `json:"pgs"`
-		Rg  []int `json:"rg"`
-	}
-	if json.Unmarshal(decoded, &textData) != nil {
-		return
-	}
+	isFinal := msg.Data.Status == 2
 
 	// Build text from ws[].cw[].w
 	var sb strings.Builder
-	for _, ws := range textData.Ws {
+	for _, ws := range msg.Data.Result.Ws {
 		for _, cw := range ws.Cw {
 			sb.WriteString(cw.W)
 		}
 	}
 	text := sb.String()
-	isFinal := msg.Header.Status == 2
-	c.logger.Info("xfyun result", "text", text, "isFinal", isFinal, "pgs", textData.Pgs, "sn", textData.Sn)
+	c.logger.Info("xfyun-iat result", "text", text, "isFinal", isFinal, "pgs", msg.Data.Result.Pgs, "sn", msg.Data.Result.Sn)
 
 	if isFinal && text == "" {
 		c.finalOnce.Do(func() { close(c.final) })
@@ -334,27 +306,25 @@ func (c *client) handleMessage(data []byte) {
 	}
 
 	// Handle dynamic correction (dwa=wpgs) using segment map
-	// "apd": append new segment; "rpl": replace segments in rg range
-	if textData.Pgs == "rpl" && len(textData.Rg) >= 2 {
+	if msg.Data.Result.Pgs == "rpl" && len(msg.Data.Result.Rg) >= 2 {
 		c.textMu.Lock()
-		// Remove replaced segments
-		for i := textData.Rg[0]; i <= textData.Rg[1]; i++ {
+		for i := msg.Data.Result.Rg[0]; i <= msg.Data.Result.Rg[1]; i++ {
 			delete(c.segments, i)
 		}
-		c.segments[textData.Sn] = text
+		c.segments[msg.Data.Result.Sn] = text
 		c.lastText = c.buildSegmentText()
 		full := c.lastText
 		c.textMu.Unlock()
 		c.resultCh <- asr.Result{Text: full, IsFinal: isFinal}
-	} else if textData.Pgs == "apd" {
+	} else if msg.Data.Result.Pgs == "apd" {
 		c.textMu.Lock()
-		c.segments[textData.Sn] = text
+		c.segments[msg.Data.Result.Sn] = text
 		c.lastText = c.buildSegmentText()
 		full := c.lastText
 		c.textMu.Unlock()
 		c.resultCh <- asr.Result{Text: full, IsFinal: isFinal}
 	} else {
-		// No pgs field: append mode (each result is incremental)
+		// No pgs field: append mode
 		c.textMu.Lock()
 		c.lastText += text
 		full := c.lastText
@@ -371,7 +341,6 @@ func (c *client) buildSegmentText() string {
 	if len(c.segments) == 0 {
 		return ""
 	}
-	// Find max SN to know how many segments to concatenate
 	maxSn := 0
 	for sn := range c.segments {
 		if sn > maxSn {
@@ -385,45 +354,4 @@ func (c *client) buildSegmentText() string {
 		}
 	}
 	return sb.String()
-}
-
-func (c *client) decodeResultText(encoded string) string {
-	if encoded == "" {
-		return ""
-	}
-	decoded, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		return ""
-	}
-	var result struct {
-		Ws []struct {
-			Cw []struct {
-				W string `json:"w"`
-			} `json:"cw"`
-		} `json:"ws"`
-	}
-	if json.Unmarshal(decoded, &result) != nil {
-		return ""
-	}
-	var sb strings.Builder
-	for _, ws := range result.Ws {
-		for _, cw := range ws.Cw {
-			sb.WriteString(cw.W)
-		}
-	}
-	return sb.String()
-}
-
-func normalizeLang(lang string) string {
-	lower := strings.ToLower(strings.TrimSpace(lang))
-	if strings.HasPrefix(lower, "zh") {
-		return "zh_cn"
-	}
-	if strings.HasPrefix(lower, "en") {
-		return "en_us"
-	}
-	if len(lower) >= 2 {
-		return lower[:2] + "_" + lower[:2]
-	}
-	return "zh_cn"
 }

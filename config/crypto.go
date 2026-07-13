@@ -71,6 +71,11 @@ func HasEncryptedSecrets(c *Config) bool {
 			strings.HasPrefix(p.DWA, encPrefix) {
 			return true
 		}
+		for _, v := range p.Extra {
+			if strings.HasPrefix(v, encPrefix) {
+				return true
+			}
+		}
 	}
 	return strings.HasPrefix(c.Voice.AppKey, encPrefix) ||
 		strings.HasPrefix(c.Voice.AccessKey, encPrefix) ||

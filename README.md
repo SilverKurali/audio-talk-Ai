@@ -1,6 +1,6 @@
 # Audio Talk AI
 
-[English](README.en.md) | [项目结构](PROJECT_STRUCTURE.md)
+[English](README.en.md) | [项目结构](PROJECT_STRUCTURE.md) | [ASR 服务商配置指南](docs/asr-providers-guide.md) | [讯飞 ASR 详细指南](docs/xfyun-guide.md)
 
 减少用键盘的次数，改用口喷吧。
 
@@ -21,11 +21,17 @@ Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局
 ## 功能
 
 - 全局快捷键录音，支持 `toggle`（按一下开始、再按一下停止）和 `hold`（按住说话）两种模式。
-- 支持 6 个语音识别服务商，可在 TUI 中动态切换：
+- 支持 12 个语音识别服务商，可在 TUI 中动态切换：
   - **豆包**（火山引擎）— 流式 ASR，实时出字
   - **OpenAI Realtime** — 流式 ASR，WebSocket 实时转写
   - **OpenAI Whisper** — 批量转写，录完后识别，兼容 Ollama 等第三方
   - **讯飞星火** — 流式 ASR，支持动态修正和 202 种方言
+  - **讯飞语音听写** — 流式 ASR，垂直领域（医疗/政务/金融）+ 方言免切
+  - **讯飞实时转写** — 流式 ASR，大模型，最长 8 小时，说话人分离
+  - **讯飞实时转写标准版** — 流式 ASR，标准版，最长 5 小时，apiKey 认证
+  - **讯飞录音转写** — 批量转写，标准版，最长 5 小时
+  - **讯飞转写大模型** — 批量转写，202 种方言 / 37 语种免切
+  - **讯飞极速转写** — 批量转写，1 小时音频约 20 秒出结果
   - **小米 MiMo** — 批量转写，支持中英双语和方言
   - **小米 MiMo Token Plan** — 批量转写，国内节点
 - 自动复制到剪贴板，支持自动上屏到当前输入框。
@@ -235,7 +241,7 @@ IMPORTANT RULES:
 - Walk the user through each step. If a step fails, troubleshoot before moving on.
 - After installation, explain: hotkey to start recording, how to switch ASR providers in TUI (press e on the provider field), and the WebUI at localhost:8391.
 - If the user asks about a specific ASR provider, open config.toml.example and show the relevant section.
-- Supported providers: doubao, openai-realtime, openai-whisper, xfyun-spark, xiaomi-mimo-asr, xiaomi-mimo-asr-TokenPlan.
+- Supported providers: doubao, openai-realtime, openai-whisper, xfyun-spark, xfyun-iat, xfyun-rtasr, xfyun-lfasr, xfyun-lfasr-llm, xfyun-lfasr-fast, xiaomi-mimo-asr, xiaomi-mimo-asr-TokenPlan.
 ```
 
 </details>

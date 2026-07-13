@@ -1,6 +1,6 @@
 # Audio Talk AI
 
-[中文](README.md) | [Project Structure](PROJECT_STRUCTURE.md)
+[中文](README.md) | [Project Structure](PROJECT_STRUCTURE.md) | [ASR Providers Guide](docs/asr-providers-guide.md) | [iFlytek ASR Guide](docs/xfyun-guide.md)
 
 Type less, speak more.
 
@@ -21,11 +21,17 @@ Supports multiple ASR providers with one-click switching in the TUI.
 ## Features
 
 - Global hotkey recording with `toggle` (press to start, press again to stop) and `hold` (press and speak) modes.
-- 6 ASR providers with dynamic switching in TUI:
+- 12 ASR providers with dynamic switching in TUI:
   - **Doubao** (ByteDance Volcengine) — streaming ASR, real-time partial results
   - **OpenAI Realtime** — streaming ASR via WebSocket
   - **OpenAI Whisper** — batch transcription, compatible with Ollama and other OpenAI-format services
   - **iFlytek Spark** — streaming ASR with dynamic correction and 202 dialects
+  - **iFlytek IAT** — streaming ASR with vertical domains (medical/gov/finance) and dialect auto-switch
+  - **iFlytek RTASR** — streaming ASR, large model, up to 8 hours, speaker diarization
+  - **iFlytek RTASR Standard** — streaming ASR, standard edition, up to 5 hours, apiKey auth
+  - **iFlytek LFASR** — batch transcription, standard edition, up to 5 hours
+  - **iFlytek LFASR LLM** — batch transcription, 202 dialects / 37 languages auto-switch
+  - **iFlytek LFASR Fast** — batch transcription, ~20s for 1-hour audio
   - **Xiaomi MiMo** — batch transcription, Chinese/English and dialect support
   - **Xiaomi MiMo Token Plan** — batch transcription, domestic (China) endpoint
 - Automatic clipboard copy and auto-submit into focused input field.
@@ -227,7 +233,7 @@ IMPORTANT RULES:
 - Walk the user through each step. If a step fails, troubleshoot before moving on.
 - After installation, explain: hotkey to start recording, how to switch ASR providers in TUI (press e on the provider field), and the WebUI at localhost:8391.
 - If the user asks about a specific ASR provider, open config.toml.example and show the relevant section.
-- Supported providers: doubao, openai-realtime, openai-whisper, xfyun-spark, xiaomi-mimo-asr, xiaomi-mimo-asr-TokenPlan.
+- Supported providers: doubao, openai-realtime, openai-whisper, xfyun-spark, xfyun-iat, xfyun-rtasr, xfyun-rtasr-std, xfyun-lfasr, xfyun-lfasr-llm, xfyun-lfasr-fast, xiaomi-mimo-asr, xiaomi-mimo-asr-TokenPlan.
 ```
 
 </details>

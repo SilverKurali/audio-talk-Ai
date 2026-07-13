@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"gitee.com/AY77-OP/audio-talk-ai/hotkey"
@@ -35,11 +36,60 @@ type ASRProviderConfig struct {
 	AppID     string `toml:"app_id" json:"app_id"`
 	ApiSecret string `toml:"api_secret" json:"api_secret"`
 	DWA       string `toml:"dwa" json:"dwa"`
+	Domain    string `toml:"domain" json:"domain"`
+	Accent    string `toml:"accent" json:"accent"`
+	PD        string `toml:"pd" json:"pd"`
+	Lang      string `toml:"lang" json:"lang"`
+	// Extra holds provider-specific fields not covered by typed fields above.
+	Extra map[string]string `toml:"-" json:"-"`
+}
+
+// knownASRKeys is the set of TOML keys that map to typed struct fields.
+// Used during Load to identify unknown keys for the Extra map.
+var knownASRKeys = map[string]bool{
+	"name": true, "type": true, "default": true,
+	"app_key": true, "access_key": true, "resource_id": true,
+	"api_key": true, "model": true, "base_url": true,
+	"app_id": true, "api_secret": true, "dwa": true,
+	"domain": true, "accent": true, "pd": true, "lang": true,
+}
+
+// typedFieldMap returns a map from config key to typed field pointer.
+func (p *ASRProviderConfig) typedFieldMap() map[string]*string {
+	return map[string]*string{
+		"app_key": &p.AppKey, "access_key": &p.AccessKey, "resource_id": &p.ResourceID,
+		"api_key": &p.ApiKey, "model": &p.Model, "base_url": &p.BaseURL,
+		"app_id": &p.AppID, "api_secret": &p.ApiSecret, "dwa": &p.DWA,
+		"domain": &p.Domain, "accent": &p.Accent, "pd": &p.PD, "lang": &p.Lang,
+	}
+}
+
+// Get returns the config value for key, checking typed fields first, then Extra.
+func (p *ASRProviderConfig) Get(key string) string {
+	if ptr, ok := p.typedFieldMap()[key]; ok {
+		return *ptr
+	}
+	if p.Extra != nil {
+		return p.Extra[key]
+	}
+	return ""
+}
+
+// Set writes the config value for key, checking typed fields first, then Extra.
+func (p *ASRProviderConfig) Set(key, value string) {
+	if ptr, ok := p.typedFieldMap()[key]; ok {
+		*ptr = value
+		return
+	}
+	if p.Extra == nil {
+		p.Extra = make(map[string]string)
+	}
+	p.Extra[key] = value
 }
 
 // ProviderCfgMap converts the provider config to a map for the ASR factory.
 func (p *ASRProviderConfig) ProviderCfgMap() map[string]interface{} {
-	return map[string]interface{}{
+	m := map[string]interface{}{
 		"app_key":     p.AppKey,
 		"access_key":  p.AccessKey,
 		"resource_id": p.ResourceID,
@@ -49,7 +99,15 @@ func (p *ASRProviderConfig) ProviderCfgMap() map[string]interface{} {
 		"app_id":      p.AppID,
 		"api_secret":  p.ApiSecret,
 		"dwa":         p.DWA,
+		"domain":      p.Domain,
+		"accent":      p.Accent,
+		"pd":          p.PD,
+		"language":    p.Lang,
 	}
+	for k, v := range p.Extra {
+		m[k] = v
+	}
+	return m
 }
 
 // ResolveASRProviders returns the configured ASR providers.
@@ -158,6 +216,8 @@ func Load(path string) (*Config, error) {
 	if err := toml.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("parse config %s: %w", path, err)
 	}
+	// Extract unknown asr_providers keys into Extra map
+	extractExtra(cfg, data)
 	key, err := loadKey()
 	if err != nil {
 		return nil, err
@@ -232,7 +292,7 @@ func MigratePlaintextSecrets(cfgPath string, logger *slog.Logger) error {
 		return err
 	}
 	defer f.Close()
-	if err := toml.NewEncoder(f).Encode(tmp); err != nil {
+	if err := toml.NewEncoder(f).Encode(tmp.toMap()); err != nil {
 		return err
 	}
 	logger.Info("migrated plaintext secrets to encrypted storage", "backup", backup)
@@ -247,6 +307,11 @@ func hasPlaintextSecrets(cfg *Config) bool {
 		if isPlaintext(p.AppKey) || isPlaintext(p.AccessKey) || isPlaintext(p.ResourceID) ||
 			isPlaintext(p.ApiKey) || isPlaintext(p.AppID) || isPlaintext(p.ApiSecret) || isPlaintext(p.DWA) {
 			return true
+		}
+		for _, v := range p.Extra {
+			if isPlaintext(v) {
+				return true
+			}
 		}
 	}
 	return isPlaintext(cfg.Voice.AppKey) || isPlaintext(cfg.Voice.AccessKey) || isPlaintext(cfg.Voice.ResourceID)
@@ -294,6 +359,15 @@ func secretsEqual(a, b *Config) bool {
 		if x.AppKey != y.AppKey || x.AccessKey != y.AccessKey || x.ResourceID != y.ResourceID ||
 			x.ApiKey != y.ApiKey || x.AppID != y.AppID || x.ApiSecret != y.ApiSecret || x.DWA != y.DWA {
 			return false
+		}
+		// Compare Extra maps
+		if len(x.Extra) != len(y.Extra) {
+			return false
+		}
+		for k, v := range x.Extra {
+			if y.Extra[k] != v {
+				return false
+			}
 		}
 	}
 	return a.Voice.AppKey == b.Voice.AppKey && a.Voice.AccessKey == b.Voice.AccessKey && a.Voice.ResourceID == b.Voice.ResourceID
@@ -358,12 +432,66 @@ func Save(cfg *Config) error {
 	if err := tmp.encryptSecrets(key); err != nil {
 		return err
 	}
+	// Convert to map representation to include Extra fields in TOML output.
+	m := tmp.toMap()
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return toml.NewEncoder(f).Encode(tmp)
+	return toml.NewEncoder(f).Encode(m)
+}
+
+// toMap converts the config to a generic map for TOML encoding.
+// This ensures Extra map entries are included in the output.
+func (c *Config) toMap() map[string]interface{} {
+	m := map[string]interface{}{
+		"voice": map[string]interface{}{
+			"enabled": c.Voice.Enabled, "mode": c.Voice.Mode,
+			"push_to_talk": c.Voice.PushToTalk, "device": c.Voice.Device,
+			"gain": c.Voice.Gain, "stop_delay_ms": c.Voice.StopDelayMs,
+			"language": c.Voice.Language, "auto_submit": c.Voice.AutoSubmit,
+			"app_key": c.Voice.AppKey, "access_key": c.Voice.AccessKey,
+			"resource_id": c.Voice.ResourceID, "hotwords": c.Voice.Hotwords,
+		},
+		"debug":   map[string]interface{}{"enabled": c.Debug.Enabled, "hotkeys": c.Debug.Hotkeys},
+		"overlay": map[string]interface{}{"enabled": c.Overlay.Enabled, "position": c.Overlay.Position, "idle_visible": c.Overlay.IdleVisible, "scale": c.Overlay.Scale},
+		"web":     map[string]interface{}{"enabled": c.Web.Enabled, "port": c.Web.Port},
+	}
+	asrs := make([]map[string]interface{}, len(c.ASRs))
+	for i := range c.ASRs {
+		asrs[i] = c.ASRs[i].toMap()
+	}
+	m["asr_providers"] = asrs
+	return m
+}
+
+// toMap converts a single ASRProviderConfig to a map for TOML encoding.
+func (p *ASRProviderConfig) toMap() map[string]interface{} {
+	m := map[string]interface{}{
+		"name": p.Name, "type": p.Type,
+	}
+	if p.Default {
+		m["default"] = true
+	}
+	// Include typed fields that have non-empty values (keeps TOML clean and
+	// backward compatible — missing keys default to "" on reload).
+	typed := p.typedFieldMap()
+	keys := make([]string, 0, len(typed))
+	for k := range typed {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		if *typed[k] != "" {
+			m[k] = *typed[k]
+		}
+	}
+	// Merge Extra entries
+	for k, v := range p.Extra {
+		m[k] = v
+	}
+	return m
 }
 
 // cloneForSave deep-copies the parts that get encrypted so Save never mutates
@@ -373,6 +501,12 @@ func cloneForSave(cfg *Config) *Config {
 	c.ASRs = make([]ASRProviderConfig, len(cfg.ASRs))
 	for i, p := range cfg.ASRs {
 		c.ASRs[i] = p
+		if p.Extra != nil {
+			c.ASRs[i].Extra = make(map[string]string, len(p.Extra))
+			for k, v := range p.Extra {
+				c.ASRs[i].Extra[k] = v
+			}
+		}
 	}
 	c.Voice = cfg.Voice
 	c.Debug = cfg.Debug
@@ -406,6 +540,17 @@ func (c *Config) encryptSecrets(key []byte) error {
 		}
 		if err := encryptField(&p.DWA, key); err != nil {
 			return err
+		}
+		// Encrypt Extra secret fields
+		for k, v := range p.Extra {
+			if v == "" || strings.HasPrefix(v, encPrefix) {
+				continue
+			}
+			e, err := encryptString([]byte(v), key)
+			if err != nil {
+				return err
+			}
+			p.Extra[k] = e
 		}
 	}
 	if err := encryptField(&c.Voice.AppKey, key); err != nil {
@@ -444,6 +589,17 @@ func (c *Config) decryptSecrets(key []byte) error {
 		}
 		if err := decryptField(&p.DWA, key); err != nil {
 			return err
+		}
+		// Decrypt Extra secret fields
+		for k, v := range p.Extra {
+			if v == "" || !strings.HasPrefix(v, encPrefix) {
+				continue
+			}
+			d, err := decryptString(v, key)
+			if err != nil {
+				return err
+			}
+			p.Extra[k] = d
 		}
 	}
 	if err := decryptField(&c.Voice.AppKey, key); err != nil {
@@ -493,6 +649,11 @@ func HasPlaintextSecrets(c *Config) bool {
 			isPlaintextSecret(p.DWA) {
 			return true
 		}
+		for _, v := range p.Extra {
+			if isPlaintextSecret(v) {
+				return true
+			}
+		}
 	}
 	return isPlaintextSecret(c.Voice.AppKey) ||
 		isPlaintextSecret(c.Voice.AccessKey) ||
@@ -501,6 +662,39 @@ func HasPlaintextSecrets(c *Config) bool {
 
 func isPlaintextSecret(s string) bool {
 	return s != "" && !strings.HasPrefix(s, encPrefix)
+}
+
+// extractExtra re-parses the raw TOML data to find unknown keys in
+// asr_providers entries and stores them in the Extra map.
+func extractExtra(cfg *Config, data []byte) {
+	var raw map[string]interface{}
+	if err := toml.Unmarshal(data, &raw); err != nil {
+		return
+	}
+	asrsRaw, ok := raw["asr_providers"]
+	if !ok {
+		return
+	}
+	asrsList, ok := asrsRaw.([]map[string]interface{})
+	if !ok {
+		return
+	}
+	for i, rawP := range asrsList {
+		if i >= len(cfg.ASRs) {
+			break
+		}
+		for k, v := range rawP {
+			if knownASRKeys[k] {
+				continue
+			}
+			if s, ok := v.(string); ok {
+				if cfg.ASRs[i].Extra == nil {
+					cfg.ASRs[i].Extra = make(map[string]string)
+				}
+				cfg.ASRs[i].Extra[k] = s
+			}
+		}
+	}
 }
 
 // ---- Hotkey parser ----
