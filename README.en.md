@@ -225,32 +225,55 @@ First, ask the user which installation method they prefer:
 - **Source** (build from source, requires Go 1.25+ and build tools)
 If the user has no preference, default to Binary.
 
+ENVIRONMENT DETECTION (run these checks BEFORE installing):
+1. Sudo access: run `sudo -n true 2>/dev/null`. If exit code is 0, set HAS_SUDO=true; otherwise HAS_SUDO=false.
+2. Config directory (in this priority order):
+   a. If $XDG_CONFIG_HOME is set → CONFIG_DIR=$XDG_CONFIG_HOME/audio-talk-ai
+   b. macOS (uname -s = Darwin) → CONFIG_DIR=~/Library/Application Support/audio-talk-ai
+   c. Otherwise (Linux etc.) → CONFIG_DIR=~/.config/audio-talk-ai
+3. Install path:
+   a. If HAS_SUDO=true → INSTALL_DIR=/usr/local/bin
+   b. Otherwise → INSTALL_DIR=~/.local/bin (create it if needed, and remind user to add to PATH)
+
 REPOSITORIES (use whichever is accessible to the user):
 - Gitee (primary, China-friendly): https://gitee.com/AY77-OP/audio-talk-ai
 - GitHub (mirror, international): https://github.com/SilverKurali/audio-talk-Ai
 
 Method A — Pre-built binary:
 1. TMPDIR=$(mktemp -d) && cd "$TMPDIR"
-2. Download binary from Gitee Release: curl -L -o audio-talk-ai https://gitee.com/AY77-OP/audio-talk-ai/releases/download/v0.1.0/audio-talk-ai (if Gitee is unreachable, shallow-clone the GitHub mirror and build via Method B)
-3. chmod +x audio-talk-ai && sudo mv audio-talk-ai /usr/local/bin/
-4. mkdir -p ~/.config/audio-talk-ai
-5. Download config example (pick accessible source): curl -L -o ~/.config/audio-talk-ai/config.toml.example https://gitee.com/AY77-OP/audio-talk-ai/raw/master/config.toml.example
-6. If ~/.config/audio-talk-ai/config.toml does NOT exist, copy the example as starting point: cp ~/.config/audio-talk-ai/config.toml.example ~/.config/audio-talk-ai/config.toml
-7. Cleanup: cd ~ && rm -rf "$TMPDIR"
-8. If download fails → fall back to Method B.
+2. Get latest release URL dynamically:
+   curl -s https://gitee.com/api/v5/repos/AY77-OP/audio-talk-ai/releases/latest | python3 -c "import sys,json; r=json.load(sys.stdin); print(next(a['browser_download_url'] for a in r['assets'] if 'audio-talk-ai' in a['name'] and not a['name'].endswith('.zip') and not a['name'].endswith('.tar.gz')))"
+   If the API call fails or returns no valid URL, fall back to:
+   https://gitee.com/AY77-OP/audio-talk-ai/releases/download/v0.1.0/audio-talk-ai
+3. curl -L -o audio-talk-ai "$DOWNLOAD_URL"
+   (If Gitee is unreachable, fall back to Method B using the GitHub mirror)
+4. chmod +x audio-talk-ai && mv audio-talk-ai "$INSTALL_DIR/"
+5. If INSTALL_DIR=~/.local/bin and it is NOT in $PATH, warn user:
+   echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc  (or ~/.zshrc)
+6. mkdir -p "$CONFIG_DIR"
+7. Download config example: curl -L -o "$CONFIG_DIR/config.toml.example" https://gitee.com/AY77-OP/audio-talk-ai/raw/master/config.toml.example
+8. If "$CONFIG_DIR/config.toml" does NOT exist: cp "$CONFIG_DIR/config.toml.example" "$CONFIG_DIR/config.toml"
+9. Cleanup: cd ~ && rm -rf "$TMPDIR"
+10. Verify: audio-talk-ai --doctor
+11. If any step fails → fall back to Method B.
 
 Method B — Build from source (requires Go 1.25+ and build tools):
 1. TMPDIR=$(mktemp -d) && cd "$TMPDIR"
 2. git clone --depth 1 <repo_url> .  (use Gitee or GitHub URL from above)
-3. Install deps (Linux): sudo apt install -y build-essential libx11-dev libxtst-dev libxext-dev libxinerama-dev libwayland-dev
-4. Build & install: CGO_ENABLED=1 go build -o audio-talk-ai ./cmd/audio-talk-ai && sudo mv audio-talk-ai /usr/local/bin/
-5. mkdir -p ~/.config/audio-talk-ai && cp config.toml.example ~/.config/audio-talk-ai/config.toml.example
-6. If ~/.config/audio-talk-ai/config.toml does NOT exist: cp config.toml.example ~/.config/audio-talk-ai/config.toml
-7. Cleanup: cd ~ && rm -rf "$TMPDIR"
+3. Check build deps (Linux): build-essential, libx11-dev, libxtst-dev, libxext-dev, libxinerama-dev, libwayland-dev
+   - If HAS_SUDO: sudo apt install -y <missing_deps>
+   - If NO sudo: list missing packages and ask the user to install them manually, then retry
+4. Build: CGO_ENABLED=1 go build -o audio-talk-ai ./cmd/audio-talk-ai
+5. mv audio-talk-ai "$INSTALL_DIR/"
+6. If INSTALL_DIR=~/.local/bin and it is NOT in $PATH, warn user (see Method A step 5)
+7. mkdir -p "$CONFIG_DIR" && cp config.toml.example "$CONFIG_DIR/config.toml.example"
+8. If "$CONFIG_DIR/config.toml" does NOT exist: cp "$CONFIG_DIR/config.toml.example" "$CONFIG_DIR/config.toml"
+9. Cleanup: cd ~ && rm -rf "$TMPDIR"
+10. Verify: audio-talk-ai --doctor
 
 CONFIGURE:
-- Edit ~/.config/audio-talk-ai/config.toml — user must fill in at least one ASR provider's API keys.
-- For provider details, read ~/.config/audio-talk-ai/config.toml.example or docs/asr-providers-guide.md from the repo.
+- Edit "$CONFIG_DIR/config.toml" — user must fill in at least one ASR provider's API keys.
+- For provider details, read "$CONFIG_DIR/config.toml.example" or docs/asr-providers-guide.md from the repo.
 
 IMPORTANT RULES:
 - Always reply in the same language the user writes in (Chinese→Chinese, English→English, etc.).
