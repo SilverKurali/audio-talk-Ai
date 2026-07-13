@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: config
+title: 配置解析与凭据加密存储
+scope:
+    - config/
+source_files: []
+depends_on: []
+related_to: []

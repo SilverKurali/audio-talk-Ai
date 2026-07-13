@@ -1,0 +1,18 @@
+schema_version: 1
+module_path: ""
+title: Audio Talk AI 语音转文字桌面应用
+scope:
+    - README.md
+    - README.en.md
+    - AGENTS.md
+    - Makefile
+    - PROJECT_STRUCTURE.md
+    - config.toml.example
+    - .gitignore
+    - CHANGELOG.md
+    - LICENSE
+    - go.mod
+    - go.sum
+source_files: []
+depends_on: []
+related_to: []

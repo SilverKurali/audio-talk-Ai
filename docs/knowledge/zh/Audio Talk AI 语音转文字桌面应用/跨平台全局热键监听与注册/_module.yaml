@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: hotkey
+title: 跨平台全局热键监听与注册
+scope:
+    - hotkey/
+source_files: []
+depends_on: []
+related_to:
+    - path: plugins_voice

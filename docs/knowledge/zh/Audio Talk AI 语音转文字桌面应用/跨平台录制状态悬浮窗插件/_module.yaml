@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: plugins_overlay
+title: 跨平台录制状态悬浮窗插件
+scope:
+    - plugins/overlay/
+source_files: []
+depends_on: []
+related_to:
+    - path: plugins_voice

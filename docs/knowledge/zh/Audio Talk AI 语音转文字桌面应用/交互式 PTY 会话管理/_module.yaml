@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: internal_session
+title: 交互式 PTY 会话管理
+scope:
+    - internal/session/
+source_files: []
+depends_on: []
+related_to: []

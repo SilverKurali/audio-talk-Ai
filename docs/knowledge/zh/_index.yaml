@@ -1,0 +1,121 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: zh-CN
+branch: master
+nodes_managed: true
+exported_at: "2026-07-13T08:54:56Z"
+modules:
+    "":
+        dir_name: Audio Talk AI 语音转文字桌面应用
+        title: Audio Talk AI 语音转文字桌面应用
+        scope:
+            - README.md
+            - README.en.md
+            - AGENTS.md
+            - Makefile
+            - PROJECT_STRUCTURE.md
+            - config.toml.example
+            - .gitignore
+            - CHANGELOG.md
+            - LICENSE
+            - go.mod
+            - go.sum
+        source_files: []
+        children:
+            - asr
+            - config
+            - hotkey
+            - internal_session
+            - internal_tools
+            - internal_webui
+            - plugins_overlay
+            - plugins_voice
+        depends_on: []
+        related_to: []
+    asr:
+        dir_name: 流式语音识别 Provider 注册中心与厂商实现
+        title: 流式语音识别 Provider 注册中心与厂商实现
+        scope:
+            - asr/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: internal_webui
+            - path: plugins_voice
+    config:
+        dir_name: 配置解析与凭据加密存储
+        title: 配置解析与凭据加密存储
+        scope:
+            - config/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    hotkey:
+        dir_name: 跨平台全局热键监听与注册
+        title: 跨平台全局热键监听与注册
+        scope:
+            - hotkey/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: plugins_voice
+    internal_session:
+        dir_name: 交互式 PTY 会话管理
+        title: 交互式 PTY 会话管理
+        scope:
+            - internal/session/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    internal_tools:
+        dir_name: 平台相关内部工具（自动上屏、剪贴板、环境诊断）
+        title: 平台相关内部工具（自动上屏、剪贴板、环境诊断）
+        scope:
+            - internal/autotype/
+            - internal/clipboard/
+            - internal/doctor/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: plugins_voice
+    internal_webui:
+        dir_name: Web 管理界面与 Bubble Tea TUI 配置器
+        title: Web 管理界面与 Bubble Tea TUI 配置器
+        scope:
+            - internal/webui/
+            - internal/tui/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: asr
+            - path: plugins_voice
+    plugins_overlay:
+        dir_name: 跨平台录制状态悬浮窗插件
+        title: 跨平台录制状态悬浮窗插件
+        scope:
+            - plugins/overlay/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: plugins_voice
+    plugins_voice:
+        dir_name: 全局热键语音录入插件
+        title: 全局热键语音录入插件
+        scope:
+            - plugins/voice/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: asr
+            - path: hotkey
+            - path: internal_tools
+            - path: internal_webui
+            - path: plugins_overlay

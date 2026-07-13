@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: plugins_voice
+title: 全局热键语音录入插件
+scope:
+    - plugins/voice/
+source_files: []
+depends_on: []
+related_to:
+    - path: asr
+    - path: hotkey
+    - path: internal_tools
+    - path: internal_webui
+    - path: plugins_overlay

@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: internal_tools
+title: 平台相关内部工具（自动上屏、剪贴板、环境诊断）
+scope:
+    - internal/autotype/
+    - internal/clipboard/
+    - internal/doctor/
+source_files: []
+depends_on: []
+related_to:
+    - path: plugins_voice

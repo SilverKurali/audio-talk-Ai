@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: asr
+title: 流式语音识别 Provider 注册中心与厂商实现
+scope:
+    - asr/
+source_files: []
+depends_on: []
+related_to:
+    - path: internal_webui
+    - path: plugins_voice

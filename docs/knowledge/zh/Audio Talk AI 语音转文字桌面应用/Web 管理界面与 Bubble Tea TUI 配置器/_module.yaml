@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: internal_webui
+title: Web 管理界面与 Bubble Tea TUI 配置器
+scope:
+    - internal/webui/
+    - internal/tui/
+source_files: []
+depends_on: []
+related_to:
+    - path: asr
+    - path: plugins_voice
