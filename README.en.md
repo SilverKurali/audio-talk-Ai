@@ -1,6 +1,6 @@
 # Audio Talk AI
 
-[中文](README.md) | [Project Structure](PROJECT_STRUCTURE.md)
+[中文](README.md) | [Project Structure](PROJECT_STRUCTURE.md) | [ASR Providers Guide](docs/asr-providers-guide.md) | [iFlytek ASR Guide](docs/xfyun-guide.md)
 
 Type less, speak more.
 
@@ -21,11 +21,17 @@ Supports multiple ASR providers with one-click switching in the TUI.
 ## Features
 
 - Global hotkey recording with `toggle` (press to start, press again to stop) and `hold` (press and speak) modes.
-- 6 ASR providers with dynamic switching in TUI:
+- 12 ASR providers with dynamic switching in TUI:
   - **Doubao** (ByteDance Volcengine) — streaming ASR, real-time partial results
   - **OpenAI Realtime** — streaming ASR via WebSocket
   - **OpenAI Whisper** — batch transcription, compatible with Ollama and other OpenAI-format services
   - **iFlytek Spark** — streaming ASR with dynamic correction and 202 dialects
+  - **iFlytek IAT** — streaming ASR with vertical domains (medical/gov/finance) and dialect auto-switch
+  - **iFlytek RTASR** — streaming ASR, large model, up to 8 hours, speaker diarization
+  - **iFlytek RTASR Standard** — streaming ASR, standard edition, up to 5 hours, apiKey auth
+  - **iFlytek LFASR** — batch transcription, standard edition, up to 5 hours
+  - **iFlytek LFASR LLM** — batch transcription, 202 dialects / 37 languages auto-switch
+  - **iFlytek LFASR Fast** — batch transcription, ~20s for 1-hour audio
   - **Xiaomi MiMo** — batch transcription, Chinese/English and dialect support
   - **Xiaomi MiMo Token Plan** — batch transcription, domestic (China) endpoint
 - Automatic clipboard copy and auto-submit into focused input field.
@@ -110,6 +116,15 @@ port = 8391
 ## Configuration
 
 Config file: `~/.config/audio-talk-ai/config.toml`
+
+### Secret Encryption & Migration
+
+Starting from this version, API secrets in the config are stored encrypted with **AES-256-GCM** as `enc:<base64>`. The decryption key lives in `~/.config/audio-talk-ai/key` (mode `0600`, readable only by you). Plaintext secrets exist in memory only while the program runs.
+
+- **Upgrading from a plaintext config**: on first launch (or first save) with the new version, plaintext secrets are encrypted and written back automatically. The original file is backed up and the ciphertext is verified to decrypt correctly before anything is overwritten, so your data is never destroyed.
+- **Downgrading to an old version is NOT compatible**: old versions do not understand the `enc:` prefix and will treat the ciphertext as the real key, causing auth failures. If you must downgrade, view and note the plaintext secrets from the TUI / WebUI before downgrading.
+- **Backup & migration**: treat `config.toml` and `key` as a pair. Copying only the encrypted config without `key` (or lacking `key` on another machine) makes the ciphertext undecryptable and the program won't start.
+- **Health check**: run `audio-talk-ai --doctor` and look at the "密钥加密" (secret encryption) item to confirm there are no plaintext secrets and the key file permissions are correct.
 
 ### Basic Config
 
@@ -218,7 +233,7 @@ IMPORTANT RULES:
 - Walk the user through each step. If a step fails, troubleshoot before moving on.
 - After installation, explain: hotkey to start recording, how to switch ASR providers in TUI (press e on the provider field), and the WebUI at localhost:8391.
 - If the user asks about a specific ASR provider, open config.toml.example and show the relevant section.
-- Supported providers: doubao, openai-realtime, openai-whisper, xfyun-spark, xiaomi-mimo-asr, xiaomi-mimo-asr-TokenPlan.
+- Supported providers: doubao, openai-realtime, openai-whisper, xfyun-spark, xfyun-iat, xfyun-rtasr, xfyun-rtasr-std, xfyun-lfasr, xfyun-lfasr-llm, xfyun-lfasr-fast, xiaomi-mimo-asr, xiaomi-mimo-asr-TokenPlan.
 ```
 
 </details>

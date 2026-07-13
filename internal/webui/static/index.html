@@ -8,7 +8,7 @@
 </head>
 <body>
 <nav>
-  <div class="nav-brand">Audio Talk AI</div>
+  <div class="nav-brand"><span class="brand-dot"></span>Audio Talk AI</div>
   <div class="nav-links">
     <a href="#" class="nav-link active" data-page="config">配置</a>
     <a href="#" class="nav-link" data-page="history">历史</a>
@@ -19,7 +19,7 @@
   <!-- 配置页 -->
   <div id="page-config" class="page active">
     <div class="card">
-      <h2>语音设置</h2>
+      <h2 data-icon="voice">语音设置</h2>
       <div class="form-grid">
         <label>热键</label>
         <div>
@@ -56,7 +56,7 @@
     </div>
 
     <div class="card">
-      <h2>ASR 服务商</h2>
+      <h2 data-icon="provider">ASR 服务商</h2>
       <div id="provider-list"></div>
       <button class="btn btn-secondary" onclick="showAddProvider()">+ 添加服务商</button>
     </div>
@@ -66,12 +66,7 @@
       <div class="form-grid">
         <label>类型</label>
         <select id="add-type" onchange="updateAddFields()">
-          <option value="doubao">豆包</option>
-          <option value="openai-realtime">OpenAI Realtime</option>
-          <option value="openai-whisper">OpenAI Whisper</option>
-          <option value="xiaomi-mimo-asr">小米 MiMo</option>
-          <option value="xiaomi-mimo-asr-TokenPlan">小米 MiMo Token Plan</option>
-          <option value="xfyun-spark">讯飞星火</option>
+          <option value="" disabled selected>加载中...</option>
         </select>
       </div>
       <div id="add-fields"></div>
@@ -96,15 +91,15 @@
   <!-- 历史页 -->
   <div id="page-history" class="page">
     <div class="card">
-      <h2>统计</h2>
+      <h2 data-icon="stats">统计</h2>
       <div class="stats-bar">
-        <span>历史 <strong id="h-sessions">0</strong> 次</span>
-        <span>总字数 <strong id="h-chars">0</strong></span>
-        <span>总时长 <strong id="h-duration">0</strong>s</span>
+        <span class="stat" data-icon="count"><em>历史次数</em><strong id="h-sessions">0</strong></span>
+        <span class="stat" data-icon="chars"><em>总字数</em><strong id="h-chars">0</strong></span>
+        <span class="stat" data-icon="time"><em id="h-duration-label">总时长 (s)</em><strong id="h-duration">0</strong></span>
       </div>
     </div>
     <div class="card">
-      <h2>转写记录</h2>
+      <h2 data-icon="history">转写记录</h2>
       <div class="history-toolbar">
         <div class="toolbar-left">
           <span class="select-hint" onclick="toggleSelectAll()">全选</span>
@@ -119,17 +114,14 @@
           <button class="btn btn-secondary btn-small" onclick="exportHistory('json')">导出 JSON</button>
         </div>
       </div>
-      <div id="date-picker-popup" class="date-picker-popup" style="display:none">
-        <div class="dp-level" id="dp-years"></div>
-        <div class="dp-level" id="dp-months" style="display:none"></div>
-        <div class="dp-level" id="dp-days" style="display:none"></div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th><input type="checkbox" id="select-all-head" onclick="syncSelectAll(this.checked)"></th><th>时间</th><th>服务商</th><th>文本</th><th>时长</th><th>字数</th></tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
       </div>
-      <table>
-        <thead>
-          <tr><th><input type="checkbox" id="select-all-head" onclick="syncSelectAll(this.checked)"></th><th>时间</th><th>服务商</th><th>文本</th><th>时长</th><th>字数</th></tr>
-        </thead>
-        <tbody id="history-body"></tbody>
-      </table>
       <div class="pagination">
         <button class="btn btn-secondary" id="prev-page" onclick="prevPage()" disabled>上一页</button>
         <span id="page-info"></span>
@@ -145,6 +137,11 @@
 </div>
 
 <script src="datepicker.js"></script>
+<div id="date-picker-popup" class="date-picker-popup" style="display:none">
+  <div class="dp-level" id="dp-years"></div>
+  <div class="dp-level" id="dp-months" style="display:none"></div>
+  <div class="dp-level" id="dp-days" style="display:none"></div>
+</div>
 <script src="app.js"></script>
 </body>
 </html>

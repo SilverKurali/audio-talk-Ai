@@ -14,11 +14,7 @@ import (
 	"unicode"
 
 	"gitee.com/AY77-OP/audio-talk-ai/asr"
-	_ "gitee.com/AY77-OP/audio-talk-ai/asr/doubao"
-	_ "gitee.com/AY77-OP/audio-talk-ai/asr/mimoasr"
-	_ "gitee.com/AY77-OP/audio-talk-ai/asr/openairealtime"
-	_ "gitee.com/AY77-OP/audio-talk-ai/asr/openaiwhisper"
-	_ "gitee.com/AY77-OP/audio-talk-ai/asr/xfyunspark"
+	_ "gitee.com/AY77-OP/audio-talk-ai/asr/drivers"
 	"gitee.com/AY77-OP/audio-talk-ai/config"
 	"gitee.com/AY77-OP/audio-talk-ai/engine"
 	"gitee.com/AY77-OP/audio-talk-ai/hotkey"

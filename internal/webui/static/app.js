@@ -3,46 +3,7 @@ let providers = [];
 let editingProvider = null;
 let historyOffset = 0;
 const PAGE_SIZE = 30;
-
-// Provider type definitions
-const PROVIDER_FIELDS = {
-  'doubao': [
-    { key: 'app_key', label: 'App Key', placeholder: '火山 App ID' },
-    { key: 'access_key', label: 'Access Key', placeholder: '火山 Access Token' },
-  ],
-  'openai-realtime': [
-    { key: 'api_key', label: 'API Key', placeholder: 'OpenAI API Key' },
-    { key: 'model', label: 'Model', placeholder: 'gpt-4o-mini-transcribe' },
-  ],
-  'openai-whisper': [
-    { key: 'api_key', label: 'API Key', placeholder: 'OpenAI API Key' },
-    { key: 'model', label: 'Model', placeholder: 'whisper-1' },
-    { key: 'base_url', label: 'Endpoint', placeholder: '留空用默认' },
-  ],
-  'xiaomi-mimo-asr': [
-    { key: 'api_key', label: 'API Key', placeholder: 'MiMo API Key' },
-    { key: 'model', label: 'Model', placeholder: 'mimo-v2.5-asr' },
-  ],
-  'xiaomi-mimo-asr-TokenPlan': [
-    { key: 'api_key', label: 'API Key', placeholder: 'MiMo API Key' },
-    { key: 'model', label: 'Model', placeholder: 'mimo-v2.5-asr' },
-  ],
-  'xfyun-spark': [
-    { key: 'app_id', label: 'App ID', placeholder: '讯飞 App ID' },
-    { key: 'api_key', label: 'API Key', placeholder: '讯飞 API Key' },
-    { key: 'api_secret', label: 'API Secret', placeholder: '讯飞 API Secret' },
-    { key: 'dwa', label: '动态修正', type: 'select', options: ['', 'wpgs'], labels: ['关闭', 'wpgs 开启'] },
-  ],
-};
-
-const PROVIDER_NAMES = {
-  'doubao': '豆包',
-  'openai-realtime': 'OpenAI Realtime',
-  'openai-whisper': 'OpenAI Whisper',
-  'xiaomi-mimo-asr': '小米 MiMo',
-  'xiaomi-mimo-asr-TokenPlan': '小米 MiMo Token Plan',
-  'xfyun-spark': '讯飞星火',
-};
+let providerMeta = {}; // fetched from /api/provider-types
 
 // Navigation
 document.querySelectorAll('.nav-link').forEach(link => {
@@ -144,18 +105,18 @@ async function loadProviders() {
 function renderProviders() {
   const container = document.getElementById('provider-list');
   if (providers.length === 0) {
-    container.innerHTML = '<p style="color:#90a4ae;font-size:13px">暂无服务商，请添加。</p>';
+    container.innerHTML = '<div class="empty-state">暂无服务商，点击下方按钮添加。</div>';
     return;
   }
   container.innerHTML = providers.map((p, i) => `
     <div class="provider-item ${p.default ? 'default' : ''}">
       <div class="provider-info">
         <span class="provider-name">${p.name}</span>
-        <span class="provider-type">${PROVIDER_NAMES[p.type] || p.type}</span>
+        <span class="provider-type">${(providerMeta[p.type] || {}).display_name || p.type}</span>
         ${p.default ? '<span class="default-badge">默认</span>' : ''}
       </div>
       <div class="provider-actions">
-        ${p.default ? '' : `<button class="btn btn-secondary btn-small" onclick="setDefault('${p.name}')">设为默认</button>`}
+        ${p.default ? '' : `<button class="btn btn-secondary btn-small" onclick="setDefault('${p.name}')"> 设为默认</button>`}
         <button class="btn btn-secondary btn-small" onclick="editProvider(${i})">编辑</button>
         <button class="btn btn-danger btn-small" onclick="deleteProvider('${p.name}')">删除</button>
       </div>
@@ -175,7 +136,8 @@ function hideAddProvider() {
 
 function updateAddFields() {
   const type = document.getElementById('add-type').value;
-  const fields = PROVIDER_FIELDS[type] || [];
+  const meta = providerMeta[type];
+  const fields = meta ? meta.fields : [];
   document.getElementById('add-fields').innerHTML = buildFieldsHTML(fields, 'add');
 }
 
@@ -183,7 +145,8 @@ async function addProvider() {
   const type = document.getElementById('add-type').value;
   const name = type + '-' + Date.now().toString(36);
   const p = { name, type };
-  const fields = PROVIDER_FIELDS[type] || [];
+  const meta = providerMeta[type];
+  const fields = meta ? meta.fields : [];
   for (const f of fields) {
     p[f.key] = document.getElementById('add-' + f.key)?.value || '';
   }
@@ -199,7 +162,8 @@ async function addProvider() {
 function editProvider(idx) {
   editingProvider = providers[idx];
   document.getElementById('edit-provider-name').textContent = editingProvider.name;
-  const fields = PROVIDER_FIELDS[editingProvider.type] || [];
+  const meta = providerMeta[editingProvider.type];
+  const fields = meta ? meta.fields : [];
   document.getElementById('edit-fields').innerHTML = buildFieldsHTML(fields, 'edit');
   for (const f of fields) {
     const el = document.getElementById('edit-' + f.key);
@@ -215,7 +179,8 @@ function hideEditProvider() {
 
 async function saveProvider() {
   if (!editingProvider) return;
-  const fields = PROVIDER_FIELDS[editingProvider.type] || [];
+  const meta = providerMeta[editingProvider.type];
+  const fields = meta ? meta.fields : [];
   const p = { ...editingProvider };
   for (const f of fields) {
     p[f.key] = document.getElementById('edit-' + f.key)?.value || '';
@@ -245,21 +210,39 @@ async function setDefault(name) {
   } catch (e) { toast(e.message, 'error'); }
 }
 
-// Field builder
+// Field builder — works with metadata FieldDef format
 function buildFieldsHTML(fields, prefix) {
   return '<div class="form-grid">' + fields.map(f => {
     const id = prefix + '-' + f.key;
     let input;
     if (f.type === 'select') {
-      input = `<select id="${id}">${f.options.map((o, i) =>
-        `<option value="${o}">${f.labels[i]}</option>`
+      const labels = f.labels || f.options || [];
+      input = `<select id="${id}">${(f.options || []).map((o, i) =>
+        `<option value="${o}">${labels[i] || o}</option>`
       ).join('')}</select>`;
     } else {
-      const isSecret = f.key.includes('secret') || f.key.includes('key') || f.key.includes('access');
-      input = `<input type="${isSecret ? 'password' : 'text'}" id="${id}" placeholder="${f.placeholder || ''}">`;
+      const isSecret = f.type === 'secret' || f.secret ||
+        f.key.includes('secret') || f.key.includes('key') || f.key.includes('access');
+      if (isSecret) {
+        input = `<div class="input-wrap">`
+          + `<input type="password" id="${id}" placeholder="${f.help || f.default || ''}">`
+          + `<button type="button" class="input-eye" title="显示/隐藏" onclick="toggleSecret('${id}', this)">&#128065;</button>`
+          + `</div>`;
+      } else {
+        input = `<input type="text" id="${id}" placeholder="${f.help || f.default || ''}">`;
+      }
     }
     return `<label>${f.label}</label>${input}`;
   }).join('') + '</div>';
+}
+
+// Toggle secret field visibility
+function toggleSecret(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const show = el.type === 'password';
+  el.type = show ? 'text' : 'password';
+  btn.style.color = show ? 'var(--accent)' : '';
 }
 
 // History
@@ -267,17 +250,31 @@ async function loadHistory() {
   const data = await api('GET', '/history?offset=' + historyOffset + '&limit=' + PAGE_SIZE);
   document.getElementById('h-sessions').textContent = data.sessions;
   document.getElementById('h-chars').textContent = data.chars;
-  document.getElementById('h-duration').textContent = Math.round(data.duration);
+  const el = document.getElementById('h-duration');
+  el.textContent = formatDuration(data.duration, el._fmt);
+  if (!el._bound) {
+    el._fmt = 's';
+    el._sec = data.duration;
+    el._bound = true;
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', function() {
+      this._fmt = this._fmt === 's' ? 'hms' : 's';
+      this.textContent = formatDuration(this._sec, this._fmt);
+      document.getElementById('h-duration-label').textContent = this._fmt === 's' ? '总时长 (s)' : '总时长 (H/M/S)';
+    });
+  } else {
+    el._sec = data.duration;
+  }
 
   const tbody = document.getElementById('history-body');
   if (!data.items || data.items.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="color:#90a4ae;text-align:center">暂无记录</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">暂无记录</div></td></tr>';
   } else {
     tbody.innerHTML = data.items.map(item => `
       <tr>
         <td><input type="checkbox" class="history-checkbox" value="${item.id}"></td>
         <td>${formatTime(item.created_at)}</td>
-        <td>${PROVIDER_NAMES[item.provider] || item.provider || '-'}</td>
+        <td>${(providerMeta[item.provider] || {}).display_name || item.provider || '-'}</td>
         <td class="text-cell">${escapeHtml(item.text)}</td>
         <td>${item.duration_sec.toFixed(1)}s</td>
         <td>${item.chars}</td>
@@ -292,6 +289,19 @@ async function loadHistory() {
   document.getElementById('page-info').textContent = currentPage + ' / ' + totalPages;
   document.getElementById('prev-page').disabled = historyOffset <= 0;
   document.getElementById('next-page').disabled = historyOffset + PAGE_SIZE >= data.total;
+}
+
+function formatDuration(sec, fmt) {
+  sec = Math.round(sec) || 0;
+  if (fmt === 'hms') {
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    let t = '';
+    if (h > 0) t += h + 'H';
+    if (m > 0 || h > 0) t += m + 'M';
+    t += s + 'S';
+    return t;
+  }
+  return String(sec);
 }
 
 function toggleSelectAll() {
@@ -373,8 +383,27 @@ async function pollStatus() {
 }
 
 // Init
-loadConfig();
-loadProviders();
+async function loadProviderMeta() {
+  try {
+    providerMeta = await api('GET', '/provider-types');
+    // Populate the add-type select
+    const sel = document.getElementById('add-type');
+    sel.innerHTML = '';
+    for (const [type, meta] of Object.entries(providerMeta).sort((a, b) => a[0].localeCompare(b[0]))) {
+      const opt = document.createElement('option');
+      opt.value = type;
+      opt.textContent = meta.display_name || type;
+      sel.appendChild(opt);
+    }
+  } catch (e) {
+    console.error('Failed to load provider metadata:', e);
+  }
+}
+
+loadProviderMeta().then(() => {
+  loadConfig();
+  loadProviders();
+});
 initDatePicker();
 setInterval(pollStatus, 2000);
 pollStatus();

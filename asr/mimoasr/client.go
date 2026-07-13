@@ -21,8 +21,18 @@ const defaultEndpoint = "https://api.xiaomimimo.com/v1/chat/completions"
 const tokenPlanEndpoint = "https://token-plan-cn.xiaomimimo.com/v1/chat/completions"
 
 func init() {
-	asr.Register("xiaomi-mimo-asr", New)
-	asr.Register("xiaomi-mimo-asr-TokenPlan", newWithEndpoint(tokenPlanEndpoint))
+	mimoMeta := asr.ProviderMeta{
+		DisplayName: "小米 MiMo",
+		Fields: []asr.FieldDef{
+			{Key: "api_key", Label: "API Key", Help: "MiMo API Key", Type: asr.FieldSecret, Secret: true},
+			{Key: "model", Label: "Model", Help: "当前仅支持 mimo-v2.5-asr", Type: asr.FieldText, Default: "mimo-v2.5-asr"},
+		},
+	}
+	asr.RegisterWithMeta("xiaomi-mimo-asr", New, mimoMeta)
+	asr.RegisterWithMeta("xiaomi-mimo-asr-TokenPlan", newWithEndpoint(tokenPlanEndpoint), asr.ProviderMeta{
+		DisplayName: "小米 MiMo Token Plan",
+		Fields:      mimoMeta.Fields,
+	})
 }
 
 func newWithEndpoint(fallbackEndpoint string) asr.Factory {

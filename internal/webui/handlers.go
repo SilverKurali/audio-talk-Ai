@@ -7,17 +7,14 @@ import (
 	"strconv"
 	"time"
 
+	"gitee.com/AY77-OP/audio-talk-ai/asr"
 	"gitee.com/AY77-OP/audio-talk-ai/config"
 	"gitee.com/AY77-OP/audio-talk-ai/plugins/voice"
 )
 
-var PROVIDER_DISPLAY = map[string]string{
-	"doubao":                  "豆包",
-	"openai-realtime":         "OpenAI Realtime",
-	"openai-whisper":          "OpenAI Whisper",
-	"xfyun-spark":             "讯飞星火",
-	"xiaomi-mimo-asr":         "小米 MiMo",
-	"xiaomi-mimo-asr-TokenPlan": "小米 MiMo Token Plan",
+// GET /api/provider-types — returns all registered provider metadata
+func (s *Server) handleGetProviderTypes(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, 200, asr.AllProviderMeta())
 }
 
 func writeJSON(w http.ResponseWriter, code int, v any) {
@@ -260,11 +257,12 @@ func (s *Server) handleExportHistory(w http.ResponseWriter, r *http.Request) {
 	// TXT export
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Content-Disposition", `attachment; filename="history.txt"`)
+	allMeta := asr.AllProviderMeta()
 	for _, item := range items {
 		ts := item.CreatedAt.Format("2006-01-02 15:04:05")
-		provider := PROVIDER_DISPLAY[item.Provider]
-		if provider == "" {
-			provider = item.Provider
+		provider := item.Provider
+		if meta, ok := allMeta[item.Provider]; ok && meta.DisplayName != "" {
+			provider = meta.DisplayName
 		}
 		fmt.Fprintf(w, "[%s] (%s) %.1fs\n%s\n\n", ts, provider, item.Duration, item.Text)
 	}

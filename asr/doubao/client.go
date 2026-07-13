@@ -24,7 +24,13 @@ const (
 )
 
 func init() {
-	asr.Register("doubao", New)
+	asr.RegisterWithMeta("doubao", New, asr.ProviderMeta{
+		DisplayName: "豆包",
+		Fields: []asr.FieldDef{
+			{Key: "app_key", Label: "App Key", Help: "火山 App ID", Type: asr.FieldSecret, Secret: true},
+			{Key: "access_key", Label: "Access Key", Help: "火山 Access Token", Type: asr.FieldSecret, Secret: true},
+		},
+	})
 }
 
 type client struct {

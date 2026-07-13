@@ -53,6 +53,69 @@ access_key = "your_access_key"
 # api_secret = "your_api_secret"
 # dwa = "wpgs"  # 动态修正：留空关闭，"wpgs" 开启
 
+# 讯飞语音听写（流式版）（流式，WebSocket，支持垂直领域和多方言免切）
+# 获取密钥：https://console.xfyun.cn/services/iat
+# [[asr_providers]]
+# name = "xfyun-iat"
+# type = "xfyun-iat"
+# app_id = "your_app_id"
+# api_key = "your_api_key"
+# api_secret = "your_api_secret"
+# domain = "iat"  # 可选：iat/medical/gov-seat-assistant/seat-assistant 等
+# accent = "mandarin"  # 普通话，或 xfime-mianqie 方言免切
+# dwa = "wpgs"  # 动态修正：留空关闭，"wpgs" 开启
+
+# 讯飞实时语音转写大模型（流式，WebSocket + Binary PCM，支持最长 8 小时）
+# 获取密钥：https://console.xfyun.cn/services/rtasr
+# [[asr_providers]]
+# name = "xfyun-rtasr"
+# type = "xfyun-rtasr"
+# app_id = "your_app_id"
+# api_key = "your_access_key_id"  # AccessKeyId
+# api_secret = "your_access_key_secret"  # AccessKeySecret
+# lang = "autodialect"  # autodialect=中英+方言，autominor=多语种
+# pd = ""  # 可选：court/edu/finance/medical/tech/sport/gov 等
+
+# 讯飞实时语音转写标准版（流式，WebSocket + Binary PCM，最长 5 小时）
+# 获取密钥：https://console.xfyun.cn/services/lfasr （语音转写服务页）
+# [[asr_providers]]
+# name = "xfyun-rtasr-std"
+# type = "xfyun-rtasr-std"
+# app_id = "your_app_id"
+# api_key = "your_api_key"  # API Key（不是 AccessKeyId）
+# lang = "cn"  # cn=中文，en=英文
+# pd = ""  # 可选：court/edu/finance/medical/tech/sport/gov 等
+
+# 讯飞录音文件转写（标准版）（批量，录完后上传识别）
+# 获取密钥：https://console.xfyun.cn/services/lfasr
+# [[asr_providers]]
+# name = "xfyun-lfasr"
+# type = "xfyun-lfasr"
+# app_id = "your_app_id"
+# api_key = "your_api_key"
+# api_secret = "your_secret_key"  # 注意是 SecretKey，不是 APISecret
+# pd = ""  # 可选：court/edu/finance/medical/tech/sport/gov 等
+
+# 讯飞录音文件转写大模型（批量，支持 202 种方言免切）
+# 获取密钥：https://console.xfyun.cn/services/lfasr_llm
+# [[asr_providers]]
+# name = "xfyun-llm"
+# type = "xfyun-lfasr-llm"
+# app_id = "your_app_id"
+# api_key = "your_access_key_id"  # AccessKeyId
+# api_secret = "your_access_key_secret"  # AccessKeySecret
+# pd = ""  # 可选：court/edu/finance/medical/tech/sport/gov 等
+
+# 讯飞极速录音转写大模型（批量，1小时音频约20秒出结果）
+# 获取密钥：https://console.xfyun.cn/services/ost
+# [[asr_providers]]
+# name = "xfyun-fast"
+# type = "xfyun-lfasr-fast"
+# app_id = "your_app_id"
+# api_key = "your_api_key"
+# api_secret = "your_api_secret"
+# pd = ""  # 可选：court/edu/finance/medical/tech/sport/gov 等
+
 # 小米 MiMo ASR（批量，录完后识别）
 # 获取密钥：https://platform.xiaomimimo.com/console
 # [[asr_providers]]

@@ -18,6 +18,8 @@ make run                # Run on the current platform
 make test               # Run all tests (uses -v)
 go test ./...           # Faster default test command
 go test ./... -tags no_x11  # Skip X11 cgo deps (useful on headless or Wayland-only systems)
+go test ./asr/...                 # Run tests for a single package
+go test ./internal/doctor/... -run TestASR  # Run a single test by name
 CGO_ENABLED=1 go build -o build/audio-talk-ai ./cmd/audio-talk-ai
 ```
 
@@ -73,14 +75,28 @@ cmd/audio-talk-ai/main.go
 
 Core packages:
 
+- `config/`: loads/saves TOML config, parses hotkey combos, manages ASR provider entries. Config lives at `~/.config/audio-talk-ai/config.toml`; `config.toml.example` documents every provider field.
+- `asr/`: provider-agnostic streaming ASR abstraction. `Client` is a session (Connect/SendAudio/Results/Done/Final). `registry.go` registers factories by name (database/sql-style lookup), so `asr.NewClient` is the only entry point — add a provider by calling `asr.Register` from its package init, not by editing callers.
 - `hotkey/`: platform global hotkey providers plus shared combo/event types.
-- `engine/`: plugin lifecycle and config reload orchestration.
+- `engine/`: plugin lifecycle, hotkey registry ownership, and config hot-reload orchestration.
 - `plugins/voice/`: recorder, ASR streaming, hotkey behavior, clipboard/auto-submit dispatch, stats.
 - `plugins/overlay/`: recording status capsule for Linux and macOS.
 - `internal/autotype/`: platform paste/auto-submit implementation.
 - `internal/clipboard/`: platform clipboard implementation.
 - `internal/doctor/`: startup environment checks.
 - `internal/tui/`: Bubble Tea configuration UI.
+- `internal/webui/`: HTTP server (port 8391) with `go:embed` static SPA; manages config CRUD, provider CRUD, and transcription history (JSON file in XDG state dir).
+- `internal/session/`: detachable TUI sessions (di mode) over a Unix PTY/socket daemon.
+
+## Big Picture
+
+`main.go` parses flags, loads config, runs the doctor, creates the hotkey `Provider`, then builds the `Engine` and loads `voice` + `overlay` plugins (plus `debug` in daemon mode). The Engine owns the `hotkey.Registry`; each plugin registers its hotkeys in `Init()` (never `Start()`) and receives lifecycle via `Start(ctx)`/`Stop()`.
+
+The voice path is the heart of the app: a hotkey event (toggle/hold) flips recording state quickly in the handler, while the actual recorder stop, final audio send, ASR final wait, clipboard write, and auto-submit run as background finish work to keep the hotkey event loop responsive. Recognized text is dispatched exactly once per user-stopped session (guard both `Final()` and `Done()` paths). Transcriptions are also fanned out to the WebUI `HistoryStore` via `voice.SetTranscriptionCallback`.
+
+Configuration changes are hot-reloaded: `Engine.WatchConfig` watches the config directory with fsnotify and, on write, reloads and calls `OnConfigReload` on any plugin implementing the `Reloader` interface, then notifies `OnConfigChange` subscribers (the TUI and WebUI). ASR providers are selected by name from config; the `asr` registry resolves the factory, so switching providers needs no code change in the voice plugin.
+
+Module import path is `gitee.com/AY77-OP/audio-talk-ai` (the repo is mirrored there, not on GitHub's go module path).
 
 ## Hotkey Notes
 
@@ -113,3 +129,4 @@ TUI mode must not write normal logs to stdout/stderr because it corrupts the Bub
 - README is bilingual: update both `README.md` and `README.en.md`.
 - `CHANGELOG.md` should be updated for user-visible behavior changes.
 - The project does not accept pull requests; issues are welcome.
+- Licensed under GPL v3.0 with a no-commercial-use clause. Avoid adding dependencies or code that would conflict with GPL v3 or the non-commercial restriction.

@@ -35,6 +35,7 @@ func runPlatform(cfg *config.Config, backend string) Report {
 	}
 
 	report.Checks = append(report.Checks, platformDependencyChecks(backend)...)
+	report.Checks = append(report.Checks, secretEncryptionCheck(cfg))
 	if cfg.Voice.Enabled {
 		report.Checks = append(report.Checks, asrConfigCheck(cfg))
 	}

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"gitee.com/AY77-OP/audio-talk-ai/asr"
 	"gitee.com/AY77-OP/audio-talk-ai/config"
 	"gitee.com/AY77-OP/audio-talk-ai/hotkey"
 	"gitee.com/AY77-OP/audio-talk-ai/plugins/voice"
@@ -140,8 +141,8 @@ func (m *Model) rebuildFields() {
 		fs = append(fs, field{label: "── 添加新服务商 ──", key: "sep_add", fType: fSeparator})
 	}
 
-	// "添加新服务商" selector
-	providerTypes := []string{"doubao", "openai-realtime", "openai-whisper", "xiaomi-mimo-asr", "xiaomi-mimo-asr-TokenPlan", "xfyun-spark"}
+	// "添加新服务商" selector — dynamically from registered providers
+	providerTypes := asr.Providers()
 	addIdx := idxOf(providerTypes, m.lastAddedType)
 	if m.previewType != "" {
 		addIdx = idxOf(providerTypes, m.previewType)
@@ -179,91 +180,99 @@ func (m *Model) rebuildFields() {
 }
 
 // credentialFields returns provider-specific input fields based on the selected provider type.
+// Fields are dynamically generated from the provider's registered metadata.
 func (m *Model) credentialFields() []field {
-	ti := func(v string) textinput.Model { t := textinput.New(); t.SetValue(v); t.Cursor.Blink = false; return t }
-
-	// No providers configured: no credential fields, just the add dropdown
 	if len(m.cfg.ASRs) == 0 {
 		return nil
 	}
-
-	// Multi-provider mode: show fields for the selected provider
 	var p config.ASRProviderConfig
 	if m.providerIdx < len(m.cfg.ASRs) {
 		p = m.cfg.ASRs[m.providerIdx]
 	}
-
-	switch p.Type {
-	case "doubao":
-		return []field{
-			{label: "App Key", key: "p_app_key", help: "火山 App ID", fType: fString, input: ti(p.AppKey)},
-			{label: "Access Key", key: "p_access_key", help: "火山 Access Token", fType: fString, input: ti(p.AccessKey)},
-		}
-	case "openai-realtime", "openai-whisper":
-		fields := []field{
-			{label: "API Key", key: "p_api_key", help: "OpenAI API Key", fType: fString, input: ti(p.ApiKey)},
-			{label: "Model", key: "p_model", help: "模型名", fType: fString, input: ti(p.Model)},
-		}
-		if p.Type == "openai-whisper" {
-			fields = append(fields, field{label: "Endpoint", key: "p_base_url", help: "API 端点（留空用默认）", fType: fString, input: ti(p.BaseURL)})
-		}
-		return fields
-	case "xiaomi-mimo-asr", "xiaomi-mimo-asr-TokenPlan":
-		return []field{
-			{label: "API Key", key: "p_api_key", help: "MiMo API Key", fType: fString, input: ti(p.ApiKey)},
-			{label: "Model", key: "p_model", help: "当前仅支持 mimo-v2.5-asr", fType: fString, input: ti(p.Model)},
-		}
-	case "xfyun-spark":
-		dwaOpts := []string{"否", "wpgs"}
-		dwaIdx := 0
-		if p.DWA == "wpgs" {
-			dwaIdx = 1
-		}
-		return []field{
-			{label: "App ID", key: "p_app_id", help: "讯飞 App ID", fType: fString, input: ti(p.AppID)},
-			{label: "API Key", key: "p_api_key", help: "讯飞 API Key", fType: fString, input: ti(p.ApiKey)},
-			{label: "API Secret", key: "p_api_secret", help: "讯飞 API Secret", fType: fString, input: ti(p.ApiSecret)},
-			{label: "动态修正", key: "p_dwa", help: "wpgs 开启语音纠偏", fType: fSelect, opts: dwaOpts, optIdx: dwaIdx},
-		}
-	default:
+	meta, ok := asr.GetProviderMeta(p.Type)
+	if !ok {
 		return nil
 	}
+	return m.buildFieldsFromMeta(meta.Fields, "p_", func(fd asr.FieldDef) string {
+		v := p.Get(fd.Key)
+		if fd.Type == asr.FieldSelect && len(fd.Labels) > 0 {
+			return configToDisplay(v, fd)
+		}
+		return orDefaultStr(v, fd.Default)
+	})
 }
 
 // previewCredentialFields returns empty credential fields for a provider type being previewed.
 func (m *Model) previewCredentialFields(providerType string) []field {
-	ti := func(v string) textinput.Model { t := textinput.New(); t.SetValue(v); t.Cursor.Blink = false; return t }
-
-	switch providerType {
-	case "doubao":
-		return []field{
-			{label: "App Key", key: "new_app_key", help: "火山 App ID", fType: fString, input: ti("")},
-			{label: "Access Key", key: "new_access_key", help: "火山 Access Token", fType: fString, input: ti("")},
-		}
-	case "openai-realtime", "openai-whisper":
-		fields := []field{
-			{label: "API Key", key: "new_api_key", help: "OpenAI API Key", fType: fString, input: ti("")},
-			{label: "Model", key: "new_model", help: "模型名", fType: fString, input: ti("")},
-		}
-		if providerType == "openai-whisper" {
-			fields = append(fields, field{label: "Endpoint", key: "new_base_url", help: "API 端点（留空用默认）", fType: fString, input: ti("")})
-		}
-		return fields
-	case "xiaomi-mimo-asr", "xiaomi-mimo-asr-TokenPlan":
-		return []field{
-			{label: "API Key", key: "new_api_key", help: "MiMo API Key", fType: fString, input: ti("")},
-			{label: "Model", key: "new_model", help: "当前仅支持 mimo-v2.5-asr", fType: fString, input: ti("mimo-v2.5-asr")},
-		}
-	case "xfyun-spark":
-		return []field{
-			{label: "App ID", key: "new_app_id", help: "讯飞 App ID", fType: fString, input: ti("")},
-			{label: "API Key", key: "new_api_key", help: "讯飞 API Key", fType: fString, input: ti("")},
-			{label: "API Secret", key: "new_api_secret", help: "讯飞 API Secret", fType: fString, input: ti("")},
-			{label: "动态修正", key: "new_dwa", help: "wpgs 开启语音纠偏", fType: fSelect, opts: []string{"否", "wpgs"}, optIdx: 0},
-		}
-	default:
+	meta, ok := asr.GetProviderMeta(providerType)
+	if !ok {
 		return nil
 	}
+	return m.buildFieldsFromMeta(meta.Fields, "new_", func(fd asr.FieldDef) string {
+		if fd.Type == asr.FieldSelect && len(fd.Labels) > 0 {
+			return configToDisplay(fd.Default, fd)
+		}
+		return fd.Default
+	})
+}
+
+// buildFieldsFromMeta generates TUI fields from provider metadata.
+func (m *Model) buildFieldsFromMeta(fields []asr.FieldDef, prefix string, valueFn func(asr.FieldDef) string) []field {
+	ti := func(v string) textinput.Model {
+		t := textinput.New()
+		t.SetValue(v)
+		t.Cursor.Blink = false
+		return t
+	}
+	var result []field
+	for _, fd := range fields {
+		val := valueFn(fd)
+		switch fd.Type {
+		case asr.FieldSelect:
+			opts := fd.Labels
+			if len(opts) == 0 {
+				opts = fd.Options
+			}
+			result = append(result, field{
+				label: fd.Label, key: prefix + fd.Key, help: fd.Help,
+				fType: fSelect, opts: opts, optIdx: idxOf(opts, val),
+			})
+		default:
+			result = append(result, field{
+				label: fd.Label, key: prefix + fd.Key, help: fd.Help,
+				fType: fString, input: ti(val),
+			})
+		}
+	}
+	return result
+}
+
+// configToDisplay converts a config value to its TUI display label for select fields.
+func configToDisplay(val string, fd asr.FieldDef) string {
+	for i, opt := range fd.Options {
+		if opt == val && i < len(fd.Labels) {
+			return fd.Labels[i]
+		}
+	}
+	return val
+}
+
+// displayToConfig converts a TUI display label back to the config value for select fields.
+func displayToConfig(display string, fd asr.FieldDef) string {
+	for i, label := range fd.Labels {
+		if label == display && i < len(fd.Options) {
+			return fd.Options[i]
+		}
+	}
+	return display
+}
+
+// orDefaultStr returns v if non-empty, otherwise def.
+func orDefaultStr(v, def string) string {
+	if v == "" {
+		return def
+	}
+	return v
 }
 
 // switchProvider changes the selected provider and rebuilds credential fields.
@@ -311,22 +320,20 @@ func (m *Model) addProvider(providerType string) {
 	}
 
 	// Build new provider with values from preview fields
-	dwaVal := m.fieldValue("new_dwa")
-	if dwaVal == "否" {
-		dwaVal = ""
-	}
 	newProvider := config.ASRProviderConfig{
-		Name:      name,
-		Type:      providerType,
-		Default:   len(m.cfg.ASRs) == 0,
-		AppKey:    m.fieldValue("new_app_key"),
-		AccessKey: m.fieldValue("new_access_key"),
-		ApiKey:    m.fieldValue("new_api_key"),
-		Model:     m.fieldValue("new_model"),
-		BaseURL:   m.fieldValue("new_base_url"),
-		AppID:     m.fieldValue("new_app_id"),
-		ApiSecret: m.fieldValue("new_api_secret"),
-		DWA:       dwaVal,
+		Name:    name,
+		Type:    providerType,
+		Default: len(m.cfg.ASRs) == 0,
+	}
+	meta, ok := asr.GetProviderMeta(providerType)
+	if ok {
+		for _, fd := range meta.Fields {
+			raw := m.fieldValue("new_" + fd.Key)
+			if fd.Type == asr.FieldSelect && len(fd.Labels) > 0 {
+				raw = displayToConfig(raw, fd)
+			}
+			newProvider.Set(fd.Key, raw)
+		}
 	}
 	m.cfg.ASRs = append(m.cfg.ASRs, newProvider)
 
@@ -664,33 +671,25 @@ func (m *Model) saveProviderFieldsTo(cfg *config.Config, pIdx int) {
 	}
 	p := &cfg.ASRs[pIdx]
 	for _, f := range m.fields {
-		switch f.key {
-		case "p_app_key":
-			p.AppKey = f.input.Value()
-		case "p_access_key":
-			p.AccessKey = f.input.Value()
-		case "p_api_key":
-			p.ApiKey = f.input.Value()
-		case "p_api_secret":
-			p.ApiSecret = f.input.Value()
-		case "p_model":
-			p.Model = f.input.Value()
-		case "p_base_url":
-			p.BaseURL = f.input.Value()
-		case "p_app_id":
-			p.AppID = f.input.Value()
-		case "p_dwa":
-			if f.fType == fSelect {
-				v := f.opts[f.optIdx]
-				if v == "否" {
-					p.DWA = ""
-				} else {
-					p.DWA = v
+		if !strings.HasPrefix(f.key, "p_") {
+			continue
+		}
+		cfgKey := strings.TrimPrefix(f.key, "p_")
+		val := f.input.Value()
+		if f.fType == fSelect {
+			val = f.opts[f.optIdx]
+		}
+		// Convert display label back to config value for select fields
+		meta, ok := asr.GetProviderMeta(p.Type)
+		if ok {
+			for _, fd := range meta.Fields {
+				if fd.Key == cfgKey && fd.Type == asr.FieldSelect && len(fd.Labels) > 0 {
+					val = displayToConfig(val, fd)
+					break
 				}
-			} else {
-				p.DWA = f.input.Value()
 			}
 		}
+		p.Set(cfgKey, val)
 	}
 }
 
@@ -920,9 +919,13 @@ func (m *Model) renderField(i int, f field) string {
 }
 
 func isSecretField(key string) bool {
-	switch key {
-	case "access_key", "p_access_key", "p_api_key", "p_api_secret":
-		return true
+	// Check metadata for secret flag
+	for _, meta := range asr.AllProviderMeta() {
+		for _, fd := range meta.Fields {
+			if ("p_"+fd.Key == key || "new_"+fd.Key == key) && fd.Secret {
+				return true
+			}
+		}
 	}
 	return false
 }
