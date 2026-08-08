@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"sync"
 
@@ -32,7 +33,14 @@ func newBackend(cfg config.OverlayConfig) (backend, error) {
 		"--overlay-scale", strconv.FormatFloat(cfg.Scale, 'f', -1, 64),
 	)
 	cmd.Stdout = io.Discard
-	if errLog, err := os.OpenFile("/tmp/audio-talk-ai-overlay.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644); err == nil {
+	logPath := filepath.Join(os.TempDir(), "audio-talk-ai-overlay.log")
+	if home, err := os.UserHomeDir(); err == nil {
+		logDir := filepath.Join(home, "Library", "Logs", "audio-talk-ai")
+		if err := os.MkdirAll(logDir, 0755); err == nil {
+			logPath = filepath.Join(logDir, "overlay.log")
+		}
+	}
+	if errLog, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644); err == nil {
 		cmd.Stderr = errLog
 	} else {
 		cmd.Stderr = io.Discard

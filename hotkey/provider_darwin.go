@@ -363,6 +363,13 @@ func (p *darwinProvider) readPipe(ctx context.Context) {
 }
 
 func (p *darwinProvider) handleCGEvent() {
+	// Acquire p.mu before touching the tracker so that lock ordering is
+	// consistent with Register/Unregister/Stop (which take p.mu then the
+	// tracker's mutex). Taking them in the opposite order here would risk a
+	// deadlock if a hotkey event arrives while a combo is being (un)registered.
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	keycodeOff := int(C.bridge_keycode_offset)
 	flagsOff := int(C.bridge_flags_offset)
 	evtTypeOff := int(C.bridge_event_type_offset)
@@ -395,8 +402,6 @@ func (p *darwinProvider) handleCGEvent() {
 		events = p.processFlagsChanged(key, mods, now)
 	}
 
-	p.mu.Lock()
-	defer p.mu.Unlock()
 	for _, e := range events {
 		if ch, ok := p.channels[e.Combo]; ok {
 			select {

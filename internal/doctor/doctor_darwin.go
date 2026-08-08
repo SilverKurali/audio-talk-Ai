@@ -2,8 +2,9 @@
 
 package doctor
 
-// #cgo LDFLAGS: -framework ApplicationServices
+// #cgo LDFLAGS: -framework ApplicationServices -framework AVFoundation
 // #include <ApplicationServices/ApplicationServices.h>
+// #include <AvailabilityMacros.h>
 //
 // static bool doctor_accessibility_trusted(void) {
 // 	return AXIsProcessTrusted();
@@ -39,6 +40,11 @@ package doctor
 // 	CFRelease(tap);
 // 	return true;
 // }
+//
+// // Mic permission check is implemented in doctor_darwin.m (Objective-C).
+// //
+// // Returns: 0=not determined, 1=restricted, 2=denied, 3=authorized.
+// int doctor_mic_permission(void);
 import "C"
 
 import (
@@ -107,14 +113,49 @@ func accessibilityCheck(terminal terminalApp) Check {
 }
 
 func recordingBackendCheck(terminal terminalApp) Check {
-	return Check{
-		Name:     "麦克风录音",
-		OK:       true,
-		Severity: Required,
-		Detail:   "可用",
-		Notes: []string{
-			"如果 macOS 弹出权限提示，请允许 " + terminal.AuthTarget() + " 使用麦克风。",
-		},
+	status := int(C.doctor_mic_permission())
+	switch status {
+	case 3: // authorized
+		return Check{
+			Name:     "麦克风权限",
+			OK:       true,
+			Severity: Required,
+			Detail:   "已授权",
+		}
+	case 2: // denied
+		return Check{
+			Name:     "麦克风权限",
+			OK:       false,
+			Severity: Required,
+			Detail:   "已拒绝",
+			Notes: []string{
+				"Audio Talk AI 需要麦克风权限才能录音。",
+				"打开位置：系统设置 → 隐私与安全性 → 麦克风 → 勾选 " + terminal.AuthTarget(),
+			},
+			Fix: "在系统设置中为 " + terminal.AuthTarget() + " 开启麦克风权限。",
+		}
+	case 1: // restricted
+		return Check{
+			Name:     "麦克风权限",
+			OK:       false,
+			Severity: Required,
+			Detail:   "受限（家长控制）",
+			Notes: []string{
+				"系统限制了麦克风访问权限，请联系管理员。",
+			},
+		}
+	default: // 0 = not determined
+		return Check{
+			Name:     "麦克风权限",
+			OK:       false,
+			Severity: Required,
+			Detail:   "未请求",
+			Notes: []string{
+				"首次录音时 macOS 会弹出权限提示，请允许。",
+				"如果提示未弹出，请检查：系统设置 → 隐私与安全性 → 麦克风 → 勾选 " + terminal.AuthTarget(),
+			},
+			Fix: "启动一次录音以触发权限请求，或在系统设置中手动开启。",
+		}
 	}
 }
 

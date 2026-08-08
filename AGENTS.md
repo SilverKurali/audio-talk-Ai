@@ -76,7 +76,7 @@ cmd/audio-talk-ai/main.go
 Core packages:
 
 - `config/`: loads/saves TOML config, parses hotkey combos, manages ASR provider entries. Config lives at `~/.config/audio-talk-ai/config.toml`; `config.toml.example` documents every provider field.
-- `asr/`: provider-agnostic streaming ASR abstraction. `Client` is a session (Connect/SendAudio/Results/Done/Final). `registry.go` registers factories by name (database/sql-style lookup), so `asr.NewClient` is the only entry point — add a provider by calling `asr.Register` from its package init, not by editing callers.
+- `asr/`: provider-agnostic streaming ASR abstraction. `Client` is a session (Connect/SendAudio/Results/Done/Final). `registry.go` registers factories by name (database/sql-style lookup), so `asr.NewClient` is the only entry point — add a provider by calling `asr.Register` from its package init, not by editing callers. Current providers (each in its own subdirectory): `doubao`, `mimoasr`, `openairealtime`, `openaiwhisper`, `xfyuniat`, `xfyunlfasr`, `xfyunrtasr`, `xfyunrtasrstd`, `xfyunspark`.
 - `hotkey/`: platform global hotkey providers plus shared combo/event types.
 - `engine/`: plugin lifecycle, hotkey registry ownership, and config hot-reload orchestration.
 - `plugins/voice/`: recorder, ASR streaming, hotkey behavior, clipboard/auto-submit dispatch, stats.
@@ -96,7 +96,12 @@ The voice path is the heart of the app: a hotkey event (toggle/hold) flips recor
 
 Configuration changes are hot-reloaded: `Engine.WatchConfig` watches the config directory with fsnotify and, on write, reloads and calls `OnConfigReload` on any plugin implementing the `Reloader` interface, then notifies `OnConfigChange` subscribers (the TUI and WebUI). ASR providers are selected by name from config; the `asr` registry resolves the factory, so switching providers needs no code change in the voice plugin.
 
-Module import path is `gitee.com/AY77-OP/audio-talk-ai` (the repo is mirrored there, not on GitHub's go module path).
+Module import path is `gitee.com/AY77-OP/audio-talk-ai` (the repo is mirrored there, not on GitHub's go module path). Go version: `go 1.25.0` in `go.mod`.
+
+Key documentation files under `docs/`:
+- `docs/asr-providers-guide.md` — comprehensive ASR provider configuration reference.
+- `docs/xfyun-guide.md` — iFlytek service setup guide.
+- `docs/knowledge/zh/` — Chinese-language design notes on config encryption, logging, WebUI theme, provider metadata, error handling, Go/Node dual-stack, and build/install. Read these before making changes to sensitive areas.
 
 ## Hotkey Notes
 
