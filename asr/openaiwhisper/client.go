@@ -56,6 +56,10 @@ func New(common asr.Common, providerCfg map[string]interface{}, logger *slog.Log
 	}
 	endpoint, _ := providerCfg["endpoint"].(string)
 	if endpoint == "" {
+		// TUI/WebUI forms write the typed config field "base_url".
+		endpoint, _ = providerCfg["base_url"].(string)
+	}
+	if endpoint == "" {
 		endpoint = defaultEndpoint
 	}
 	return &client{

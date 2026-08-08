@@ -68,6 +68,10 @@ func New(common asr.Common, providerCfg map[string]interface{}, logger *slog.Log
 	}
 	lang, _ := providerCfg["lang"].(string)
 	if lang == "" {
+		// config.ProviderCfgMap emits the typed "lang" field as "language".
+		lang, _ = providerCfg["language"].(string)
+	}
+	if lang == "" {
 		lang = "autodialect"
 	}
 	pd, _ := providerCfg["pd"].(string)

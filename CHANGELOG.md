@@ -40,6 +40,8 @@ All notable project changes are tracked here.
 
 ### Fixed
 
+- Fixed `openai-whisper` custom endpoint being ignored: the client now falls back to the `base_url` key written by TUI/WebUI forms (previously only a hand-written `endpoint` key in config.toml took effect, so endpoints entered through the UI were silently ignored and requests went to the default OpenAI API).
+- Fixed `lang` setting for `xfyun-rtasr` / `xfyun-rtasr-std` being ignored: the clients now accept both `lang` and `language` keys (config emits the typed `lang` field as `language`, so non-default languages like `en` / `autominor` were previously silently dropped).
 - Batch ASR providers (Whisper, MiMo) now trigger API request on `SendAudio(isLast=true)` instead of `Close()`, fixing a 15-second timeout hang and potential result loss.
 - TUI switching providers now auto-saves to disk, preventing loss of unsaved credential edits.
 - TUI `save()` writes current provider fields back before copying config, ensuring no edits are missed.
