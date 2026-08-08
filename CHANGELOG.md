@@ -8,6 +8,7 @@ All notable project changes are tracked here.
 
 - At-rest encryption for API secrets in `config.toml`: plaintext credentials are now encrypted with AES-256-GCM on first run and stored as `enc:<base64>`; a per-user key file (`~/.config/audio-talk-ai/key`, mode 0600) is used for decryption. Migration is safe: the original config is backed up and the encrypted bytes are verified to round-trip before any file is overwritten.
 - Doctor `密钥加密` check reports plaintext-secrets warnings, missing/over-permissive key files, and overall at-rest safety.
+- macOS recording device selection: the `device` config field is now honored on macOS via CoreAudio; `ListDevices` enumerates real audio input devices (previously it always recorded from the default device).
 - Multi-provider ASR system: support 6 speech recognition services with dynamic switching in TUI.
   - **Doubao** (ByteDance Volcengine): streaming ASR via binary WebSocket protocol.
   - **OpenAI Realtime**: streaming ASR via JSON WebSocket, supports gpt-4o-transcribe / gpt-4o-mini-transcribe / whisper-1.
@@ -44,6 +45,9 @@ All notable project changes are tracked here.
 - TUI `save()` writes current provider fields back before copying config, ensuring no edits are missed.
 - TUI switching providers clears add-provider preview, avoiding empty fields overlaying saved credentials.
 - Hotkey double-fire for key-only combos (e.g. F9) fixed in KeyStateTracker.
+- macOS `--doctor` now actually checks microphone permission via AVFoundation (previously it always reported "可用").
+- macOS overlay helper log moved from `/tmp/` to `~/Library/Logs/audio-talk-ai/overlay.log`.
+- macOS CGEventTap lock ordering fixed (provider mutex before tracker mutex) to avoid a potential deadlock during hotkey (un)registration.
 - Evdev multi-device duplicate key events deduplicated with 2ms window.
 - Ctrl+] detach now works in GNOME Terminal (CSI u 3-part format support).
 - WebUI config field name casing fixed (lowercase API response).
