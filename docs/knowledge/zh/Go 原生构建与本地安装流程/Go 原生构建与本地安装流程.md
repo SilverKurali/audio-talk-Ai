@@ -20,7 +20,7 @@ source_files:
 
 **核心 make 目标**
 - `make build`：使用 `go build -o ./build/audio-talk-ai ./cmd/audio-talk-ai` 编译当前平台二进制
-- `make install`：先执行 build，再调用应用自身 `--install` 子命令完成系统级安装，并将 `bin/daudio-talk-ai` 软链接到 `~/.local/bin/daudio-talk-ai`
+- `make install`：先执行 build，再调用应用自身 `--install` 子命令把主程序安装到 `~/.local/bin/audio-talk-ai`，并将仓库内 `bin/daudio-talk-ai` 可断开会话包装脚本复制（cp）到 `~/.local/bin/daudio-talk-ai`
 - `make run`：`go run ./cmd/audio-talk-ai` 直接运行源码
 - `make test`：`go test ./... -v` 递归执行全部测试
 - `make clean`：删除 `build/` 目录

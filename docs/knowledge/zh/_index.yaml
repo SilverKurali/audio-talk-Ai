@@ -3,7 +3,7 @@ schema_version: 1
 locale: zh-CN
 branch: master
 nodes_managed: true
-exported_at: "2026-07-13T08:54:56Z"
+exported_at: "2026-08-08T00:00:00Z"
 modules:
     "":
         dir_name: Audio Talk AI 语音转文字桌面应用

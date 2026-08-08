@@ -130,10 +130,10 @@ name = "本地 Whisper"
 type = "openai-whisper"
 api_key = "ollama"
 model = "whisper"
-base_url = "http://localhost:11434/v1/audio/transcriptions"
+endpoint = "http://localhost:11434/v1/audio/transcriptions"
 ```
 
-> 使用本地服务时 `api_key` 可以填任意值（不能为空），`base_url` 填本地服务地址。
+> 使用本地服务时 `api_key` 可以填任意值（不能为空），`endpoint` 填本地服务地址（与 `config.toml.example` 一致）。
 
 ---
 
@@ -427,5 +427,5 @@ Audio Talk AI 首次启动时会自动把配置文件中的明文密钥加密存
 |--------|-----------|------|
 | 豆包 | [火山引擎控制台](https://console.volcengine.com/speech/app) | [语音识别文档](https://www.volcengine.com/docs/6561) |
 | OpenAI | [platform.openai.com](https://platform.openai.com/) | [Audio API 文档](https://platform.openai.com/docs/guides/speech-to-text) |
-| 讯飞 | [讯飞开放平台](https://console.xfyun.cn/) | [讯飞 ASR 详细指南](docs/xfyun-guide.md) |
+| 讯飞 | [讯飞开放平台](https://console.xfyun.cn/) | [讯飞 ASR 详细指南](xfyun-guide.md) |
 | 小米 MiMo | [MiMo 控制台](https://platform.xiaomimimo.com/console) | [MiMo 文档](https://platform.xiaomimimo.com/) |
