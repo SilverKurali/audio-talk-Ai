@@ -3,8 +3,8 @@
 #
 # Builds native binaries for:
 #   - Linux amd64   (full cgo: X11 + Wayland evdev)
-#   - Linux arm64   (full cgo: X11 + Wayland evdev, cross-compiled on arm64 runner)
-#   - macOS amd64   (cgo: CoreAudio, CGEventTap, AppKit)
+#   - Linux arm64   (full cgo: X11 + Wayland evdev, native arm64 runner)
+#   - macOS amd64   (cgo: cross-compiled on Apple Silicon via GOARCH=amd64)
 #   - macOS arm64   (cgo: Apple Silicon native)
 #   - Windows amd64 (pure Go: Win32 via golang.org/x/sys)
 #   - Windows arm64 (pure Go: Win32 via golang.org/x/sys)
@@ -39,32 +39,33 @@ jobs:
             arch: amd64
             runner: ubuntu-latest
             cgo: '1'
-            build_tags: ''
+            goarch: amd64
           - os: linux
             arch: arm64
             runner: ubuntu-24.04-arm
             cgo: '1'
-            build_tags: ''
+            goarch: arm64
           - os: darwin
             arch: amd64
-            runner: macos-13
+            # Cross-compile on Apple Silicon runner (avoids Intel runner queue).
+            runner: macos-latest
             cgo: '1'
-            build_tags: ''
+            goarch: amd64
           - os: darwin
             arch: arm64
             runner: macos-latest
             cgo: '1'
-            build_tags: ''
+            goarch: arm64
           - os: windows
             arch: amd64
             runner: windows-latest
             cgo: '0'
-            build_tags: ''
+            goarch: amd64
           - os: windows
             arch: arm64
             runner: windows-11-arm
             cgo: '0'
-            build_tags: ''
+            goarch: arm64
     steps:
       - uses: actions/checkout@v5
 
@@ -99,9 +100,9 @@ jobs:
         shell: bash
         env:
           CGO_ENABLED: ${{ matrix.cgo }}
+          GOARCH: ${{ matrix.goarch }}
         run: |
           go build -trimpath -ldflags="-s -w" \
-            ${BUILD_TAGS} \
             -o ${{ steps.name.outputs.binary }} \
             ./cmd/audio-talk-ai
 
