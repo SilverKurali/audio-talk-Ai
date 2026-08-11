@@ -17,6 +17,48 @@ func (s *Server) handleGetProviderTypes(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, 200, asr.AllProviderMeta())
 }
 
+// GET /api/devices/audio — enumerates audio input devices via the platform
+// recorder backend (ffmpeg dshow on Windows, arecord on Linux, CoreAudio on
+// macOS). Always returns 200 with a devices slice so the UI can render an
+// empty dropdown + an error hint instead of a failed request.
+func (s *Server) handleListAudioDevices(w http.ResponseWriter, r *http.Request) {
+	devices, err := voice.ListDevices()
+	resp := map[string]any{"devices": devices}
+	if err != nil {
+		resp["error"] = err.Error()
+		s.logger.Warn("list audio devices failed", "error", err)
+	}
+	writeJSON(w, 200, resp)
+}
+
+// GET /api/hotkey/validate?s=<combo> — validates a hotkey string the same way
+// the TUI does: parse it, then reject plain text keys (letters/digits/punct)
+// which are not global-safe. Returns {ok, combo, reason} so the WebUI can
+// preview/capture-feedback before saving.
+func (s *Server) handleValidateHotkey(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query().Get("s")
+	resp := map[string]any{"ok": false}
+	if q == "" {
+		resp["reason"] = "empty hotkey"
+		writeJSON(w, 200, resp)
+		return
+	}
+	combo, err := config.ParseHotkey(q)
+	if err != nil {
+		resp["reason"] = err.Error()
+		writeJSON(w, 200, resp)
+		return
+	}
+	if combo.Key.IsTextKey() {
+		resp["reason"] = "不支持普通字符键（字母/数字/标点），请用功能键或修饰键组合"
+		writeJSON(w, 200, resp)
+		return
+	}
+	resp["ok"] = true
+	resp["combo"] = combo.String()
+	writeJSON(w, 200, resp)
+}
+
 func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)

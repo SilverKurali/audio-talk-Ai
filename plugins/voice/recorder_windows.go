@@ -59,8 +59,17 @@ func ListDevices() ([]string, error) {
 		return nil, fmt.Errorf("ffmpeg not found (needed to list devices)")
 	}
 	cmd := exec.Command(ff, "-list_devices", "true", "-f", "dshow", "-i", "dummy")
-	out, _ := cmd.CombinedOutput()
-	return parseDeviceList(string(out)), nil
+	out, err := cmd.CombinedOutput()
+	// ffmpeg's -list_devices always exits non-zero (it has no input stream to
+	// process), so a non-nil error here is expected; the device list is in the
+	// combined output. We only treat a truly empty output as a failure, which
+	// surfaces real problems (e.g., dshow unavailable) to the UI instead of a
+	// silently empty dropdown.
+	devices := parseDeviceList(string(out))
+	if len(devices) == 0 && err != nil && len(out) == 0 {
+		return nil, fmt.Errorf("ffmpeg failed to list devices: %w", err)
+	}
+	return devices, nil
 }
 
 func parseDeviceList(output string) []string {
@@ -68,6 +77,8 @@ func parseDeviceList(output string) []string {
 	lines := strings.Split(output, "\n")
 	inAudio := false
 	for _, line := range lines {
+		// Legacy ffmpeg (pre-8.0) prints a "DirectShow audio devices" section
+		// header; once seen we are inside the audio block until the video one.
 		if strings.Contains(line, "DirectShow audio") {
 			inAudio = true
 			continue
@@ -75,12 +86,19 @@ func parseDeviceList(output string) []string {
 		if inAudio && strings.Contains(line, "DirectShow video") {
 			break
 		}
-		if inAudio && strings.Contains(line, "\"") {
-			start := strings.Index(line, "\"")
-			end := strings.LastIndex(line, "\"")
-			if start >= 0 && end > start {
-				devices = append(devices, line[start+1:end])
-			}
+		// Extract a quoted device name. ffmpeg 8.0+ dropped the section header
+		// and tags each line with its kind instead, e.g.
+		//   [dshow @ ...] "麦克风 (Realtek(R) Audio)" (audio)
+		// so a line counts as an audio device only if it is in the legacy
+		// audio block OR explicitly tagged (audio) — never (video)/(none).
+		isAudio := inAudio || strings.Contains(line, "(audio)")
+		if !isAudio || strings.Contains(line, "(video)") || strings.Contains(line, "(none)") {
+			continue
+		}
+		start := strings.Index(line, "\"")
+		end := strings.LastIndex(line, "\"")
+		if start >= 0 && end > start {
+			devices = append(devices, line[start+1:end])
 		}
 	}
 	return devices

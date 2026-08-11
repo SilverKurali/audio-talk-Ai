@@ -61,7 +61,18 @@ func pastePlatform(text string, logger *slog.Logger) error {
 
 // On X11: sets PRIMARY + CLIPBOARD via xclip, simulates Shift+Insert, restores.
 func pasteX11(text string, logger *slog.Logger) error {
-	orig, _ := runClipboard("xclip", "-o", "-selection", "clipboard")
+	orig, origErr := runClipboard("xclip", "-o", "-selection", "clipboard")
+	// An X CLIPBOARD selection can legitimately be empty (the user had nothing
+	// copied), so an empty result is not necessarily an error. But if xclip
+	// itself failed, we cannot know the prior contents and therefore cannot
+	// restore them — log the failure so it is not silently swallowed (the old
+	// code used `orig, _ :=` and hid xclip breakage, leaving the user's
+	// clipboard silently overwritten with no chance to restore).
+	canRestore := orig != "" && orig != text
+	if origErr != nil {
+		logger.Debug("could not read prior X CLIPBOARD for restore", "error", origErr)
+		canRestore = false
+	}
 
 	if err := pipeToCmd(text, "xclip", "-selection", "clipboard"); err != nil {
 		return fmt.Errorf("set clipboard: %w", err)
@@ -72,7 +83,11 @@ func pasteX11(text string, logger *slog.Logger) error {
 	if err != nil {
 		return fmt.Errorf("primary pipe: %w", err)
 	}
-	primaryCmd.Start()
+	if err := primaryCmd.Start(); err != nil {
+		// Without a started process, primaryCmd.Process is nil — avoid a nil
+		// dereference in the cleanup/kill paths below.
+		return fmt.Errorf("start xclip primary: %w", err)
+	}
 	primaryIn.Write([]byte(text))
 	primaryIn.Close()
 
@@ -87,15 +102,25 @@ func pasteX11(text string, logger *slog.Logger) error {
 	primaryCmd.Process.Kill()
 	primaryCmd.Wait()
 
-	if orig != "" && orig != text {
+	if canRestore {
 		pipeToCmd(orig, "xclip", "-selection", "clipboard")
 	}
 
-	logger.Debug("autotype done", "text_len", len(text))
+	logger.Debug("autotype done", "text_len", len(text), "restored_clipboard", canRestore)
 	return nil
 }
 
 func pasteWayland(text string, logger *slog.Logger) error {
+	// Save the prior clipboard so it can be restored, matching the X11/Windows/
+	// macOS behavior. wl-paste is the read counterpart to wl-copy; if it is
+	// missing we simply skip restore (canRestore stays false).
+	orig, origErr := runClipboard("wl-paste", "--no-newline")
+	canRestore := orig != "" && orig != text
+	if origErr != nil {
+		logger.Debug("could not read prior Wayland clipboard for restore", "error", origErr)
+		canRestore = false
+	}
+
 	if err := pipeToCmd(text, "wl-copy", "--type", "text/plain;charset=utf-8"); err != nil {
 		return fmt.Errorf("set Wayland clipboard: %w", err)
 	}
@@ -110,7 +135,13 @@ func pasteWayland(text string, logger *slog.Logger) error {
 		return fmt.Errorf("simulate paste: %w", err)
 	}
 
-	logger.Debug("autotype done", "text_len", len(text), "method", pasteMethod())
+	if canRestore {
+		// Give the target a moment to read the clipboard, then restore.
+		time.Sleep(300 * time.Millisecond)
+		pipeToCmd(orig, "wl-copy", "--type", "text/plain;charset=utf-8")
+	}
+
+	logger.Debug("autotype done", "text_len", len(text), "method", pasteMethod(), "restored_clipboard", canRestore)
 	return nil
 }
 

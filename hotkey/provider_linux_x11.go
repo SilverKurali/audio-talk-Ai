@@ -127,6 +127,16 @@ type x11Provider struct {
 	// Track pressed keys to filter auto-repeat
 	pressedKeys map[uint]bool
 
+	// Per-keycode timestamp of the last KeyRelease seen, used to detect
+	// keyboard auto-repeat (typematic). X11 synthesizes auto-repeat as a
+	// KeyRelease immediately followed by a KeyPress with the SAME time as
+	// the release. When a KeyPress arrives whose time equals the last
+	// KeyRelease time for that keycode, it's a repeat — drop it. This works
+	// for modifier keys too, which the previous pressedKeys-only heuristic
+	// could not handle (modifier-only combos like Alt+Super re-fired on every
+	// repeat, flipping toggle/hold state wildly).
+	lastReleaseTime map[uint]C.Time
+
 	// Standard modifier+key combos that have fired KeyDown.
 	activeCombos map[Combo]bool
 
@@ -149,13 +159,14 @@ func newX11Provider() (Provider, error) {
 	}
 
 	return &x11Provider{
-		channels:     make(map[Combo]chan<- Event),
-		display:      display,
-		root:         C.XDefaultRootWindow(display),
-		pressedKeys:  make(map[uint]bool),
-		activeCombos: make(map[Combo]bool),
-		grabbedKeys:  make(map[uint]bool),
-		logger:       slog.Default().With("platform", "x11"),
+		channels:        make(map[Combo]chan<- Event),
+		display:         display,
+		root:            C.XDefaultRootWindow(display),
+		pressedKeys:     make(map[uint]bool),
+		lastReleaseTime: make(map[uint]C.Time),
+		activeCombos:    make(map[Combo]bool),
+		grabbedKeys:     make(map[uint]bool),
+		logger:          slog.Default().With("platform", "x11"),
 	}, nil
 }
 
@@ -306,23 +317,57 @@ func (p *x11Provider) handleKeyEvent(event *C.XEvent, isRelease bool) {
 		return
 	}
 
-	// AutoRepeat: on X11, auto-repeat generates KeyRelease+KeyPress pairs.
-	// We ignore auto-repeat KeyRelease by checking if the key is currently marked pressed.
+	// Auto-repeat (typematic) filtering using X11 event timestamps.
+	//
+	// X11 synthesizes auto-repeat as a KeyRelease immediately followed by a
+	// KeyPress for the same keycode, BOTH carrying the same `time` value, and
+	// this repeats for as long as the key is held. We track per-keycode the
+	// last release time that is "still live" (i.e. the key has not been
+	// genuinely released yet):
+	//   - On a KeyRelease that we treat as the start of a repeat burst, record
+	//     its time.
+	//   - On a KeyPress matching that recorded time → it's a repeat press,
+	//     ignore. Keep the recorded time so the *next* repeat release is also
+	//     recognized (the whole burst shares one time).
+	//   - The recorded time is cleared only when a genuinely different-time
+	//     event arrives for that keycode (a real re-press or a real release).
+	//
+	// This supersedes the old pressedKeys-only heuristic, which only protected
+	// non-modifier keys: modifier-only combos (Alt+Super, Ctrl+Alt) re-fired
+	// on every typematic tick, flipping toggle/hold state wildly — the same
+	// class of bug that Windows had.
+	evTime := keyEvt.time
+	kc := uint(keycode)
 	if isRelease {
-		if !p.pressedKeys[uint(keycode)] {
-			if !key.IsModifier() {
-				// This is the auto-repeat "fake" release — ignore
-				return
-			}
-		} else {
-			delete(p.pressedKeys, uint(keycode))
-		}
-	} else {
-		if p.pressedKeys[uint(keycode)] {
-			// Auto-repeat press — ignore
+		if lastT, has := p.lastReleaseTime[kc]; has && lastT == evTime {
+			// A release whose time matches the live repeat marker → part of
+			// the same repeat burst. Ignore (pressedKeys already cleared).
 			return
 		}
-		p.pressedKeys[uint(keycode)] = true
+		if _, wasPressed := p.pressedKeys[kc]; wasPressed {
+			// First release of a genuinely held key. Tentatively treat it as
+			// the start of a possible repeat burst: clear pressed state and
+			// record the time. If a same-time KeyPress follows, the release
+			// was synthetic and we keep suppressing; if a different-time
+			// event follows, this was a real release and we already forwarded it.
+			p.lastReleaseTime[kc] = evTime
+			delete(p.pressedKeys, kc)
+		} else {
+			// Release without a recorded press (e.g. modifier grabbed
+			// mid-press). Let it through so modifier-only combos can detect
+			// release; clear any stale repeat marker.
+			delete(p.lastReleaseTime, kc)
+		}
+	} else {
+		if lastT, has := p.lastReleaseTime[kc]; has && lastT == evTime {
+			// Press matches the live repeat time → auto-repeat press. Ignore.
+			// Do NOT clear lastReleaseTime: the next release in the burst
+			// carries the same time and must also be suppressed.
+			return
+		}
+		// Genuine press (different time). Clear any stale repeat marker.
+		delete(p.lastReleaseTime, kc)
+		p.pressedKeys[kc] = true
 	}
 
 	// Convert X11 state to Modifier

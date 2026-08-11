@@ -36,12 +36,20 @@
             <option value="custom">自定义...</option>
           </select>
           <input type="text" id="cfg-push-to-talk" placeholder="输入自定义热键" style="display:none;margin-top:6px">
+          <button type="button" class="btn btn-secondary" id="btn-hotkey-capture" style="margin-top:6px" onclick="startHotkeyCapture()">⚡ 按键捕获</button>
+          <div id="hotkey-capture-hint" style="display:none;margin-top:6px;color:var(--accent,#4a9);font-size:13px"></div>
         </div>
         <label>模式</label>
         <select id="cfg-mode">
           <option value="toggle">toggle（按一下开始，再按停止）</option>
           <option value="hold">hold（按住说话）</option>
         </select>
+        <label>输入设备</label>
+        <div>
+          <select id="cfg-device" onchange="onDevicePresetChange()"></select>
+          <input type="text" id="cfg-device-custom" placeholder="手动输入设备名" style="display:none;margin-top:6px">
+          <button type="button" class="btn btn-secondary" style="margin-top:6px" onclick="loadDevices()">⟳ 刷新设备列表</button>
+        </div>
         <label>自动上屏</label>
         <select id="cfg-auto-submit">
           <option value="true">开启</option>

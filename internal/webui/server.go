@@ -54,6 +54,8 @@ func (s *Server) Start() {
 	mux.HandleFunc("GET /api/history/dates", s.handleGetDateStats)
 	mux.HandleFunc("GET /api/status", s.handleGetStatus)
 	mux.HandleFunc("GET /api/provider-types", s.handleGetProviderTypes)
+	mux.HandleFunc("GET /api/devices/audio", s.handleListAudioDevices)
+	mux.HandleFunc("GET /api/hotkey/validate", s.handleValidateHotkey)
 
 	go func() {
 		s.logger.Info("WebUI started", "addr", s.addr)

@@ -41,6 +41,11 @@ func pastePlatform(text string, logger *slog.Logger) error {
 	if err != nil {
 		return fmt.Errorf("clipboard: %w", err)
 	}
+	// Save the user's current clipboard so it can be restored after the paste.
+	// macOS pasteboard is global state, so auto-submit must not clobber
+	// whatever the user was keeping there. Match the Linux X11 and Windows
+	// behavior.
+	orig, _ := cb.Get()
 	if err := cb.Set(text); err != nil {
 		return fmt.Errorf("set clipboard: %w", err)
 	}
@@ -49,7 +54,14 @@ func pastePlatform(text string, logger *slog.Logger) error {
 	if err := simulatePaste(); err != nil {
 		return fmt.Errorf("simulate paste: %w", err)
 	}
-	logger.Debug("autotype done", "text_len", len(text), "method", pasteMethod())
+	// Give the target app time to read the pasteboard during Cmd+V, then
+	// restore the original contents. Skip if there was nothing to restore or
+	// if the original already equals the transcribed text.
+	time.Sleep(300 * time.Millisecond)
+	if orig != "" && orig != text {
+		_ = cb.Set(orig)
+	}
+	logger.Debug("autotype done", "text_len", len(text), "method", pasteMethod(), "restored_clipboard", orig != "" && orig != text)
 	return nil
 }
 

@@ -83,6 +83,7 @@ type Model struct {
 	userDetach      bool   // user pressed 'b' to detach
 	lastAddedType   string // last added provider type, used as default in add_provider dropdown
 	previewType     string // provider type being previewed in "添加服务商" (empty = no preview)
+	capturingHotkey bool   // press-the-combo hotkey capture mode
 }
 
 func New(cfg *config.Config) *Model {
@@ -108,6 +109,38 @@ func New(cfg *config.Config) *Model {
 	return m
 }
 
+// deviceDefault is the display name for the "system default" device option;
+// it maps to an empty VoiceConfig.Device (the recorder's default path).
+const deviceDefault = "系统默认"
+
+// deviceField builds the audio input device field. When devices were
+// enumerated it is a select (first option "系统默认" => empty device); when
+// enumeration failed or returned nothing it falls back to free-text so the
+// user can still enter a device name manually.
+func (m *Model) deviceField(currentDevice string) field {
+	if len(m.devices) == 0 {
+		in := textinput.New()
+		in.SetValue(currentDevice)
+		in.Cursor.Blink = false
+		return field{
+			label:  "输入设备",
+			key:    "device",
+			help:   "未能枚举设备，可手动输入（如 麦克风名 / hw:1,0）；按 r 刷新",
+			fType:  fString,
+			input:  in,
+		}
+	}
+	opts := append([]string{deviceDefault}, m.devices...)
+	return field{
+		label:  "输入设备",
+		key:    "device",
+		help:   "按 r 刷新设备列表",
+		fType:  fSelect,
+		opts:   opts,
+		optIdx: idxOf(opts, currentDevice), // "" never matches => 0 (系统默认)
+	}
+}
+
 func (m *Model) rebuildFields() {
 	vc := m.cfg.Voice
 	ti := func(v string) textinput.Model { t := textinput.New(); t.SetValue(v); t.Cursor.Blink = false; return t }
@@ -117,6 +150,11 @@ func (m *Model) rebuildFields() {
 		{label: "热键", key: "push_to_talk", help: "例: Alt+Super / F9 / Ctrl+Alt+Tab；不支持字母、数字、标点、空格等普通字符键", fType: fString, input: ti(vc.PushToTalk)},
 		{label: "模式", key: "mode", help: "toggle 切换 / hold 按住", fType: fSelect, opts: []string{"toggle", "hold"}, optIdx: idxOf([]string{"toggle", "hold"}, vc.Mode)},
 	}
+
+	// Audio input device. fSelect when devices were enumerated, else fall back
+	// to free-text so the user can still type a device name (e.g. hw:1,0 or a
+	// dshow device name) when the backend (ffmpeg/arecord) is unavailable.
+	fs = append(fs, m.deviceField(vc.Device))
 
 	// Provider selector (when providers exist in cfg.ASRs)
 	m.providerField = -1
@@ -425,6 +463,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.w, m.h, m.ready = msg.Width, msg.Height, true
 	case tea.KeyMsg:
+		if m.capturingHotkey {
+			return m.handleHotkeyCapture(msg)
+		}
 		return m, m.handleKey(msg)
 	case BackgroundMsg:
 		m.background = true
@@ -440,11 +481,55 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case devMsg:
 		if msg.Error != nil {
-			m.logf("设备: %s", msg.Error)
+			// Enumeration failed: clear the list so the device field falls
+			// back to free-text entry.
+			m.devices = nil
+			m.logf("⚠️ 设备枚举失败: %s — 可手输设备名", msg.Error)
 		} else {
 			m.devices = msg.Devices
 		}
+		// Refresh the device field so a freshly enumerated (or emptied) list
+		// is reflected immediately.
+		m.rebuildFields()
 	}
+	return m, nil
+}
+
+// handleHotkeyCapture runs while the user is in press-the-combo capture mode.
+// It reads the next key/combo via tea.KeyMsg, validates it the same way save()
+// does (ParseHotkey + IsTextKey), and on success writes the normalized combo
+// string back to the push_to_talk field so a subsequent save persists it.
+// Esc cancels. Plain modifier-only combos depend on terminal protocol support
+// and may not arrive; if nothing useful is captured the user can fall back to
+// manual text entry.
+func (m *Model) handleHotkeyCapture(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	k := msg.String()
+	if k == "esc" {
+		m.capturingHotkey = false
+		m.logf("已取消热键捕获")
+		return m, nil
+	}
+	combo, err := config.ParseHotkey(k)
+	if err != nil {
+		m.capturingHotkey = false
+		m.logf("❌ 无法识别该组合（%s）；请手动输入或重试", err)
+		return m, nil
+	}
+	if combo.Key.IsTextKey() {
+		m.capturingHotkey = false
+		m.logf("❌ 不支持普通字符键（%s）；请用功能键或修饰键组合", combo)
+		return m, nil
+	}
+	// Success: write the normalized combo string into the field and exit.
+	normalized := combo.String()
+	for i := range m.fields {
+		if m.fields[i].key == "push_to_talk" {
+			m.fields[i].input.SetValue(normalized)
+			break
+		}
+	}
+	m.capturingHotkey = false
+	m.logf("✓ 已捕获热键：%s（按 s 保存生效）", normalized)
 	return m, nil
 }
 
@@ -499,6 +584,13 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 				f.optIdx--
 				if f.optIdx < 0 {
 					f.optIdx = len(f.opts) - 1
+				}
+			case "r":
+				// Refresh the audio device list (USB hot-plug, etc.). Only
+				// meaningful for the device field; other selects ignore r.
+				if f.key == "device" {
+					m.logf("🔄 正在刷新设备列表...")
+					return fetchDevices()
 				}
 			}
 			// If this is the provider selector and the index changed, rebuild fields
@@ -557,6 +649,13 @@ func (m *Model) handleKey(msg tea.KeyMsg) tea.Cmd {
 	case "s":
 		m.save()
 		return nil
+	case "c":
+		// Press-the-combo hotkey capture: only meaningful on the hotkey field.
+		if m.cursor >= 0 && m.cursor < len(m.fields) && m.fields[m.cursor].key == "push_to_talk" {
+			m.capturingHotkey = true
+			m.editing = false
+			m.logf("🎮 请按下你想要的热键组合（Esc 取消）")
+		}
 	case "e", "i", "enter":
 		if m.cursor < 0 {
 			m.cursor = 0
@@ -618,6 +717,17 @@ func (m *Model) save() {
 			vc.PushToTalk = f.input.Value()
 		case "mode":
 			vc.Mode = f.opts[f.optIdx]
+		case "device":
+			if f.fType == fSelect {
+				val := f.opts[f.optIdx]
+				if val == deviceDefault {
+					vc.Device = ""
+				} else {
+					vc.Device = val
+				}
+			} else { // fString fallback
+				vc.Device = f.input.Value()
+			}
 		case "asr_provider":
 			next.UpdateASRDefault(f.opts[f.optIdx])
 		case "auto_submit":
@@ -739,7 +849,11 @@ func (m *Model) View() string {
 	b.WriteString(tStyle.Render("🎙️ 🗣️ Audio Talk AI") + "\n")
 	b.WriteString(vStyle.Render("减少用键盘的次数，改用口喷吧。") + "\n")
 	b.WriteString(m.renderVoiceStats() + "\n\n")
-	b.WriteString(lStyle.Render("── 配置 (e 编辑, s 保存, h 帮助, j/k 导航) ──") + "\n")
+	header := "── 配置 (e 编辑, s 保存, h 帮助, j/k 导航) ──"
+	if m.capturingHotkey {
+		header = "🎮 热键捕获中：请按下你想要的组合键（Esc 取消） ──"
+	}
+	b.WriteString(lStyle.Render(header) + "\n")
 	for i, f := range m.fields {
 		if f.fType == fSeparator {
 			b.WriteString("  " + dStyle.Render(f.label) + "\n")

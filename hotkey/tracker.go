@@ -109,6 +109,21 @@ func (t *KeyStateTracker) KeyDown(key KeyCode, now time.Time) []Event {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
+	// Ignore keyboard auto-repeat (typematic). Windows WH_KEYBOARD_LL (and
+	// other platforms' low-level event sources) keep delivering KeyDown for
+	// the same key at the typematic rate (~30 Hz) while it is held. Re-running
+	// the solo/standard paths on every repeat would re-fire hotkey KeyDown
+	// events every tick — this flips toggle state wildly (every stop with
+	// remaining_bytes=0) and floods the event channel until the subsequent
+	// KeyUp is silently dropped, which surfaces as the hold-mode "can't stop
+	// recording" bug. The first KeyDown already recorded activeMods,
+	// lastNonModKey, and activeStandardCombos, so skipping repeats is the
+	// correct behavior. Note this intentionally does NOT update pressedAt,
+	// so the original press timestamp is preserved.
+	if st, already := t.pressed[key]; already && st.pressed {
+		return nil
+	}
+
 	var events []Event
 
 	// Track key state
@@ -138,6 +153,13 @@ func (t *KeyStateTracker) KeyDown(key KeyCode, now time.Time) []Event {
 				continue
 			}
 			combo := Combo{Mods: t.activeMods, Key: pressedKey}
+			// Skip key-only combos (Mods == ModNone): they are handled by the
+			// solo path below. Without this guard, a key-only combo (e.g. F9
+			// with no modifiers) would be fired by both this loop and the solo
+			// path on the same KeyDown call, producing duplicate events.
+			if combo.Mods == ModNone {
+				continue
+			}
 			if _, ok := t.watched[combo]; ok && !t.activeStandardCombos[combo] {
 				t.activeStandardCombos[combo] = true
 				events = append(events, Event{Combo: combo, Type: KeyDown, Time: now})

@@ -73,6 +73,206 @@ function getHotkeyValue() {
   return sel.value;
 }
 
+// ---- Hotkey capture (press-the-combo) ----
+// Browsers can capture most combos via keydown. Plain modifier-only combos
+// (e.g. Ctrl+Alt) are unreliable in the browser (Alt steals focus, lone
+// modifier keydown is inconsistent), so we accept modifier-only on a 600ms
+// settle timer and fall back to a hint if nothing fires.
+let hotkeyCapturing = false;
+let hotkeySettleTimer = null;
+let hotkeyTimeoutTimer = null;
+let hotkeyMods = []; // ordered modifier display names currently held
+
+function captureKeyCode(code) {
+  // Map event.code → project key name (or null = modifier, or '' = unsupported text key)
+  if (code.startsWith('Control')) return { mod: 'Ctrl' };
+  if (code.startsWith('Alt')) return { mod: 'Alt' };
+  if (code.startsWith('Shift')) return { mod: 'Shift' };
+  if (code.startsWith('Meta')) return { mod: 'Super' };
+  const m = code.match(/^F([1-9]|1[0-9]|2[0-4])$/);
+  if (m) return { key: 'F' + m[1] };
+  if (code === 'Enter') return { key: 'Enter' };
+  if (code === 'Space') return { key: 'Space' };
+  if (code === 'Tab') return { key: 'Tab' };
+  if (code === 'Escape') return { key: 'Escape' };
+  if (code.startsWith('Arrow')) return { key: { ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right' }[code] };
+  if (code === 'Home' || code === 'End' || code === 'PageUp' || code === 'PageDown' || code === 'Insert' || code === 'Delete')
+    return { key: code };
+  // Everything else (letters, digits, punctuation) is a "text key" → rejected.
+  return { text: true };
+}
+
+function startHotkeyCapture() {
+  const hint = document.getElementById('hotkey-capture-hint');
+  const btn = document.getElementById('btn-hotkey-capture');
+  if (hotkeyCapturing) return;
+  hotkeyCapturing = true;
+  btn.disabled = true;
+  hotkeyMods = [];
+  hint.style.display = 'block';
+  hint.textContent = '请按下你想要的组合键…（Esc 取消）';
+  document.addEventListener('keydown', onCaptureKey, true);
+  document.addEventListener('keyup', onCaptureKeyUp, true);
+  clearTimeout(hotkeyTimeoutTimer);
+  hotkeyTimeoutTimer = setTimeout(endHotkeyCaptureTimeout, 8000);
+}
+
+function endHotkeyCapture() {
+  hotkeyCapturing = false;
+  const btn = document.getElementById('btn-hotkey-capture');
+  const hint = document.getElementById('hotkey-capture-hint');
+  if (btn) btn.disabled = false;
+  document.removeEventListener('keydown', onCaptureKey, true);
+  document.removeEventListener('keyup', onCaptureKeyUp, true);
+  clearTimeout(hotkeySettleTimer);
+  clearTimeout(hotkeyTimeoutTimer);
+  return hint;
+}
+
+function onCaptureKey(e) {
+  if (!hotkeyCapturing) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const hint = document.getElementById('hotkey-capture-hint');
+  if (e.code === 'Escape') {
+    endHotkeyCapture();
+    hint.textContent = '已取消捕获';
+    setTimeout(() => hint.style.display = 'none', 1000);
+    return;
+  }
+  const mapped = captureKeyCode(e.code);
+  if (mapped.mod) {
+    if (!hotkeyMods.includes(mapped.mod)) hotkeyMods.push(mapped.mod);
+    hint.textContent = '已按下：' + hotkeyMods.join(' + ') + '（继续按修饰键，或按一个功能键确定）';
+    // Settle timer: if user holds only modifiers and stops, treat as modifier-only combo.
+    clearTimeout(hotkeySettleTimer);
+    hotkeySettleTimer = setTimeout(finishHotkeyCapture, 600, hotkeyMods.slice());
+    return;
+  }
+  if (mapped.text) {
+    endHotkeyCapture();
+    hint.textContent = '✗ 不支持普通字符键，请用功能键（F1-F24）或修饰键组合';
+    toast('不支持普通字符键（字母/数字/标点）');
+    return;
+  }
+  // A real key (F-key, Enter, arrows, etc.) — finalize immediately.
+  const parts = hotkeyMods.slice();
+  parts.push(mapped.key);
+  finishHotkeyCapture(parts);
+}
+
+function onCaptureKeyUp(e) {
+  if (!hotkeyCapturing) return;
+  const mapped = captureKeyCode(e.code);
+  if (mapped.mod) {
+    hotkeyMods = hotkeyMods.filter(m => m !== mapped.mod);
+    // Restart the settle timer so release resets the wait window.
+    clearTimeout(hotkeySettleTimer);
+    if (hotkeyMods.length > 0) {
+      hotkeySettleTimer = setTimeout(finishHotkeyCapture, 600, hotkeyMods.slice());
+    }
+  }
+}
+
+async function finishHotkeyCapture(parts) {
+  const hint = endHotkeyCapture();
+  if (!parts || parts.length === 0) {
+    hint.textContent = '未捕获到有效组合';
+    return;
+  }
+  const comboStr = parts.join('+');
+  hint.textContent = '已捕获：' + parts.join(' + ') + '，正在校验…';
+  try {
+    const v = await api('GET', '/hotkey/validate?s=' + encodeURIComponent(comboStr));
+    if (v.ok) {
+      setHotkeyValue(v.combo);
+      hint.textContent = '✓ 已设置：' + v.combo;
+      toast('热键已设置为 ' + v.combo + '，记得点「保存语音设置」生效');
+    } else {
+      hint.textContent = '✗ 无效：' + (v.reason || '未知原因');
+      toast('热键无效：' + (v.reason || ''));
+    }
+  } catch (err) {
+    hint.textContent = '✗ 校验失败：' + err.message;
+  }
+}
+
+function endHotkeyCaptureTimeout() {
+  if (!hotkeyCapturing) return;
+  endHotkeyCapture();
+  const hint = document.getElementById('hotkey-capture-hint');
+  hint.textContent = '未捕获到按键。纯修饰键组合（如 Ctrl+Alt）在浏览器中可能无法捕获，请从下拉选择预设或手动输入。';
+}
+
+
+// ---- Audio input device picker ----
+// Dropdown convention: "" = system default; "__custom__" = manual entry;
+// any other value = a concrete device name returned by the backend.
+const DEVICE_CUSTOM = '__custom__';
+
+async function loadDevices() {
+  const sel = document.getElementById('cfg-device');
+  const custom = document.getElementById('cfg-device-custom');
+  // Remember the previously selected value so a refresh doesn't reset it.
+  const prevValue = sel.dataset.value || '';
+  let devices = [];
+  try {
+    const resp = await api('GET', '/devices/audio');
+    devices = resp.devices || [];
+    if (resp.error) {
+      toast('获取设备列表失败：' + resp.error);
+    }
+  } catch (e) {
+    toast('获取设备列表失败：' + e.message);
+  }
+  sel.innerHTML = '';
+  const addOpt = (value, label) => {
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = label;
+    sel.appendChild(opt);
+  };
+  addOpt('', '系统默认');
+  for (const name of devices) {
+    addOpt(name, name);
+  }
+  addOpt(DEVICE_CUSTOM, '手动输入...');
+  setDeviceValue(prevValue);
+}
+
+function onDevicePresetChange() {
+  const sel = document.getElementById('cfg-device');
+  const custom = document.getElementById('cfg-device-custom');
+  if (sel.value === DEVICE_CUSTOM) {
+    custom.style.display = 'block';
+  } else {
+    custom.style.display = 'none';
+  }
+}
+
+function setDeviceValue(value) {
+  const sel = document.getElementById('cfg-device');
+  const custom = document.getElementById('cfg-device-custom');
+  const known = Array.from(sel.options).some(o => o.value === value);
+  if (known) {
+    sel.value = value;
+    custom.style.display = 'none';
+  } else {
+    sel.value = DEVICE_CUSTOM;
+    custom.style.display = 'block';
+    custom.value = value || '';
+  }
+  sel.dataset.value = value || '';
+}
+
+function getDeviceValue() {
+  const sel = document.getElementById('cfg-device');
+  if (sel.value === DEVICE_CUSTOM) {
+    return document.getElementById('cfg-device-custom').value;
+  }
+  return sel.value;
+}
+
 // Load config
 async function loadConfig() {
   const cfg = await api('GET', '/config');
@@ -81,6 +281,8 @@ async function loadConfig() {
   document.getElementById('cfg-auto-submit').value = cfg.voice.auto_submit ? 'true' : 'false';
   document.getElementById('cfg-stop-delay').value = cfg.voice.stop_delay_ms || 0;
   document.getElementById('cfg-hotwords').value = (cfg.voice.hotwords || []).join(', ');
+  await loadDevices();
+  setDeviceValue(cfg.voice.device || '');
 }
 
 // Save voice config
@@ -89,6 +291,7 @@ async function saveVoiceConfig() {
   const cfg = await api('GET', '/config');
   cfg.voice.push_to_talk = getHotkeyValue();
   cfg.voice.mode = document.getElementById('cfg-mode').value;
+  cfg.voice.device = getDeviceValue();
   cfg.voice.auto_submit = document.getElementById('cfg-auto-submit').value === 'true';
   cfg.voice.stop_delay_ms = parseInt(document.getElementById('cfg-stop-delay').value) || 0;
   cfg.voice.hotwords = document.getElementById('cfg-hotwords').value.split(/[,，]/).map(s => s.trim()).filter(Boolean);

@@ -4,6 +4,11 @@ mode = "toggle"
 push_to_talk = "F9"
 language = "zh-CN"
 auto_submit = true
+# 输入设备：留空用系统默认。WebUI/TUI 可枚举并选择具体设备，例如：
+#   Windows (ffmpeg dshow): 麦克风 (Realtek(R) Audio)
+#   Linux   (arecord):      hw:1,0 / plughw:1,0
+#   macOS   (CoreAudio):    MacBook 麦克风
+# device = ""
 # hotwords = ["术语1", "术语2"]
 
 # 向后兼容：不配置 [[asr_providers]] 时，直接在 [voice] 中写 app_key/access_key 也能用
