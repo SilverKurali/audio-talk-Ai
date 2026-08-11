@@ -1,0 +1,219 @@
+# Cross-platform release workflow.
+# Triggered by pushing a v* tag (e.g. v1.0.0).
+#
+# Builds native binaries for:
+#   - Linux amd64   (full cgo: X11 + Wayland evdev)
+#   - Linux arm64   (full cgo: X11 + Wayland evdev, cross-compiled on arm64 runner)
+#   - macOS amd64   (cgo: CoreAudio, CGEventTap, AppKit)
+#   - macOS arm64   (cgo: Apple Silicon native)
+#   - Windows amd64 (pure Go: Win32 via golang.org/x/sys)
+#   - Windows arm64 (pure Go: Win32 via golang.org/x/sys)
+#
+# Each binary is packaged as a tar.gz (Linux/macOS) or zip (Windows) with
+# config.toml.example and README, then uploaded to the GitHub Release.
+# Gitee release is created via its API using GITEE_TOKEN.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            runner: ubuntu-latest
+            cgo: '1'
+            build_tags: ''
+          - os: linux
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            cgo: '1'
+            build_tags: ''
+          - os: darwin
+            arch: amd64
+            runner: macos-13
+            cgo: '1'
+            build_tags: ''
+          - os: darwin
+            arch: arm64
+            runner: macos-latest
+            cgo: '1'
+            build_tags: ''
+          - os: windows
+            arch: amd64
+            runner: windows-latest
+            cgo: '0'
+            build_tags: ''
+          - os: windows
+            arch: arm64
+            runner: windows-11-arm
+            cgo: '0'
+            build_tags: ''
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
+      - name: Install Linux dependencies (X11/Wayland dev)
+        if: matrix.os == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev libxtst-dev libxdo-dev \
+            libwayland-dev libxkbcommon-dev
+
+      - name: Verify Xcode (macOS)
+        if: matrix.os == 'darwin'
+        run: xcode-select -p
+
+      - name: Set binary name
+        id: name
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            echo "binary=audio-talk-ai.exe" >> $GITHUB_OUTPUT
+          else
+            echo "binary=audio-talk-ai" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build
+        shell: bash
+        env:
+          CGO_ENABLED: ${{ matrix.cgo }}
+        run: |
+          go build -trimpath -ldflags="-s -w" \
+            ${BUILD_TAGS} \
+            -o ${{ steps.name.outputs.binary }} \
+            ./cmd/audio-talk-ai
+
+      - name: Package (Linux/macOS)
+        if: matrix.os != 'windows'
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME:-${{ github.event.inputs.tag }}}"
+          VERSION="${VERSION#v}"
+          ARCHIVE="audio-talk-ai-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz"
+          tar -czf "$ARCHIVE" \
+            ${{ steps.name.outputs.binary }} \
+            config.toml.example \
+            README.md
+          echo "archive=$ARCHIVE" >> $GITHUB_ENV
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows'
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME:-${{ github.event.inputs.tag }}}"
+          VERSION="${VERSION#v}"
+          ARCHIVE="audio-talk-ai-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}.zip"
+          7z a "$ARCHIVE" \
+            ${{ steps.name.outputs.binary }} \
+            config.toml.example \
+            README.md
+          echo "archive=$ARCHIVE" >> $GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: audio-talk-ai-${{ matrix.os }}-${{ matrix.arch }}
+          path: ${{ env.archive }}
+          retention-days: 7
+
+  release-github:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -lh artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name || github.event.inputs.tag }}
+          name: ${{ github.ref_name || github.event.inputs.tag }}
+          generate_release_notes: true
+          files: artifacts/*
+          fail_on_unmatched_files: true
+
+  release-gitee:
+    name: Publish Gitee Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create Gitee Release and upload assets
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME:-${{ github.event.inputs.tag }}}"
+          OWNER="AY77-OP"
+          REPO="audio-talk-ai"
+
+          # Create release via Gitee API
+          BODY=$(cat <<'BODY'
+          详见 GitHub Release 完整说明：https://github.com/SilverKurali/audio-talk-Ai/releases
+          BODY
+          )
+          CREATE_RESP=$(curl -sS -X POST \
+            "https://gitee.com/api/v5/repos/${OWNER}/releases" \
+            -H "Content-Type: application/json;charset=UTF-8" \
+            -d "{
+              \"access_token\": \"${GITEE_TOKEN}\",
+              \"tag_name\": \"${VERSION}\",
+              \"name\": \"${VERSION}\",
+              \"body\": \"${BODY}\",
+              \"target_commitish\": \"master\"
+            }")
+          echo "Create response: ${CREATE_RESP}"
+          RELEASE_ID=$(echo "${CREATE_RESP}" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+          echo "Gitee release ID: ${RELEASE_ID}"
+
+          # Upload each asset
+          for f in artifacts/*; do
+            [ -f "$f" ] || continue
+            echo "Uploading $f..."
+            curl -sS -X POST \
+              "https://gitee.com/api/v5/repos/${OWNER}/releases/${RELEASE_ID}/attach_files" \
+              -H "Content-Type: multipart/form-data" \
+              -F "access_token=${GITEE_TOKEN}" \
+              -F "file=@${f}"
+            echo ""
+          done
+          echo "Gitee release published."

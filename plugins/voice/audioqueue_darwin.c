@@ -182,7 +182,7 @@ char *jt_audio_list_devices(void) {
 
 	// Output one line per device: "display-name\tuid\n"
 	// This is easy to parse on the Go side with strings.SplitN.
-	size_t deviceMetaSize = 0;
+	UInt32 deviceMetaSize = 0;
 	AudioObjectPropertyAddress hasInputAddr = {
 		kAudioDevicePropertyStreams,
 		kAudioDevicePropertyScopeInput,
@@ -200,7 +200,7 @@ char *jt_audio_list_devices(void) {
 		CFStringRef nameRef = NULL;
 		AudioObjectPropertyAddress nameAddr = {
 			kAudioDevicePropertyDeviceNameCFString,
-			kAudioDevicePropertyScopeGlobal,
+			kAudioObjectPropertyScopeGlobal,
 			kAudioObjectPropertyElementMain
 		};
 		UInt32 nameSize = sizeof(CFStringRef);
@@ -211,7 +211,7 @@ char *jt_audio_list_devices(void) {
 		CFStringRef uidRef = NULL;
 		AudioObjectPropertyAddress uidAddr = {
 			kAudioDevicePropertyDeviceUID,
-			kAudioDevicePropertyScopeGlobal,
+			kAudioObjectPropertyScopeGlobal,
 			kAudioObjectPropertyElementMain
 		};
 		UInt32 uidSize = sizeof(CFStringRef);
