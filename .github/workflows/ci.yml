@@ -1,6 +1,7 @@
 # Cross-platform build and test CI.
 # Linux: builds without X11 cgo, runs all tests.
 # macOS: builds with cgo (native frameworks), verifies darwin code compiles.
+# Windows: pure Go build (no cgo), verifies windows code compiles.
 name: CI
 
 on:
@@ -49,3 +50,21 @@ jobs:
         run: CGO_ENABLED=1 go vet ./...
       - name: Test (darwin cgo)
         run: CGO_ENABLED=1 go test ./... -v
+
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        go: ['1.25']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Build (windows pure Go)
+        # Windows files require no cgo; all Win32 calls go through golang.org/x/sys.
+        run: go build ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test ./... -v

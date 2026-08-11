@@ -247,8 +247,7 @@ ENVIRONMENT DETECTION (run these checks BEFORE installing):
 1. Sudo access: run `sudo -n true 2>/dev/null`. If exit code is 0, set HAS_SUDO=true; otherwise HAS_SUDO=false.
 2. Config directory (in this priority order):
    a. If $XDG_CONFIG_HOME is set → CONFIG_DIR=$XDG_CONFIG_HOME/audio-talk-ai
-   b. macOS (uname -s = Darwin) → CONFIG_DIR=~/Library/Application Support/audio-talk-ai
-   c. Otherwise (Linux etc.) → CONFIG_DIR=~/.config/audio-talk-ai
+   b. Otherwise (Linux, macOS etc.) → CONFIG_DIR=~/.config/audio-talk-ai
 3. Install path:
    a. If HAS_SUDO=true → INSTALL_DIR=/usr/local/bin
    b. Otherwise → INSTALL_DIR=~/.local/bin (create it if needed, and remind user to add to PATH)

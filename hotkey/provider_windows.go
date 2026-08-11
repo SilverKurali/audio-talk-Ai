@@ -160,7 +160,7 @@ var (
 
 func setGlobalWinProvider(p *windowsProvider) {
 	globalWinProviderMu.Lock()
-	globalWinProviderMu.Unlock()
+	defer globalWinProviderMu.Unlock()
 	globalWinProvider = p
 }
 
