@@ -11,7 +11,7 @@
 #
 # Each binary is packaged as a tar.gz (Linux/macOS) or zip (Windows) with
 # config.toml.example and README, then uploaded to the GitHub Release.
-# Gitee release is created via its API using GITEE_TOKEN.
+# Gitee releases are published manually after syncing the tag.
 name: Release
 
 on:
@@ -164,57 +164,3 @@ jobs:
           generate_release_notes: true
           files: artifacts/*
           fail_on_unmatched_files: true
-
-  release-gitee:
-    name: Publish Gitee Release
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v5
-        with:
-          path: artifacts
-          merge-multiple: true
-
-      - name: Create Gitee Release and upload assets
-        env:
-          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
-        run: |
-          set -euo pipefail
-          VERSION="${GITHUB_REF_NAME:-${{ github.event.inputs.tag }}}"
-          OWNER="AY77-OP"
-          REPO="audio-talk-ai"
-
-          # Create release via Gitee API
-          BODY=$(cat <<'BODY'
-          详见 GitHub Release 完整说明：https://github.com/SilverKurali/audio-talk-Ai/releases
-          BODY
-          )
-          CREATE_RESP=$(curl -sS -X POST \
-            "https://gitee.com/api/v5/repos/${OWNER}/releases" \
-            -H "Content-Type: application/json;charset=UTF-8" \
-            -d "{
-              \"access_token\": \"${GITEE_TOKEN}\",
-              \"tag_name\": \"${VERSION}\",
-              \"name\": \"${VERSION}\",
-              \"body\": \"${BODY}\",
-              \"target_commitish\": \"master\"
-            }")
-          echo "Create response: ${CREATE_RESP}"
-          RELEASE_ID=$(echo "${CREATE_RESP}" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
-          echo "Gitee release ID: ${RELEASE_ID}"
-
-          # Upload each asset
-          for f in artifacts/*; do
-            [ -f "$f" ] || continue
-            echo "Uploading $f..."
-            curl -sS -X POST \
-              "https://gitee.com/api/v5/repos/${OWNER}/releases/${RELEASE_ID}/attach_files" \
-              -H "Content-Type: multipart/form-data" \
-              -F "access_token=${GITEE_TOKEN}" \
-              -F "file=@${f}"
-            echo ""
-          done
-          echo "Gitee release published."
