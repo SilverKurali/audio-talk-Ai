@@ -132,7 +132,7 @@ jobs:
           echo "archive=$ARCHIVE" >> $GITHUB_ENV
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: audio-talk-ai-${{ matrix.os }}-${{ matrix.arch }}
           path: ${{ env.archive }}
