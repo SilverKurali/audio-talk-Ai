@@ -110,7 +110,9 @@ jobs:
         if: matrix.os != 'windows'
         shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME:-${{ github.event.inputs.tag }}}"
+          # workflow_dispatch: use inputs.tag; tag push: use GITHUB_REF_NAME.
+          VERSION="${{ github.event.inputs.tag }}"
+          if [ -z "$VERSION" ]; then VERSION="${GITHUB_REF_NAME}"; fi
           VERSION="${VERSION#v}"
           ARCHIVE="audio-talk-ai-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz"
           tar -czf "$ARCHIVE" \
@@ -123,7 +125,8 @@ jobs:
         if: matrix.os == 'windows'
         shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME:-${{ github.event.inputs.tag }}}"
+          VERSION="${{ github.event.inputs.tag }}"
+          if [ -z "$VERSION" ]; then VERSION="${GITHUB_REF_NAME}"; fi
           VERSION="${VERSION#v}"
           ARCHIVE="audio-talk-ai-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}.zip"
           7z a "$ARCHIVE" \
@@ -157,11 +160,20 @@ jobs:
       - name: List artifacts
         run: ls -lh artifacts/
 
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          # workflow_dispatch: use inputs.tag; tag push: use GITHUB_REF_NAME.
+          TAG="${{ github.event.inputs.tag }}"
+          if [ -z "$TAG" ]; then TAG="${GITHUB_REF_NAME}"; fi
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name || github.event.inputs.tag }}
-          name: ${{ github.ref_name || github.event.inputs.tag }}
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
           generate_release_notes: true
           files: artifacts/*
           fail_on_unmatched_files: true
