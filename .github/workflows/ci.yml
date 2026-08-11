@@ -1,0 +1,51 @@
+# Cross-platform build and test CI.
+# Linux: builds without X11 cgo, runs all tests.
+# macOS: builds with cgo (native frameworks), verifies darwin code compiles.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.25']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Build (no_x11)
+        run: go build -tags no_x11 ./...
+      - name: Vet
+        run: go vet -tags no_x11 ./...
+      - name: Test
+        run: go test -tags no_x11 ./... -v
+
+  macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        go: ['1.25']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Install dependencies
+        run: |
+          # macOS SDK frameworks are pre-installed; just verify Xcode CLI tools
+          xcode-select -p || xcode-select --install
+      - name: Build (darwin cgo)
+        # macOS files require cgo and native frameworks (ApplicationServices,
+        # CoreAudio, AudioToolbox, AppKit, AVFoundation).
+        run: CGO_ENABLED=1 go build ./...
+      - name: Vet (darwin cgo)
+        run: CGO_ENABLED=1 go vet ./...
+      - name: Test (darwin cgo)
+        run: CGO_ENABLED=1 go test ./... -v

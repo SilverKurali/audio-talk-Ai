@@ -22,6 +22,12 @@ run:
 test:
 	go test ./... -v
 
+# CI checks (same as GitHub Actions / Gitee Go)
+ci:
+	go build -tags no_x11 ./...
+	go vet -tags no_x11 ./...
+	go test -tags no_x11 ./... -v
+
 # Clean
 clean:
 	rm -rf $(BUILD_DIR)
