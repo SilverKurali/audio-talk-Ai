@@ -78,6 +78,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libx11-dev libxtst-dev libxdo-dev \
+            libxrender-dev libxext-dev libxinerama-dev \
             libwayland-dev libxkbcommon-dev
 
       - name: Verify Xcode (macOS)
