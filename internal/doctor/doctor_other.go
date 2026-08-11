@@ -18,7 +18,7 @@ func runPlatform(cfg *config.Config, backend string) Report {
 				OK:       false,
 				Severity: Required,
 				Detail:   runtime.GOOS + " 暂未实现",
-				Fix:      "当前版本先支持 Linux 的 Wayland 和 X11；macOS/Windows 后续再实现。",
+				Fix:      "当前版本支持 Linux（Wayland/X11）、macOS 和 Windows；其他平台暂未实现。",
 			},
 		},
 	}

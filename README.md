@@ -35,7 +35,7 @@ Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局
   - **小米 MiMo** — 批量转写，支持中英双语和方言
   - **小米 MiMo Token Plan** — 批量转写，国内节点
 - 自动复制到剪贴板，支持自动上屏到当前输入框。
-- Wayland / X11 / macOS 顶层录音状态胶囊提示。
+- Wayland / X11 / macOS / Windows 顶层录音状态胶囊提示。
 - TUI 配置界面，支持添加/删除/切换 ASR 服务商，动态显示对应凭据字段，所有下拉选项均有交互提示。
 - 热词增强识别，适合项目名、人名、英文术语和专有名词。
 - 录音历史统计，包括历史次数、总字数、平均速度和最近速度。
@@ -47,11 +47,11 @@ Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局
 | Linux Wayland | 已支持 | 快捷键基于 evdev，需要 input 权限；剪贴板用 wl-clipboard，上屏用 wtype 或 uinput |
 | Linux X11 | 已支持 | 使用 X11 原生全局热键和 XTest 上屏 |
 | macOS | 已支持 | 快捷键基于 CGEventTap，录音用 CoreAudio，剪贴板用 NSPasteboard |
-| Windows | 已支持 | 快捷键基于 WH_KEYBOARD_LL + GetAsyncKeyState，录音用 ffmpeg/sox，剪贴板与上屏用 Win32 API（无 CGO） |
+| Windows | 已支持 | 快捷键基于 WH_KEYBOARD_LL 低级键盘钩子，录音用 ffmpeg/sox，剪贴板用 Win32 原生 API，上屏用 SendInput 模拟 Ctrl+V（纯 Go，无 CGO） |
 
 ## 构建
 
-Audio Talk AI 依赖平台原生能力，构建时需要启用 cgo。
+Audio Talk AI 依赖平台原生能力：Linux / macOS 构建时需要启用 cgo，Windows 构建为纯 Go（无需 CGO，通过 `golang.org/x/sys/windows` 调用 Win32 API）。
 
 ```bash
 # Linux (Debian / Ubuntu)
@@ -71,6 +71,16 @@ make build          # 或 go build -o build/audio-talk-ai ./cmd/audio-talk-ai
 make install        # 安装到 ~/.local/bin/
 ```
 
+**Windows 构建**（无需 cgo）：
+
+```powershell
+# 需要 Go 1.25+；录音依赖 ffmpeg（推荐）或 sox，安装后需加入 PATH
+go build -o audio-talk-ai.exe ./cmd/audio-talk-ai
+# 或使用 Makefile（git-bash / WSL 下）：make build
+# 运行 --install 安装到 %LOCALAPPDATA%\Programs\audio-talk-ai\
+audio-talk-ai.exe --install
+```
+
 ## 使用
 
 ```bash
@@ -82,6 +92,8 @@ audio-talk-ai --backend x11      # 强制 X11
 ```
 
 ### 可断开会话
+
+> **注意**：可断开会话模式（`--d`/`--di`）基于 Unix Socket + PTY，**仅 Linux / macOS 可用**；在 Windows 上调用会返回明确的错误提示。
 
 启动后按 `Ctrl+]` 或 `b` 断开，Audio Talk AI 继续后台运行（热键仍有效）。按 `q` 结束会话。需要 `fzf` 来选择会话（仅一个会话时自动连接）。
 
@@ -115,11 +127,11 @@ port = 8391
 
 ## 配置
 
-配置文件路径：`~/.config/audio-talk-ai/config.toml`
+配置文件路径：`~/.config/audio-talk-ai/config.toml`（Windows 为 `%APPDATA%\audio-talk-ai\config.toml`）
 
 ### 密钥加密与迁移
 
-从本版本起，配置文件中的 API 密钥会以 **AES-256-GCM** 加密后存储为 `enc:<base64>` 形式，解密用的钥匙文件位于 `~/.config/audio-talk-ai/key`（权限 `0600`，仅本人可读）。明文密钥只在程序运行时存在于内存中。
+从本版本起，配置文件中的 API 密钥会以 **AES-256-GCM** 加密后存储为 `enc:<base64>` 形式，解密用的钥匙文件位于 `~/.config/audio-talk-ai/key`（权限 `0600`，仅本人可读；Windows 上为 `%APPDATA%\audio-talk-ai\key`，依赖用户目录 ACL 保护）。明文密钥只在程序运行时存在于内存中。
 
 - **旧版明文配置升级**：首次用新版本启动（或保存配置）时，明文密钥会被自动加密并写回；迁移前会先备份原文件、并验证密文可正常解密后才覆盖，不会损坏你的数据。
 - **降级回旧版本不兼容**：旧版本不认识 `enc:` 前缀，会把密文当作真实密钥，导致鉴权失败。如有降级需要，请在降级前从 TUI / WebUI 重新查看并记下明文密钥。
@@ -207,6 +219,12 @@ macOS 热键写法：`Option` = Alt，`Command`/`Cmd` = Super
 
 ```toml
 push_to_talk = "Option+Command"
+```
+
+Windows 热键写法：`Win` 键 = Super（如 `Win+Alt`），`Ctrl` = Control
+
+```toml
+push_to_talk = "Win+Alt"
 ```
 
 ## 快捷键

@@ -6,11 +6,11 @@ This file gives coding agents concise guidance for working in this repository.
 
 Audio Talk AI is a desktop voice input tool. It records with a global hotkey, sends audio to streaming ASR, then copies recognized text to the clipboard or submits it into the focused input field.
 
-The current supported desktop targets are Linux and macOS. Windows is not implemented.
+The current supported desktop targets are Linux, macOS, and Windows.
 
 ## Build And Test
 
-This project uses native platform APIs and requires cgo for supported desktop builds.
+This project uses native platform APIs. Linux and macOS builds require cgo; the Windows build is pure Go (no CGO needed) and calls Win32 via `golang.org/x/sys/windows`.
 
 ```bash
 make build              # Build for the current platform
@@ -23,7 +23,7 @@ go test ./internal/doctor/... -run TestASR  # Run a single test by name
 CGO_ENABLED=1 go build -o build/audio-talk-ai ./cmd/audio-talk-ai
 ```
 
-Build tags: `no_x11` disables X11 cgo code (hotkeys, overlay, autotype). macOS files use `darwin && cgo`. Windows provider exists but is not a supported target.
+Build tags: `no_x11` disables X11 cgo code (hotkeys, overlay, autotype). macOS files use `darwin && cgo`. Windows files use `//go:build windows` and do not require cgo.
 
 Do not add or preserve non-cgo macOS fallback builds. A build that compiles but cannot provide native hotkeys, recording, clipboard, auto-submit, or overlay is worse than an explicit build failure.
 
@@ -61,6 +61,16 @@ macOS:
 - Users grant Accessibility and Microphone permissions to the terminal app that launches Audio Talk AI, not to a separate `.app` bundle.
 - Full Xcode is not required, but Apple Command Line Tools must provide `clang` and the macOS SDK.
 
+Windows:
+
+- Global hotkeys use a `WH_KEYBOARD_LL` low-level keyboard hook with a message pump (`user32.dll`).
+- Recording requires `ffmpeg` (DirectShow, recommended) or `sox` (waveaudio) on PATH.
+- Clipboard uses `github.com/atotto/clipboard` (native Win32 API; no command fallback).
+- Auto-submit sets the clipboard and simulates Ctrl+V via `SendInput`.
+- Overlay is a native Win32 layered window (`WS_EX_LAYERED` + `UpdateLayeredWindow`) rendered with GDI.
+- Recording status and history live under `%LOCALAPPDATA%`; logs go to `%TEMP%\audio-talk-ai.log`.
+- The detachable TUI session mode (`--d`/`--di`) is NOT supported on Windows; those flags return an explicit error.
+
 ## Architecture
 
 ```text
@@ -72,6 +82,13 @@ cmd/audio-talk-ai/main.go
   -> load voice + overlay plugins
   -> TUI or daemon mode
 ```
+
+Windows specifics:
+
+- `hotkey.NewProvider` returns the Windows `WH_KEYBOARD_LL` provider (`hotkey/provider_windows.go`).
+- Recording goes through `plugins/voice/recorder_windows.go` (ffmpeg/sox subprocess, 16 kHz mono s16le).
+- `--no-tui` daemon mode and the single-instance lock (atomic `O_EXCL` file under `%TEMP%`) work on Windows; `setDetachAttr` is a no-op.
+- `internal/session` (detachable PTY sessions) is a stub on Windows and returns "session mode is not supported on Windows".
 
 Core packages:
 

@@ -7,10 +7,10 @@ All notable project changes are tracked here.
 ### New
 
 - **Windows 平台支持**：Windows 10/11 现已完整支持，无需 CGO 编译。
-  - 全局热键：`WH_KEYBOARD_LL` 低级键盘钩子 + `GetAsyncKeyState` 轮询双机制，可靠捕获包括 Win 键在内的修饰键组合。
+  - 全局热键：`WH_KEYBOARD_LL` 低级键盘钩子 + 消息泵，可靠捕获包括 Win 键在内的修饰键组合。
   - 录音：通过 `ffmpeg`（dshow）或 `sox`（waveaudio）子进程采集 PCM 16kHz 单声道音频。
-  - 剪贴板：基于 `atotto/clipboard` 库的 Win32 剪贴板 API。
-  - 自动上屏：`SendInput` 模拟 Ctrl+V 粘贴，正确处理 32/64 位 INPUT 结构体布局。
+  - 剪贴板：基于 `atotto/clipboard` 库的 Win32 剪贴板 API（原生实现，无命令行回退）。
+  - 自动上屏：先写入剪贴板，再用 `SendInput` 模拟 Ctrl+V 粘贴，正确处理 32/64 位 INPUT 结构体布局。
   - 叠加层：原生 Win32 分层窗口（`WS_EX_LAYERED` + `UpdateLayeredWindow`），支持圆角矩形、阴影、波形动画和文本渲染，3 倍超采样抗锯齿。
   - 诊断：检查麦克风设备（`waveInGetNumDevs`）、录音后端（ffmpeg/sox）和 ASR 配置。
   - 配置路径使用 `%APPDATA%/audio-talk-ai/`，状态目录使用 `%LOCALAPPDATA%/audio-talk-ai/`，日志写入 `%TEMP%/audio-talk-ai.log`。

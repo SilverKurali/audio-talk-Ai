@@ -14,7 +14,7 @@ source_files:
 整个仓库统一使用 Go 标准库 log/slog 作为结构化日志框架，未引入第三方日志库（如 zap、logrus、zerolog）。所有模块通过全局 slog.Default() 或从 engine.PluginEnv.Logger() 注入的 *slog.Logger 实例进行记录。
 
 ## 2. 关键文件与入口
-- 日志初始化与默认处理器设置：cmd/audio-talk-ai/main.go。根据 -verbose 标志在 Info/Debug 之间切换级别；TUI 模式下将 TextHandler 输出到 /tmp/audio-talk-ai.log，Daemon 模式同时写入 stderr 与同一文件；通过 slog.New(slog.NewTextHandler(...)) + slog.SetDefault(logger) 完成全局注入。
+- 日志初始化与默认处理器设置：cmd/audio-talk-ai/main.go。根据 -verbose 标志在 Info/Debug 之间切换级别；TUI 模式下将 TextHandler 输出到 /tmp/audio-talk-ai.log（Windows 为 %TEMP%\audio-talk-ai.log），Daemon 模式同时写入 stderr 与同一文件；通过 slog.New(slog.NewTextHandler(...)) + slog.SetDefault(logger) 完成全局注入。
 - 插件侧 logger 来源：plugins/voice/voice.go 等插件在 Init(env) 中通过 env.Logger() 获取 logger 字段并用于各子流程。
 - ASR 客户端：asr/asr.go 定义 Factory 签名接收 *slog.Logger，各驱动（doubao、mimoasr、openairealtime、openaiwhisper、xfyun*）均按此约定构造带 logger 的 Client。
 - TUI 专用轻量日志通道：plugins/voice/voice.go 中的 SetupTUILog()/pout() 把语音录制状态以字符串追加到内存缓冲，供 TUI 渲染，与 slog 并行存在。

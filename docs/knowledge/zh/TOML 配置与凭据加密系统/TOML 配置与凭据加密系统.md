@@ -13,12 +13,12 @@ source_files:
 
 ## 系统概述
 
-本仓库采用基于 TOML 的集中式配置系统，由 config/ 包统一负责配置文件发现、加载、默认值合并、热键解析以及敏感凭据的 AES-256-GCM 磁盘加密存储。启动时通过命令行参数 -config 指定路径，否则按优先级在 ./config.toml、~/.config/audio-talk-ai/config.toml、$XDG_CONFIG_HOME/audio-talk-ai/config.toml 中查找。
+本仓库采用基于 TOML 的集中式配置系统，由 config/ 包统一负责配置文件发现、加载、默认值合并、热键解析以及敏感凭据的 AES-256-GCM 磁盘加密存储。启动时通过命令行参数 -config 指定路径，否则按优先级在 ./config.toml、~/.config/audio-talk-ai/config.toml、$XDG_CONFIG_HOME/audio-talk-ai/config.toml 中查找（Windows 上优先 %APPDATA%\audio-talk-ai\config.toml，由 os.UserConfigDir 解析）。
 
 ## 核心文件与职责
 
 - config/config.go：定义 Config 根结构体及 VoiceConfig、ASRProviderConfig、DebugConfig、OverlayConfig、WebConfig 等子结构；实现 Default()、Load()、Save()、FindConfig()、MigratePlaintextSecrets()、ParseHotkey() 等入口函数；提供 ResolveASRProviders() / DefaultASRProvider() 将 [voice] 向后兼容为单 provider。
-- config/crypto.go：实现 per-user AES-256-GCM 密钥管理（~/.config/audio-talk-ai/key），以及 encryptString / decryptString、HasEncryptedSecrets / HasPlaintextSecrets 等工具。
+- config/crypto.go：实现 per-user AES-256-GCM 密钥管理（~/.config/audio-talk-ai/key，Windows 为 %APPDATA%\audio-talk-ai\key），以及 encryptString / decryptString、HasEncryptedSecrets / HasPlaintextSecrets 等工具。
 - cmd/audio-talk-ai/main.go：应用启动入口，调用 config.Load → 检测明文凭据并触发迁移 → 注入 engine.Engine → 通过 eng.WatchConfig 监听文件变更实现运行时热重载。
 - config.toml.example：完整示例，覆盖所有 ASR 提供商（豆包、OpenAI Realtime/Whisper、讯飞星火/iat/rtasr/lfasr/mimo 等）以及 overlay/web/debug 开关。
 

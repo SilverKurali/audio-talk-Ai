@@ -65,7 +65,7 @@ Audio Talk AI 支持以下 12 个 ASR 服务商：
 
 ### 4. 配置示例
 
-在 TUI 中添加，或直接编辑配置文件 `~/.config/audio-talk-ai/config.toml`：
+在 TUI 中添加，或直接编辑配置文件 `~/.config/audio-talk-ai/config.toml`（Windows 为 `%APPDATA%\audio-talk-ai\config.toml`）：
 
 ```toml
 [[asr_providers]]
@@ -413,7 +413,7 @@ Audio Talk AI 首次启动时会自动把配置文件中的明文密钥加密存
 
 ### Q: 配置文件在哪里？
 
-`~/.config/audio-talk-ai/config.toml`。也可以直接在 TUI 界面或 WebUI（`http://localhost:8391`）中操作，不需要手动编辑文件。
+`~/.config/audio-talk-ai/config.toml`（Windows 为 `%APPDATA%\audio-talk-ai\config.toml`）。也可以直接在 TUI 界面或 WebUI（`http://localhost:8391`）中操作，不需要手动编辑文件。
 
 ### Q: 讯飞哪个服务免费额度最多？
 

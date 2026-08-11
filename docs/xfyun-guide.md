@@ -92,7 +92,7 @@
 
 **WebUI 方式**：浏览器打开 `http://localhost:8391` → 点击「+ 添加服务商」→ 选择对应类型 → 填入密钥
 
-**配置文件方式**：编辑 `~/.config/audio-talk-ai/config.toml`，添加 `[[asr_providers]]` 块（见下方示例）
+**配置文件方式**：编辑 `~/.config/audio-talk-ai/config.toml`（Windows 为 `%APPDATA%\audio-talk-ai\config.toml`），添加 `[[asr_providers]]` 块（见下方示例）
 
 ---
 

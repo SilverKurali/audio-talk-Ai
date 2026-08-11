@@ -35,7 +35,7 @@ Supports multiple ASR providers with one-click switching in the TUI.
   - **Xiaomi MiMo** — batch transcription, Chinese/English and dialect support
   - **Xiaomi MiMo Token Plan** — batch transcription, domestic (China) endpoint
 - Automatic clipboard copy and auto-submit into focused input field.
-- Always-on-top recording status overlay for Wayland, X11, and macOS.
+- Always-on-top recording status overlay for Wayland, X11, macOS, and Windows.
 - TUI configuration with add/remove/switch ASR providers, dynamic credential fields, and interactive hints on all dropdowns.
 - ASR hotwords for project names, people names, English terms, and domain-specific vocabulary.
 - Usage statistics: total sessions, total characters, average speed, and recent speed.
@@ -47,11 +47,11 @@ Supports multiple ASR providers with one-click switching in the TUI.
 | Linux Wayland | Supported | Hotkeys via evdev (requires input group); clipboard via wl-clipboard, auto-submit via wtype or uinput |
 | Linux X11 | Supported | Native X11 global hotkeys and XTest auto-submit |
 | macOS | Supported | Hotkeys via CGEventTap, recording via CoreAudio, clipboard via NSPasteboard |
-| Windows | Supported | Hotkeys via WH_KEYBOARD_LL + GetAsyncKeyState, recording via ffmpeg/sox, clipboard and auto-submit via Win32 API (no CGO) |
+| Windows | Supported | Hotkeys via WH_KEYBOARD_LL low-level keyboard hook, recording via ffmpeg/sox, clipboard via native Win32 API, auto-submit via SendInput simulating Ctrl+V (pure Go, no CGO) |
 
 ## Build
 
-Audio Talk AI uses native platform APIs and requires cgo.
+Audio Talk AI uses native platform APIs: Linux and macOS builds require cgo, while the Windows build is pure Go (no CGO; it calls Win32 via `golang.org/x/sys/windows`).
 
 ```bash
 # Linux (Debian / Ubuntu)
@@ -71,6 +71,16 @@ make build          # or go build -o build/audio-talk-ai ./cmd/audio-talk-ai
 make install        # installs to ~/.local/bin/
 ```
 
+**Windows build** (no cgo required):
+
+```powershell
+# Requires Go 1.25+; recording needs ffmpeg (recommended) or sox, add it to PATH
+go build -o audio-talk-ai.exe ./cmd/audio-talk-ai
+# Or use the Makefile (git-bash / WSL): make build
+# Run --install to install into %LOCALAPPDATA%\Programs\audio-talk-ai\
+audio-talk-ai.exe --install
+```
+
 ## Usage
 
 ```bash
@@ -82,6 +92,8 @@ audio-talk-ai --backend x11      # force X11
 ```
 
 ### Detachable Session
+
+> **Note**: detachable session mode (`--d`/`--di`) is built on Unix sockets + PTY and is **only available on Linux / macOS**; on Windows these flags return an explicit error.
 
 Press `Ctrl+]` or `b` to detach — Audio Talk AI keeps running in the background (hotkeys still work). Press `q` to end the session. Requires `fzf` for session selection (auto-connects when only one session exists).
 
@@ -115,11 +127,11 @@ port = 8391
 
 ## Configuration
 
-Config file: `~/.config/audio-talk-ai/config.toml`
+Config file: `~/.config/audio-talk-ai/config.toml` (Windows: `%APPDATA%\audio-talk-ai\config.toml`)
 
 ### Secret Encryption & Migration
 
-Starting from this version, API secrets in the config are stored encrypted with **AES-256-GCM** as `enc:<base64>`. The decryption key lives in `~/.config/audio-talk-ai/key` (mode `0600`, readable only by you). Plaintext secrets exist in memory only while the program runs.
+Starting from this version, API secrets in the config are stored encrypted with **AES-256-GCM** as `enc:<base64>`. The decryption key lives in `~/.config/audio-talk-ai/key` (mode `0600`, readable only by you; on Windows `%APPDATA%\audio-talk-ai\key`, protected by the per-user directory ACL). Plaintext secrets exist in memory only while the program runs.
 
 - **Upgrading from a plaintext config**: on first launch (or first save) with the new version, plaintext secrets are encrypted and written back automatically. The original file is backed up and the ciphertext is verified to decrypt correctly before anything is overwritten, so your data is never destroyed.
 - **Downgrading to an old version is NOT compatible**: old versions do not understand the `enc:` prefix and will treat the ciphertext as the real key, causing auth failures. If you must downgrade, view and note the plaintext secrets from the TUI / WebUI before downgrading.
@@ -199,6 +211,12 @@ macOS hotkey syntax: `Option` = Alt, `Command`/`Cmd` = Super
 
 ```toml
 push_to_talk = "Option+Command"
+```
+
+Windows hotkey syntax: `Win` key = Super (e.g. `Win+Alt`), `Ctrl` = Control
+
+```toml
+push_to_talk = "Win+Alt"
 ```
 
 ## Hotkeys

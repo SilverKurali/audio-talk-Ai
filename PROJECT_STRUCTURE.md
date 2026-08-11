@@ -5,7 +5,11 @@
 ```
 audio-talk-ai/
 ├── cmd/audio-talk-ai/
-│   └── main.go                    # 程序入口，CLI 参数解析，明文密钥安全迁移，启动 TUI/daemon/WebUI
+│   ├── main.go                    # 程序入口，CLI 参数解析，明文密钥安全迁移，启动 TUI/daemon/WebUI
+│   ├── daemon_unix.go             # Unix daemon 分离（setsid）
+│   ├── daemon_windows.go          # Windows daemon 分离（no-op）
+│   ├── lock_unix.go               # Unix 单实例锁（flock）
+│   └── lock_windows.go            # Windows 单实例锁（O_EXCL 原子文件创建）
 │
 ├── asr/                           # ASR（语音识别）抽象层
 │   ├── asr.go                     # Client 接口定义、Common 配置、Result 类型
@@ -37,34 +41,37 @@ audio-talk-ai/
 │   ├── provider_linux_x11_stub.go # X11 stub（no_x11 构建标签）
 │   ├── provider_darwin.go         # macOS 热键：CGEventTap（cgo）
 │   ├── provider_mock.go           # Mock 后端（内部测试用）
-│   └── provider_windows.go        # Windows 后端（未实现）
+│   └── provider_windows.go        # Windows 后端：WH_KEYBOARD_LL 低级键盘钩子（无 cgo）
 │
 ├── internal/                      # 内部工具包
 │   ├── autotype/                  # 自动上屏（粘贴到当前输入框）
 │   │   ├── autotype.go            # 接口定义
 │   │   ├── autotype_linux.go      # Linux：wtype 或 uinput
 │   │   ├── autotype_darwin.go     # macOS：CGEvent 键盘事件
-│   │   └── autotype_windows.go    # Windows（未实现）
+│   │   └── autotype_windows.go    # Windows：剪贴板 + SendInput 模拟 Ctrl+V
 │   │
 │   ├── clipboard/                 # 剪贴板操作
 │   │   ├── clipboard.go           # 接口定义
 │   │   ├── clipboard_linux.go     # Linux：wl-clipboard / xclip / xsel
 │   │   ├── clipboard_darwin.go    # macOS：NSPasteboard（Objective-C）
+│   │   ├── clipboard_windows.go   # Windows：atotto/clipboard 原生 API
 │   │   ├── clipboard_cmd.go       # 通用命令行剪贴板工具
-│   │   └── clipboard_no_cmd.go    # 无命令行工具时的 stub
+│   │   └── clipboard_no_cmd.go    # 无命令行工具时的 stub（darwin/windows）
 │   │
 │   ├── doctor/                    # 启动环境检查
 │   │   ├── doctor.go              # Doctor 接口、通用检查（含密钥加密状态与钥匙文件权限）
 │   │   ├── asr_check.go           # ASR 配置验证（检查必填字段）
 │   │   ├── doctor_linux.go        # Linux 环境检查（evdev 权限、wl-clipboard 等）
 │   │   ├── doctor_darwin.go       # macOS 环境检查（辅助功能权限等）
+│   │   ├── doctor_windows.go      # Windows 环境检查（麦克风设备、录音后端等）
 │   │   ├── doctor_other.go        # 其他平台 stub
 │   │   └── commands.go            # doctor 建议的安装命令
 │   │
-│   ├── session/                   # 可断开会话（di 模式）
+│   ├── session/                   # 可断开会话（di 模式，仅 Linux/macOS）
 │   │   ├── session.go             # 会话元数据、socket 路径、会话列表
 │   │   ├── server.go              # PTY server：fork 命令、Unix socket、客户端广播
-│   │   └── attach.go              # 客户端 attach：raw terminal、Ctrl+] 断开、fzf 选择
+│   │   ├── attach.go              # 客户端 attach：raw terminal、Ctrl+] 断开、fzf 选择
+│   │   └── session_windows.go     # Windows stub（明确报错，不支持可断开会话）
 │   │
 │   ├── tui/                       # 终端 UI（Bubble Tea）
 │   │   └── tui.go                 # 配置界面：热键/模式/服务商管理/统计/日志
@@ -87,7 +94,7 @@ audio-talk-ai/
 │   │   ├── recorder_linux.go      # Linux 录音：ALSA（cgo）
 │   │   ├── recorder_darwin.go     # macOS 录音：CoreAudio AudioQueue（cgo）
 │   │   ├── recorder_command.go    # 外部命令录音（备用）
-│   │   ├── recorder_windows.go    # Windows 录音（未实现）
+│   │   ├── recorder_windows.go    # Windows 录音：ffmpeg dshow / sox waveaudio
 │   │   ├── audioqueue_darwin.c    # macOS AudioQueue C 代码
 │   │   └── audioqueue_darwin.h    # macOS AudioQueue 头文件
 │   │
@@ -97,6 +104,7 @@ audio-talk-ai/
 │       ├── backend_wayland.go     # Wayland：wlr-layer-shell 协议
 │       ├── backend_x11.go         # X11：原生窗口（cgo）
 │       ├── backend_darwin.go      # macOS：NSPanel 辅助进程
+│       ├── backend_windows.go     # Windows：Win32 分层窗口 + GDI 渲染（无 cgo）
 │       ├── backend_stub.go        # 无 overlay 时的 stub
 │       ├── helper_darwin.go       # macOS overlay helper 进程
 │       ├── helper_stub.go         # 非 macOS 平台 stub
