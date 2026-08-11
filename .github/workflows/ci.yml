@@ -65,6 +65,9 @@ jobs:
         # Windows files require no cgo; all Win32 calls go through golang.org/x/sys.
         run: go build ./...
       - name: Vet
-        run: go vet ./...
+        # -unsafeptr=false: Win32 API calls legitimately convert between
+        # uintptr and unsafe.Pointer (e.g. GetMessageW, UpdateLayeredWindow).
+        # These are intentional and match the upstream just-talk-go project.
+        run: go vet -unsafeptr=false ./...
       - name: Test
         run: go test ./... -v
