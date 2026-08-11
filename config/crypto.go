@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -20,8 +21,13 @@ func keyPath() string {
 	return filepath.Join(dir, "key")
 }
 
-// keyDir mirrors the config directory resolution (XDG_CONFIG_HOME or ~/.config).
+// keyDir mirrors the config directory resolution (XDG_CONFIG_HOME, ~/.config, or %APPDATA%).
 func keyDir() string {
+	if runtime.GOOS == "windows" {
+		if dir, err := os.UserConfigDir(); err == nil {
+			return filepath.Join(dir, "audio-talk-ai")
+		}
+	}
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
 		return filepath.Join(xdg, "audio-talk-ai")
 	}

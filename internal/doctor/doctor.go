@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"gitee.com/AY77-OP/audio-talk-ai/config"
@@ -113,6 +114,11 @@ func platformName(s string) string {
 func configDisplayPath() string {
 	if p := config.FindConfig(); p != "" {
 		return p
+	}
+	if runtime.GOOS == "windows" {
+		if dir, err := os.UserConfigDir(); err == nil {
+			return filepath.Join(dir, "audio-talk-ai", "config.toml")
+		}
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {

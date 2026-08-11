@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 
@@ -399,6 +400,11 @@ func LoadRaw(path string) (*Config, error) {
 
 func FindConfig() string {
 	candidates := []string{"./config.toml"}
+	if runtime.GOOS == "windows" {
+		if dir, err := os.UserConfigDir(); err == nil {
+			candidates = append(candidates, filepath.Join(dir, "audio-talk-ai", "config.toml"))
+		}
+	}
 	if home, err := os.UserHomeDir(); err == nil {
 		candidates = append(candidates, filepath.Join(home, ".config", "audio-talk-ai", "config.toml"))
 	}
@@ -416,8 +422,17 @@ func FindConfig() string {
 func Save(cfg *Config) error {
 	path := FindConfig()
 	if path == "" {
-		home, _ := os.UserHomeDir()
-		path = filepath.Join(home, ".config", "audio-talk-ai", "config.toml")
+		if runtime.GOOS == "windows" {
+			if dir, err := os.UserConfigDir(); err == nil {
+				path = filepath.Join(dir, "audio-talk-ai", "config.toml")
+			} else {
+				home, _ := os.UserHomeDir()
+				path = filepath.Join(home, ".config", "audio-talk-ai", "config.toml")
+			}
+		} else {
+			home, _ := os.UserHomeDir()
+			path = filepath.Join(home, ".config", "audio-talk-ai", "config.toml")
+		}
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err

@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -192,16 +193,17 @@ func main() {
 	}
 
 	// Daemon mode: log to stderr + file. TUI mode: file only (stderr corrupts display).
+	logPath := filepath.Join(os.TempDir(), "audio-talk-ai.log")
 	var logWriter io.Writer
 	if *useTUI {
-		lf, _ := os.OpenFile("/tmp/audio-talk-ai.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		lf, _ := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if lf != nil {
 			logWriter = lf
 		} else {
 			logWriter = io.Discard
 		}
 	} else {
-		lf, _ := os.OpenFile("/tmp/audio-talk-ai.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		lf, _ := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if lf != nil {
 			logWriter = io.MultiWriter(os.Stderr, lf)
 		} else {
@@ -373,7 +375,9 @@ func runDiMode() error {
 	cmd.Stdin = devNull
 	cmd.Stdout = devNull
 	cmd.Stderr = devNull
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	if runtime.GOOS != "windows" {
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	}
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("start daemon: %w", err)
 	}
@@ -421,14 +425,14 @@ func printTroubleshooting(err error) {
 	fmt.Fprintf(os.Stderr, "  X11:      Ensure $DISPLAY is set\n")
 	fmt.Fprintf(os.Stderr, "  Wayland:  Add user to 'input' group\n")
 	fmt.Fprintf(os.Stderr, "  macOS:    Grant Accessibility permission\n")
+	fmt.Fprintf(os.Stderr, "  Windows:  Check microphone privacy settings\n")
 }
 
 func installSelf() error {
-	home, err := os.UserHomeDir()
+	targetDir, err := installDir()
 	if err != nil {
-		return fmt.Errorf("find home directory: %w", err)
+		return err
 	}
-	targetDir := filepath.Join(home, ".local", "bin")
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
 		return fmt.Errorf("create %s: %w", targetDir, err)
 	}
@@ -440,7 +444,11 @@ func installSelf() error {
 	if resolved, err := filepath.EvalSymlinks(src); err == nil {
 		src = resolved
 	}
-	target := filepath.Join(targetDir, "audio-talk-ai")
+	name := "audio-talk-ai"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	target := filepath.Join(targetDir, name)
 	if samePath(src, target) {
 		fmt.Fprintf(os.Stdout, "audio-talk-ai is already installed at %s\n", target)
 		printInstallPathNote(targetDir)
@@ -476,13 +484,58 @@ func installSelf() error {
 	if err := tmp.Close(); err != nil {
 		return fmt.Errorf("close temporary installer file: %w", err)
 	}
-	if err := os.Rename(tmpName, target); err != nil {
+	if err := replaceInstalledFile(tmpName, target); err != nil {
 		return fmt.Errorf("install to %s: %w", target, err)
 	}
 	ok = true
 
 	fmt.Fprintf(os.Stdout, "Installed audio-talk-ai to %s\n", target)
 	printInstallPathNote(targetDir)
+	return nil
+}
+
+func installDir() (string, error) {
+	if runtime.GOOS == "windows" {
+		base := strings.TrimSpace(os.Getenv("LOCALAPPDATA"))
+		if base == "" {
+			var err error
+			base, err = os.UserCacheDir()
+			if err != nil {
+				return "", fmt.Errorf("find local application data directory: %w", err)
+			}
+		}
+		return filepath.Join(base, "Programs", "audio-talk-ai"), nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("find home directory: %w", err)
+	}
+	return filepath.Join(home, ".local", "bin"), nil
+}
+
+func replaceInstalledFile(source, target string) error {
+	if runtime.GOOS != "windows" {
+		return os.Rename(source, target)
+	}
+	// Windows: rename-rename pattern to avoid "file in use" errors
+	backup := target + ".old"
+	_ = os.Remove(backup)
+	hadTarget := false
+	if _, err := os.Stat(target); err == nil {
+		if err := os.Rename(target, backup); err != nil {
+			return err
+		}
+		hadTarget = true
+	}
+	if err := os.Rename(source, target); err != nil {
+		if hadTarget {
+			_ = os.Rename(backup, target)
+		}
+		return err
+	}
+	if hadTarget {
+		_ = os.Remove(backup)
+	}
 	return nil
 }
 
@@ -497,6 +550,9 @@ func samePath(a, b string) bool {
 	}
 	if resolved, err := filepath.EvalSymlinks(b); err == nil {
 		b = resolved
+	}
+	if runtime.GOOS == "windows" {
+		return strings.EqualFold(a, b)
 	}
 	return a == b
 }
@@ -523,6 +579,15 @@ func pathContains(dir string) bool {
 }
 
 func stateDir() string {
+	if runtime.GOOS == "windows" {
+		if dir, err := os.UserCacheDir(); err == nil {
+			return dir
+		}
+		// Fallback to LocalAppData
+		if dir := os.Getenv("LOCALAPPDATA"); dir != "" {
+			return dir
+		}
+	}
 	if xdg := os.Getenv("XDG_STATE_HOME"); xdg != "" {
 		return xdg
 	}
@@ -531,6 +596,9 @@ func stateDir() string {
 }
 
 func lockPath() string {
+	if runtime.GOOS == "windows" {
+		return filepath.Join(os.TempDir(), "audio-talk-ai.lock")
+	}
 	runtime := os.Getenv("XDG_RUNTIME_DIR")
 	if runtime == "" {
 		runtime = "/tmp"
@@ -539,12 +607,22 @@ func lockPath() string {
 }
 
 func acquireLock() *os.File {
-	f, err := os.OpenFile(lockPath(), os.O_CREATE|os.O_RDWR, 0600)
-	if err != nil {
-		return nil
+	path := lockPath()
+	// On Unix, use flock for robust locking. On Windows, use O_EXCL.
+	if runtime.GOOS != "windows" {
+		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0600)
+		if err != nil {
+			return nil
+		}
+		if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+			f.Close()
+			return nil
+		}
+		return f
 	}
-	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
-		f.Close()
+	// Windows: O_EXCL provides atomic creation
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0600)
+	if err != nil {
 		return nil
 	}
 	return f
@@ -552,9 +630,12 @@ func acquireLock() *os.File {
 
 func releaseLock(f *os.File) {
 	if f != nil {
-		syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+		path := f.Name()
+		if runtime.GOOS != "windows" {
+			syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+		}
 		f.Close()
-		os.Remove(lockPath())
+		os.Remove(path)
 	}
 }
 
