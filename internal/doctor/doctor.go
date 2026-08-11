@@ -105,6 +105,8 @@ func platformName(s string) string {
 		return "macOS"
 	case "linux":
 		return "Linux"
+	case "windows":
+		return "Windows"
 	default:
 		return s
 	}
@@ -171,7 +173,9 @@ func secretEncryptionCheck(_ *config.Config) Check {
 			}
 		}
 		mode := info.Mode().Perm()
-		if mode != os.FileMode(0600) {
+		// On Windows, file permission bits are not meaningful (always 0666 mask).
+		// Skip the strict 0600 check there; key files rely on per-user directory ACLs.
+		if runtime.GOOS != "windows" && mode != os.FileMode(0600) {
 			return Check{
 				Name:     "密钥加密",
 				OK:       false,
@@ -181,6 +185,14 @@ func secretEncryptionCheck(_ *config.Config) Check {
 					"钥匙文件 " + keyPath + " 应仅本人可读，当前可能其他用户也能读取。",
 				},
 				Fix: "执行 chmod 600 " + keyPath,
+			}
+		}
+		if runtime.GOOS == "windows" {
+			return Check{
+				Name:     "密钥加密",
+				OK:       true,
+				Severity: Warning,
+				Detail:   "已加密（钥匙位于用户配置目录）",
 			}
 		}
 		return Check{

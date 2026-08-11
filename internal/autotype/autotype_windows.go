@@ -3,6 +3,7 @@
 package autotype
 
 import (
+	"encoding/binary"
 	"fmt"
 	"log/slog"
 	"time"
@@ -65,19 +66,14 @@ func simulatePaste() error {
 			flags = keyeventfKeyUp
 		}
 		base := i * inputSize
-		// type = inputKeyboard (1)
-		inputs[base] = 1
-		// wVk at dataOffset
-		inputs[base+dataOffset] = byte(k.code)
-		inputs[base+dataOffset+1] = byte(k.code >> 8)
-		// dwFlags at dataOffset+4
-		inputs[base+dataOffset+4] = byte(flags)
-		inputs[base+dataOffset+5] = byte(flags >> 8)
-		inputs[base+dataOffset+6] = byte(flags >> 16)
-		inputs[base+dataOffset+7] = byte(flags >> 24)
-		// dwExtraInfo at dataOffset+extraInfoOffset
-		// already zero-initialized
-		_ = extraInfoOffset
+		binary.LittleEndian.PutUint32(inputs[base:], inputKeyboard)
+		binary.LittleEndian.PutUint16(inputs[base+dataOffset:], k.code)
+		binary.LittleEndian.PutUint32(inputs[base+dataOffset+4:], flags)
+		if unsafe.Sizeof(uintptr(0)) == 8 {
+			binary.LittleEndian.PutUint64(inputs[base+dataOffset+extraInfoOffset:], 0)
+		} else {
+			binary.LittleEndian.PutUint32(inputs[base+dataOffset+extraInfoOffset:], 0)
+		}
 	}
 
 	sent, _, err := procSendInput.Call(

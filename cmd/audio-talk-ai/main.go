@@ -375,9 +375,7 @@ func runDiMode() error {
 	cmd.Stdin = devNull
 	cmd.Stdout = devNull
 	cmd.Stderr = devNull
-	if runtime.GOOS != "windows" {
-		cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
-	}
+	setDetachAttr(cmd)
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("start daemon: %w", err)
 	}
@@ -599,44 +597,11 @@ func lockPath() string {
 	if runtime.GOOS == "windows" {
 		return filepath.Join(os.TempDir(), "audio-talk-ai.lock")
 	}
-	runtime := os.Getenv("XDG_RUNTIME_DIR")
-	if runtime == "" {
-		runtime = "/tmp"
+	rt := os.Getenv("XDG_RUNTIME_DIR")
+	if rt == "" {
+		rt = "/tmp"
 	}
-	return filepath.Join(runtime, "audio-talk-ai.lock")
-}
-
-func acquireLock() *os.File {
-	path := lockPath()
-	// On Unix, use flock for robust locking. On Windows, use O_EXCL.
-	if runtime.GOOS != "windows" {
-		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0600)
-		if err != nil {
-			return nil
-		}
-		if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
-			f.Close()
-			return nil
-		}
-		return f
-	}
-	// Windows: O_EXCL provides atomic creation
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0600)
-	if err != nil {
-		return nil
-	}
-	return f
-}
-
-func releaseLock(f *os.File) {
-	if f != nil {
-		path := f.Name()
-		if runtime.GOOS != "windows" {
-			syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
-		}
-		f.Close()
-		os.Remove(path)
-	}
+	return filepath.Join(rt, "audio-talk-ai.lock")
 }
 
 func processAlive(pid int) bool {

@@ -6,6 +6,17 @@ All notable project changes are tracked here.
 
 ### New
 
+- **Windows 平台支持**：Windows 10/11 现已完整支持，无需 CGO 编译。
+  - 全局热键：`WH_KEYBOARD_LL` 低级键盘钩子 + `GetAsyncKeyState` 轮询双机制，可靠捕获包括 Win 键在内的修饰键组合。
+  - 录音：通过 `ffmpeg`（dshow）或 `sox`（waveaudio）子进程采集 PCM 16kHz 单声道音频。
+  - 剪贴板：基于 `atotto/clipboard` 库的 Win32 剪贴板 API。
+  - 自动上屏：`SendInput` 模拟 Ctrl+V 粘贴，正确处理 32/64 位 INPUT 结构体布局。
+  - 叠加层：原生 Win32 分层窗口（`WS_EX_LAYERED` + `UpdateLayeredWindow`），支持圆角矩形、阴影、波形动画和文本渲染，3 倍超采样抗锯齿。
+  - 诊断：检查麦克风设备（`waveInGetNumDevs`）、录音后端（ffmpeg/sox）和 ASR 配置。
+  - 配置路径使用 `%APPDATA%/audio-talk-ai/`，状态目录使用 `%LOCALAPPDATA%/audio-talk-ai/`，日志写入 `%TEMP%/audio-talk-ai.log`。
+  - 单实例锁基于 `O_CREATE|O_EXCL` 原子文件创建（Windows 无 `flock`）。
+  - `--install` 安装到 `%LOCALAPPDATA%\Programs\audio-talk-ai\`，使用 rename-backup 模式避免 "file in use" 错误。
+  - 可分离会话模式（`--d`/`--di`）在 Windows 上不可用，调用时返回明确的错误提示。
 - At-rest encryption for API secrets in `config.toml`: plaintext credentials are now encrypted with AES-256-GCM on first run and stored as `enc:<base64>`; a per-user key file (`~/.config/audio-talk-ai/key`, mode 0600) is used for decryption. Migration is safe: the original config is backed up and the encrypted bytes are verified to round-trip before any file is overwritten.
 - Doctor `密钥加密` check reports plaintext-secrets warnings, missing/over-permissive key files, and overall at-rest safety.
 - macOS recording device selection: the `device` config field is now honored on macOS via CoreAudio; `ListDevices` enumerates real audio input devices (previously it always recorded from the default device).

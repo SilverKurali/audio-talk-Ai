@@ -33,6 +33,23 @@ const (
 	llkhfUp      = 0x8000
 )
 
+// windowsHookPoint mirrors the Win32 POINT structure.
+type windowsHookPoint struct {
+	X int32
+	Y int32
+}
+
+// windowsHookMessage mirrors the Win32 MSG structure used by GetMessageW.
+type windowsHookMessage struct {
+	Window  windows.Handle
+	Message uint32
+	WParam  uintptr
+	LParam  uintptr
+	Time    uint32
+	Point   windowsHookPoint
+	Private uint32
+}
+
 // Windows virtual key codes not in windows package.
 const (
 	vkControl = 0x11
@@ -233,9 +250,9 @@ func (p *windowsProvider) Start(ctx context.Context) error {
 
 	p.logger.Info("keyboard hook installed, starting message pump")
 
-	// Message pump
-	var msg windows.Msg
-	for {
+// Message pump
+		var msg windowsHookMessage
+		for {
 		select {
 		case <-ctx.Done():
 			procUnhookWindowsHookEx.Call(uintptr(p.hook))

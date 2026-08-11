@@ -47,7 +47,7 @@ Supports multiple ASR providers with one-click switching in the TUI.
 | Linux Wayland | Supported | Hotkeys via evdev (requires input group); clipboard via wl-clipboard, auto-submit via wtype or uinput |
 | Linux X11 | Supported | Native X11 global hotkeys and XTest auto-submit |
 | macOS | Supported | Hotkeys via CGEventTap, recording via CoreAudio, clipboard via NSPasteboard |
-| Windows | Not implemented | Not supported yet |
+| Windows | Supported | Hotkeys via WH_KEYBOARD_LL + GetAsyncKeyState, recording via ffmpeg/sox, clipboard and auto-submit via Win32 API (no CGO) |
 
 ## Build
 

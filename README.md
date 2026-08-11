@@ -47,7 +47,7 @@ Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局
 | Linux Wayland | 已支持 | 快捷键基于 evdev，需要 input 权限；剪贴板用 wl-clipboard，上屏用 wtype 或 uinput |
 | Linux X11 | 已支持 | 使用 X11 原生全局热键和 XTest 上屏 |
 | macOS | 已支持 | 快捷键基于 CGEventTap，录音用 CoreAudio，剪贴板用 NSPasteboard |
-| Windows | 未实现 | 暂不支持 |
+| Windows | 已支持 | 快捷键基于 WH_KEYBOARD_LL + GetAsyncKeyState，录音用 ffmpeg/sox，剪贴板与上屏用 Win32 API（无 CGO） |
 
 ## 构建
 
