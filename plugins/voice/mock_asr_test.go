@@ -4,8 +4,11 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"gitee.com/AY77-OP/audio-talk-ai/asr"
 	"gitee.com/AY77-OP/audio-talk-ai/config"
@@ -94,15 +97,44 @@ func (s *stubEnv) Engine() *engine.Engine                    { return nil }
 // ...) and invoke the method under test.
 func newTestPlugin(t *testing.T) *VoicePlugin {
 	t.Helper()
-	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	stateDir := t.TempDir()
+	t.Setenv("XDG_STATE_HOME", stateDir)
 	SetOutput(io.Discard)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.Default()
 	cfg.Voice.AutoSubmit = false // avoid autotype/clipboard side effects by default
+	// finishRecordingSession spawns `go saveTUIStats` on dispatch, which writes
+	// into stateDir. On Windows, t.TempDir's RemoveAll races that goroutine and
+	// fails with "directory not empty", so wait for the write to settle first.
+	// Registered after t.TempDir, this runs BEFORE TempDir's LIFO cleanup.
+	t.Cleanup(func() { waitForStatsWrite(stateDir) })
 	return &VoicePlugin{
 		env:         &stubEnv{logger: logger, cfg: cfg},
 		logger:      logger,
 		cfg:         cfg,
 		stopDelayMs: defaultStopDelayMs,
+	}
+}
+
+// waitForStatsWrite blocks until a pending saveTUIStats goroutine has finished
+// writing stats.json into stateDir, or returns quickly when no dispatch (hence
+// no write) is expected. This keeps Windows t.TempDir cleanup race-free.
+func waitForStatsWrite(stateDir string) {
+	statsDir := filepath.Join(stateDir, "audio-talk-ai")
+	statsFile := filepath.Join(statsDir, "stats.json")
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if info, err := os.Stat(statsFile); err == nil && info.Size() > 0 {
+			return // write complete, file handle closed -> safe to RemoveAll
+		}
+		// If the stats dir was never created, no dispatch happened: give the
+		// scheduler a short grace, then bail (nothing to wait for).
+		if _, err := os.Stat(statsDir); err != nil {
+			time.Sleep(15 * time.Millisecond)
+			if _, err := os.Stat(statsDir); err != nil {
+				return
+			}
+		}
+		time.Sleep(2 * time.Millisecond)
 	}
 }
