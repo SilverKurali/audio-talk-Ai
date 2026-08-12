@@ -134,3 +134,47 @@
     });
   }
 })();
+
+/* ---------- 最新 release：动态填充版本号与下载地址（GitHub 优先，永不过时）----------
+   离线 / 限流时回退到 HTML 里写好的当前版本（v0.2.8）。结果缓存 1 小时，避免频繁打 API。 */
+(function () {
+  var API = "https://api.github.com/repos/SilverKurali/audio-talk-Ai/releases/latest";
+  var CACHE_KEY = "ata-release-v1";
+  var TTL = 3600000; // 1h
+
+  var verEls = document.querySelectorAll("[data-latest-version]");
+  var assetEls = document.querySelectorAll("[data-asset-url]");
+  if (!verEls.length && !assetEls.length) return;
+
+  function apply(d) {
+    if (!d || !d.tag_name) return;
+    verEls.forEach(function (el) { el.textContent = d.tag_name; });
+    var map = {};
+    (d.assets || []).forEach(function (a) {
+      var m = a.name.match(/(linux|darwin|windows)-(amd64|arm64)\./);
+      if (m) map[m[1] + "-" + m[2]] = a.browser_download_url;
+    });
+    assetEls.forEach(function (el) {
+      var url = map[el.getAttribute("data-asset-url")];
+      if (!url) return;
+      if (el.tagName === "A") el.href = url;
+      else el.textContent = url;
+    });
+  }
+
+  var cached = null;
+  try { cached = JSON.parse(localStorage.getItem(CACHE_KEY)); } catch (e) {}
+  if (cached && cached.t && Date.now() - cached.t < TTL && cached.d) {
+    apply(cached.d);
+    return;
+  }
+
+  fetch(API, { headers: { Accept: "application/vnd.github+json" } })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d || !d.tag_name) return;
+      apply(d);
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), d: d })); } catch (e) {}
+    })
+    .catch(function () { /* 保留静态回退值 */ });
+})();

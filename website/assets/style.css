@@ -373,6 +373,20 @@ ul { list-style: none; padding: 0; }
 .footer-bottom p { color: var(--text-dim); font-size: 0.82rem; }
 .footer-bottom .license { display: inline-flex; align-items: center; gap: 6px; color: var(--amber); font-family: var(--font-mono); font-size: 0.78rem; }
 
+/* ---------- 下载按钮行 ---------- */
+.dl-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 820px; margin: 0 auto 22px; }
+.dl-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px;
+  border-radius: var(--radius-sm); font-weight: 600; font-size: 0.88rem;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  transition: transform 0.15s var(--ease), border-color 0.2s, color 0.2s, background 0.2s;
+}
+.dl-btn:hover { transform: translateY(-1px); border-color: var(--green); color: var(--green); background: var(--surface-2); }
+.dl-btn svg { width: 16px; height: 16px; }
+.dl-btn .arch { font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-muted); }
+.dl-btn.more { color: var(--text-muted); font-size: 0.84rem; }
+.dl-btn.more:hover { color: var(--green); }
+
 /* ---------- 滚动入场动画 ---------- */
 .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); }
 .reveal.visible { opacity: 1; transform: none; }

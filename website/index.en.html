@@ -34,11 +34,11 @@
       </nav>
       <div class="nav-actions">
         <a href="index.html" class="lang-toggle" title="中文">中 / EN</a>
-        <a href="https://gitee.com/AY77-OP/audio-talk-ai" target="_blank" rel="noopener" class="icon-link" aria-label="Gitee">
-          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm3.95 5.5-1.4 1.4a2.05 2.05 0 0 0-2.9 0L5.2 9.35a.9.9 0 0 1-1.27-1.27l2.45-2.45a3.85 3.85 0 0 1 5.44 0l.13-.13Zm.9 2.62L9.95 11a2.05 2.05 0 0 1-2.9 0L5.55 9.5a.9.9 0 1 1 1.27-1.27l1.5 1.5a.25.25 0 0 0 .35 0L10.9 7.5a.9.9 0 1 1 1.27 1.27Z"/></svg>
-        </a>
         <a href="https://github.com/SilverKurali/audio-talk-Ai" target="_blank" rel="noopener" class="icon-link" aria-label="GitHub">
           <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        </a>
+        <a href="https://gitee.com/AY77-OP/audio-talk-ai" target="_blank" rel="noopener" class="icon-link" aria-label="Gitee">
+          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm3.95 5.5-1.4 1.4a2.05 2.05 0 0 0-2.9 0L5.2 9.35a.9.9 0 0 1-1.27-1.27l2.45-2.45a3.85 3.85 0 0 1 5.44 0l.13-.13Zm.9 2.62L9.95 11a2.05 2.05 0 0 1-2.9 0L5.55 9.5a.9.9 0 1 1 1.27-1.27l1.5 1.5a.25.25 0 0 0 .35 0L10.9 7.5a.9.9 0 1 1 1.27 1.27Z"/></svg>
         </a>
         <button class="menu-btn" aria-label="Menu" aria-expanded="false">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -53,6 +53,7 @@
     <div class="hero-grid"></div>
     <div class="container hero-inner">
       <div class="hero-badges reveal">
+        <span class="pill"><span class="dot"></span>Latest <span data-latest-version>v0.2.8</span></span>
         <span class="pill"><span class="dot"></span>Linux · macOS · Windows</span>
         <span class="pill amber"><span class="dot"></span>12 ASR Providers</span>
         <span class="pill"><span class="dot"></span>GPL v3.0 · No Commercial Use</span>
@@ -388,14 +389,23 @@
 
       <!-- Linux -->
       <div class="os-panel active" data-os="linux">
+        <div class="dl-row reveal">
+          <a class="dl-btn" data-asset-url="linux-amd64" href="https://github.com/SilverKurali/audio-talk-Ai/releases/download/v0.2.8/audio-talk-ai-0.2.8-linux-amd64.tar.gz" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Linux <span class="arch">x86_64</span>
+          </a>
+          <a class="dl-btn" data-asset-url="linux-arm64" href="https://github.com/SilverKurali/audio-talk-Ai/releases/download/v0.2.8/audio-talk-ai-0.2.8-linux-arm64.tar.gz" target="_blank" rel="noopener">Linux <span class="arch">arm64</span></a>
+          <a class="dl-btn more" href="https://github.com/SilverKurali/audio-talk-Ai/releases/latest" target="_blank" rel="noopener">All releases →</a>
+        </div>
         <div class="code-block">
           <div class="code-head">
             <span class="label">Method A · Pre-built binary (recommended)</span>
             <button class="copy-btn" data-ok="Copied"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">Copy</span></button>
           </div>
-          <pre><code><span class="c"># download the latest release (~9MB, no compiler needed)</span>
-<span class="k">curl</span> <span class="p">-L</span> <span class="p">-o</span> audio-talk-ai \
-  https://gitee.com/AY77-OP/audio-talk-ai/releases/download/v0.1.0/audio-talk-ai
+          <pre><code><span class="c"># download the latest pre-built release (Linux x86_64, ~4MB, no compiler)</span>
+<span class="k">curl</span> <span class="p">-fsSL</span> <span class="p">-o</span> audio-talk-ai.tar.gz \
+  <span class="p" data-asset-url="linux-amd64">https://github.com/SilverKurali/audio-talk-Ai/releases/download/v0.2.8/audio-talk-ai-0.2.8-linux-amd64.tar.gz</span>
+<span class="k">tar</span> xzf audio-talk-ai.tar.gz
 <span class="k">chmod</span> +x audio-talk-ai
 <span class="k">sudo</span> mv audio-talk-ai /usr/local/bin/   <span class="c"># or ~/.local/bin/</span>
 <span class="k">audio-talk-ai</span> <span class="p">--doctor</span>              <span class="s"># environment check</span></code></pre>
@@ -409,8 +419,8 @@
 <span class="k">sudo</span> apt install golang-go build-essential \
   libx11-dev libxtst-dev libxext-dev libxinerama-dev libwayland-dev
 
-<span class="k">git</span> clone https://gitee.com/AY77-OP/audio-talk-ai.git
-<span class="k">cd</span> audio-talk-ai
+<span class="k">git</span> clone https://github.com/SilverKurali/audio-talk-Ai.git
+<span class="k">cd</span> audio-talk-Ai
 make build          <span class="c"># or go build -o build/audio-talk-ai ./cmd/audio-talk-ai</span>
 make install        <span class="s"># installs to ~/.local/bin/</span></code></pre>
         </div>
@@ -418,21 +428,38 @@ make install        <span class="s"># installs to ~/.local/bin/</span></code></p
 
       <!-- macOS -->
       <div class="os-panel" data-os="macos">
+        <div class="dl-row reveal">
+          <a class="dl-btn" data-asset-url="darwin-arm64" href="https://github.com/SilverKurali/audio-talk-Ai/releases/download/v0.2.8/audio-talk-ai-0.2.8-darwin-arm64.tar.gz" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            macOS <span class="arch">Apple Silicon</span>
+          </a>
+          <a class="dl-btn" data-asset-url="darwin-amd64" href="https://github.com/SilverKurali/audio-talk-Ai/releases/download/v0.2.8/audio-talk-ai-0.2.8-darwin-amd64.tar.gz" target="_blank" rel="noopener">macOS <span class="arch">Intel</span></a>
+          <a class="dl-btn more" href="https://github.com/SilverKurali/audio-talk-Ai/releases/latest" target="_blank" rel="noopener">All releases →</a>
+        </div>
         <div class="code-block">
           <div class="code-head">
-            <span class="label">Build after installing Command Line Tools (cgo)</span>
+            <span class="label">Method A · Pre-built binary (recommended)</span>
+            <button class="copy-btn" data-ok="Copied"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">Copy</span></button>
+          </div>
+          <pre><code><span class="c"># download the latest pre-built release (arm64 for Apple Silicon, amd64 for Intel)</span>
+<span class="k">curl</span> <span class="p">-fsSL</span> <span class="p">-o</span> audio-talk-ai.tar.gz \
+  <span class="p" data-asset-url="darwin-arm64">https://github.com/SilverKurali/audio-talk-Ai/releases/download/v0.2.8/audio-talk-ai-0.2.8-darwin-arm64.tar.gz</span>
+<span class="k">tar</span> xzf audio-talk-ai.tar.gz
+<span class="k">chmod</span> +x audio-talk-ai
+<span class="k">sudo</span> mv audio-talk-ai /usr/local/bin/
+<span class="k">audio-talk-ai</span> <span class="p">--doctor</span>
+<span class="c"># grant Accessibility & Microphone to your terminal app on first launch</span></code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-head">
+            <span class="label">Method B · Build from source (Command Line Tools / cgo)</span>
             <button class="copy-btn" data-ok="Copied"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">Copy</span></button>
           </div>
           <pre><code><span class="c"># needs clang and the macOS SDK (full Xcode not required)</span>
 <span class="k">xcode-select</span> <span class="p">--install</span>
-
-<span class="k">git</span> clone https://gitee.com/AY77-OP/audio-talk-ai.git
-<span class="k">cd</span> audio-talk-ai
-make build
-make install        <span class="s"># installs to ~/.local/bin/</span>
-
-<span class="c"># grant Accessibility & Microphone to your terminal app on launch</span>
-<span class="k">audio-talk-ai</span> <span class="p">--doctor</span></code></pre>
+<span class="k">git</span> clone https://github.com/SilverKurali/audio-talk-Ai.git
+<span class="k">cd</span> audio-talk-Ai
+make build && make install        <span class="s"># installs to ~/.local/bin/</span></code></pre>
         </div>
         <div class="code-block">
           <div class="code-head">
@@ -447,17 +474,34 @@ push_to_talk = <span class="s">"Option+Command"</span></code></pre>
 
       <!-- Windows -->
       <div class="os-panel" data-os="windows">
+        <div class="dl-row reveal">
+          <a class="dl-btn" data-asset-url="windows-amd64" href="https://github.com/SilverKurali/audio-talk-Ai/releases/download/v0.2.8/audio-talk-ai-0.2.8-windows-amd64.zip" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Windows <span class="arch">x86_64</span>
+          </a>
+          <a class="dl-btn" data-asset-url="windows-arm64" href="https://github.com/SilverKurali/audio-talk-Ai/releases/download/v0.2.8/audio-talk-ai-0.2.8-windows-arm64.zip" target="_blank" rel="noopener">Windows <span class="arch">arm64</span></a>
+          <a class="dl-btn more" href="https://github.com/SilverKurali/audio-talk-Ai/releases/latest" target="_blank" rel="noopener">All releases →</a>
+        </div>
         <div class="code-block">
           <div class="code-head">
-            <span class="label">Build (pure Go, no CGO; Go 1.25+)</span>
+            <span class="label">Method A · Pre-built binary (recommended)</span>
+            <button class="copy-btn" data-ok="Copied"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">Copy</span></button>
+          </div>
+          <pre><code><span class="c">:: download the latest pre-built release (Windows x86_64, ~4MB)</span>
+<span class="k">curl</span> <span class="p">-fsSL</span> <span class="p">-o</span> audio-talk-ai.zip <span class="p" data-asset-url="windows-amd64">https://github.com/SilverKurali/audio-talk-Ai/releases/download/v0.2.8/audio-talk-ai-0.2.8-windows-amd64.zip</span>
+<span class="k">tar</span> -xf audio-talk-ai.zip
+audio-talk-ai.exe <span class="p">--install</span>     <span class="c">:: install to %LOCALAPPDATA%\Programs\audio-talk-ai\</span>
+audio-talk-ai.exe <span class="p">--doctor</span>      <span class="s">:: needs ffmpeg/sox on PATH</span></code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-head">
+            <span class="label">Method B · Build from source (pure Go, no CGO; Go 1.25+)</span>
             <button class="copy-btn" data-ok="Copied"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">Copy</span></button>
           </div>
           <pre><code><span class="c">:: recording needs ffmpeg (recommended) or sox on PATH</span>
-<span class="k">git</span> clone https://gitee.com/AY77-OP/audio-talk-ai.git
-<span class="k">cd</span> audio-talk-ai
+<span class="k">git</span> clone https://github.com/SilverKurali/audio-talk-Ai.git
+<span class="k">cd</span> audio-talk-Ai
 <span class="k">go</span> build -o audio-talk-ai.exe ./cmd/audio-talk-ai
-
-<span class="c">:: install to %LOCALAPPDATA%\Programs\audio-talk-ai\</span>
 audio-talk-ai.exe <span class="p">--install</span>
 audio-talk-ai.exe <span class="p">--doctor</span></code></pre>
         </div>
@@ -506,19 +550,19 @@ push_to_talk = <span class="s">"Win+Alt"</span></code></pre>
         <div class="footer-col">
           <h5>Resources</h5>
           <ul>
-            <li><a href="https://gitee.com/AY77-OP/audio-talk-ai" target="_blank" rel="noopener">Gitee (primary)</a></li>
-            <li><a href="https://github.com/SilverKurali/audio-talk-Ai" target="_blank" rel="noopener">GitHub mirror</a></li>
-            <li><a href="https://gitee.com/AY77-OP/audio-talk-ai/releases" target="_blank" rel="noopener">Releases</a></li>
+            <li><a href="https://github.com/SilverKurali/audio-talk-Ai" target="_blank" rel="noopener">GitHub (primary)</a></li>
+            <li><a href="https://gitee.com/AY77-OP/audio-talk-ai" target="_blank" rel="noopener">Gitee mirror</a></li>
+            <li><a href="https://github.com/SilverKurali/audio-talk-Ai/releases" target="_blank" rel="noopener">Releases</a></li>
             <li><a href="index.html">中文</a></li>
           </ul>
         </div>
         <div class="footer-col">
           <h5>Docs</h5>
           <ul>
-            <li><a href="https://gitee.com/AY77-OP/audio-talk-ai/raw/master/docs/asr-providers-guide.md" target="_blank" rel="noopener">ASR Providers Guide</a></li>
-            <li><a href="https://gitee.com/AY77-OP/audio-talk-ai/raw/master/docs/xfyun-guide.md" target="_blank" rel="noopener">iFlytek Setup Guide</a></li>
-            <li><a href="https://gitee.com/AY77-OP/audio-talk-ai/raw/master/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a></li>
-            <li><a href="https://gitee.com/AY77-OP/audio-talk-ai/raw/master/README.en.md" target="_blank" rel="noopener">Project README</a></li>
+            <li><a href="https://github.com/SilverKurali/audio-talk-Ai/raw/master/docs/asr-providers-guide.md" target="_blank" rel="noopener">ASR Providers Guide</a></li>
+            <li><a href="https://github.com/SilverKurali/audio-talk-Ai/raw/master/docs/xfyun-guide.md" target="_blank" rel="noopener">iFlytek Setup Guide</a></li>
+            <li><a href="https://github.com/SilverKurali/audio-talk-Ai/raw/master/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a></li>
+            <li><a href="https://github.com/SilverKurali/audio-talk-Ai/raw/master/README.en.md" target="_blank" rel="noopener">Project README</a></li>
           </ul>
         </div>
       </div>
