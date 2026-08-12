@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"runtime"
 	"testing"
 	"time"
 
@@ -278,6 +279,13 @@ func TestStartRecordingNoProviders(t *testing.T) {
 }
 
 func TestStartRecordingRecorderStartFails(t *testing.T) {
+	// The empty-PATH trick only forces a recorder-start failure on platforms
+	// whose recorder shells out (arecord on Linux, ffmpeg/sox on Windows).
+	// macOS uses CoreAudio via cgo and ignores PATH, so its failure path needs
+	// real hardware — out of scope for CI (see AGENTS.md platform notes).
+	if runtime.GOOS == "darwin" {
+		t.Skip("recorder uses CoreAudio on macOS; start-failure path needs hardware")
+	}
 	// Empty PATH => arecord/ffmpeg not found => recorder.Start fails deterministically.
 	t.Setenv("PATH", t.TempDir())
 	p := newTestPlugin(t)
