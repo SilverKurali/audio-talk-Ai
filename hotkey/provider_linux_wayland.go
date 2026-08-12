@@ -16,6 +16,13 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// Linux input key code upper bound and matching capability bitmap length.
+const (
+	evKeyMax       = 0x2ff
+	keyBuffLen     = (evKeyMax + 7) / 8
+	probeKeyNeedle = 14 // KEY_BACKSPACE — present on every real keyboard
+)
+
 // evdev event types and codes
 const (
 	evKey      = 0x01
@@ -321,7 +328,14 @@ func (p *waylandProvider) Info() ProviderInfo {
 	}
 }
 
-// findKeyboardDevices scans /dev/input/event* for keyboard devices.
+// findKeyboardDevices scans /dev/input/event* and returns only devices that
+// actually advertise key events (EV_KEY capability). Filtering here avoids
+// opening mice, touchpads, accelerometers and other non-keyboard event
+// sources, which previously inflated the open-FD count and produced spurious
+// warnings when those devices could not be read. The probe uses EVIOCGBIT,
+// the same ioctl libevdev relies on; devices we cannot probe (no read access
+// yet) are included optimistically so the caller's permission error still
+// surfaces with a useful device path.
 func findKeyboardDevices() ([]string, error) {
 	entries, err := os.ReadDir("/dev/input/")
 	if err != nil {
@@ -335,8 +349,35 @@ func findKeyboardDevices() ([]string, error) {
 		}
 		devPath := "/dev/input/" + entry.Name()
 
+		if !isKeyboardDevice(devPath) {
+			continue
+		}
+
 		devices = append(devices, devPath)
 	}
 
 	return devices, nil
+}
+
+// isKeyboardDevice reports whether the given evdev node advertises the EV_KEY
+// capability and at least one ordinary keyboard key (KEY_BACKSPACE). It
+// returns true when the device cannot be probed (e.g. permission denied) so
+// that the caller still reports the failure with a concrete device path
+// rather than silently dropping it.
+func isKeyboardDevice(devPath string) bool {
+	fd, err := unix.Open(devPath, unix.O_RDONLY, 0)
+	if err != nil {
+		return true
+	}
+	defer unix.Close(fd)
+
+	var bits [keyBuffLen]byte
+	// EVIOCGBIT(EV_KEY, len) = _IOC(_IOC_READ, 'E', 0x20 + EV_KEY, len).
+	const iocRead = 2
+	req := uintptr(iocRead<<30 | keyBuffLen<<16 | 'E'<<8 | (0x20 + evKey))
+	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd), req, uintptr(unsafe.Pointer(&bits[0])))
+	if errno != 0 {
+		return true // be optimistic on probe failure
+	}
+	return bits[probeKeyNeedle/8]&(1<<(probeKeyNeedle%8)) != 0
 }

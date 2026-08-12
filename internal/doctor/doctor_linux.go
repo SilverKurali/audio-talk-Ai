@@ -25,7 +25,21 @@ func runPlatform(cfg *config.Config, backend string) Report {
 	case "wayland":
 		report.Checks = append(report.Checks, waylandChecks(cfg)...)
 	case "x11":
-		report.Checks = append(report.Checks, x11Checks(cfg)...)
+		if !x11BackendAvailable {
+			// The session is X11 but this binary was compiled with -tags no_x11,
+			// so the X11 hotkey provider returns an error and recording cannot
+			// be triggered. Surface this explicitly instead of silently
+			// advertising xclip as the only thing the user needs.
+			report.Checks = append(report.Checks, Check{
+				Name:     "热键后端",
+				OK:       false,
+				Severity: Required,
+				Detail:   "当前会话是 X11，但此构建禁用了 X11 后端（-tags no_x11）",
+				Fix:      "在 Wayland 会话里运行，或重新编译不带 no_x11 标签的版本。",
+			})
+		} else {
+			report.Checks = append(report.Checks, x11Checks(cfg)...)
+		}
 	default:
 		report.Checks = append(report.Checks, Check{
 			Name: "热键后端", OK: false, Severity: Required,
@@ -104,9 +118,14 @@ func platformDependencyChecks(backend string) []Check {
 			waylandAutotypeCheck(),
 		)
 	case "x11":
-		checks = append(checks,
-			commandAllCheck("X11 剪贴板", Required, []string{"xclip"}, "安装 xclip。"),
-		)
+		// Only advertise the X11 clipboard dependency when the X11 backend is
+		// actually compiled in. Under -tags no_x11 the user cannot use xclip
+		// anyway, and asking them to install it would be misleading.
+		if x11BackendAvailable {
+			checks = append(checks,
+				commandAllCheck("X11 剪贴板", Required, []string{"xclip"}, "安装 xclip。"),
+			)
+		}
 	}
 	return checks
 }
@@ -210,8 +229,10 @@ func currentGroupDetail() string {
 	if err != nil {
 		return "系统没有 input 组"
 	}
+	// input.Gid is a numeric string from /etc/group; parse it just to surface
+	// exotic setups (e.g. LDAP/NIS) where the Gid field might be non-numeric.
 	if _, err := strconv.Atoi(input.Gid); err != nil {
-		return "input 组存在"
+		return fmt.Sprintf("input 组存在但 Gid=%q 不可解析", input.Gid)
 	}
-	return "当前用户不在 input 组"
+	return fmt.Sprintf("input 组存在（Gid=%s）；当前用户不在 input 组", input.Gid)
 }

@@ -48,6 +48,16 @@ All notable project changes are tracked here.
 - Fixed X11 modifier-only hotkey combos (e.g. Alt+Super, Ctrl+Alt) re-firing on keyboard auto-repeat (typematic). The old `pressedKeys` heuristic only suppressed repeats for non-modifier keys, so holding a modifier-only combo flipped toggle/hold state on every repeat tick — the same class of bug Windows had. The X11 provider now uses event timestamps to detect repeat bursts (X11 synthesizes repeat KeyRelease+KeyPress pairs with identical `time`), suppressing the whole burst including modifiers.
 - Hardened Linux auto-submit clipboard handling: the X11 path no longer silently swallows `xclip` read failures (it logs them and skips restore instead of leaving the prior clipboard silently overwritten), and `xclip primary` `Start()` failure no longer nil-panics on cleanup. The Wayland path (`pasteWayland`) now also saves/restores the prior clipboard via `wl-paste`, matching X11/Windows/macOS.
 
+### Fixed (Linux)
+
+- Linux hotkey backend detection now matches the rest of the stack. `hotkey.NewProvider` previously checked only `XDG_SESSION_TYPE` when deciding between Wayland and X11, while doctor / autotype / clipboard also honored `WAYLAND_DISPLAY`. On sessions where `WAYLAND_DISPLAY` is set but `XDG_SESSION_TYPE` is empty (custom launchers, some embedded compositors), the hotkey backend picked X11 while everything else picked Wayland, so the hotkey silently failed to fire. `NewProvider` now uses the same `WAYLAND_DISPLAY || XDG_SESSION_TYPE == "wayland"` test.
+- Linux X11 auto-submit (`pasteX11`) now restores the prior clipboard even when the simulated paste (XTest Shift+Insert) fails. Previously the failure path returned early and left the user's clipboard overwritten with the transcribed text; it now best-effort restores the saved contents and logs the restore error if any.
+- Linux Wayland auto-submit (`pasteWayland`) no longer silently ignores clipboard-restore failures; restore errors are now logged at debug level.
+- Linux doctor no longer reports a misleading "input 组存在" message when `LookupGroup` returns a non-numeric Gid (LDAP/NIS). It now reports the concrete Gid and, when the user is not in the `input` group, says so explicitly.
+- Linux doctor under `-tags no_x11` no longer asks the user to install `xclip`. When the session is X11 but the X11 backend was compiled out, doctor now reports that the X11 backend is disabled at build time and recommends switching to Wayland or rebuilding without `no_x11`.
+- Linux Wayland clipboard detection now falls back to X11 tools when running under XWayland (`DISPLAY` set). A Wayland session lacking `wl-clipboard` but having `xclip` previously ended up with no working clipboard; now both candidates are tried.
+- Linux Wayland hotkey provider no longer opens every `/dev/input/event*` node. `findKeyboardDevices` now probes each device with `EVIOCGBIT(EV_KEY)` and keeps only nodes that advertise a real keyboard key (KEY_BACKSPACE). On a typical laptop this drops the open-FD count from ~24 (mouse, touchpad, accelerometer, etc.) to the handful of actual keyboards, eliminating spurious "cannot open device" warnings and wasted FDs.
+
 ### Changed
 
 - Project renamed from "Just Talk" to "Audio Talk AI".

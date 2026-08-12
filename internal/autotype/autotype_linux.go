@@ -95,6 +95,15 @@ func pasteX11(text string, logger *slog.Logger) error {
 	if err := simulatePaste(); err != nil {
 		primaryCmd.Process.Kill()
 		primaryCmd.Wait()
+		// Even though the simulated paste failed, the clipboard has already
+		// been overwritten with the transcribed text. Restore the prior
+		// contents so the user is not left with their clipboard silently
+		// replaced — the paste failure itself is reported via the wrapped error.
+		if canRestore {
+			if rerr := pipeToCmd(orig, "xclip", "-selection", "clipboard"); rerr != nil {
+				logger.Debug("failed to restore X CLIPBOARD after paste failure", "error", rerr)
+			}
+		}
 		return fmt.Errorf("simulate paste: %w", err)
 	}
 
@@ -103,7 +112,9 @@ func pasteX11(text string, logger *slog.Logger) error {
 	primaryCmd.Wait()
 
 	if canRestore {
-		pipeToCmd(orig, "xclip", "-selection", "clipboard")
+		if rerr := pipeToCmd(orig, "xclip", "-selection", "clipboard"); rerr != nil {
+			logger.Debug("failed to restore X CLIPBOARD", "error", rerr)
+		}
 	}
 
 	logger.Debug("autotype done", "text_len", len(text), "restored_clipboard", canRestore)
@@ -138,7 +149,9 @@ func pasteWayland(text string, logger *slog.Logger) error {
 	if canRestore {
 		// Give the target a moment to read the clipboard, then restore.
 		time.Sleep(300 * time.Millisecond)
-		pipeToCmd(orig, "wl-copy", "--type", "text/plain;charset=utf-8")
+		if rerr := pipeToCmd(orig, "wl-copy", "--type", "text/plain;charset=utf-8"); rerr != nil {
+			logger.Debug("failed to restore Wayland clipboard", "error", rerr)
+		}
 	}
 
 	logger.Debug("autotype done", "text_len", len(text), "method", pasteMethod(), "restored_clipboard", canRestore)

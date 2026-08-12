@@ -43,6 +43,13 @@ func candidates() []clipCmd {
 		setPrimary: []string{"wl-copy", "--primary", "--type", "text/plain;charset=utf-8"},
 	}
 	if os.Getenv("WAYLAND_DISPLAY") != "" || os.Getenv("XDG_SESSION_TYPE") == "wayland" {
+		// Prefer Wayland tools, but fall back to X11 when running under
+		// XWayland (DISPLAY is set). Without this fallback, a Wayland session
+		// that happens to lack wl-clipboard but has xclip would end up with no
+		// working clipboard at all.
+		if os.Getenv("DISPLAY") != "" {
+			return []clipCmd{wayland, x11}
+		}
 		return []clipCmd{wayland}
 	}
 	return []clipCmd{x11, wayland}
