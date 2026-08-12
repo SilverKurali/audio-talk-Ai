@@ -268,6 +268,9 @@ type VoicePlugin struct {
 	recorder               *Recorder
 	asrClient              asr.Client
 	asrCancel              context.CancelFunc
+	// asrFactory optionally overrides asr.NewClient for testing. When nil,
+	// connectASR falls back to asr.NewClient (production behavior is unchanged).
+	asrFactory             func(provider string, common asr.Common, cfg map[string]interface{}, logger *slog.Logger) (asr.Client, error)
 	autoSubmit             bool
 	stopDelayMs            int
 	pendingDone            int
@@ -585,7 +588,11 @@ func (p *VoicePlugin) startRecording() {
 }
 
 func (p *VoicePlugin) connectASR(ctx context.Context, cancel context.CancelFunc, sessionID, sessionGen uint64, rec *Recorder, providerCfg config.ASRProviderConfig, common asr.Common) {
-	client, err := asr.NewClient(providerCfg.Type, common, providerCfg.ProviderCfgMap(), p.logger)
+	factory := p.asrFactory
+	if factory == nil {
+		factory = asr.NewClient
+	}
+	client, err := factory(providerCfg.Type, common, providerCfg.ProviderCfgMap(), p.logger)
 	if err != nil {
 		cancel()
 		p.mu.Lock()
