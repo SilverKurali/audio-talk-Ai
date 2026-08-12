@@ -12,15 +12,15 @@ Supports multiple ASR providers with one-click switching in the TUI.
 
 ### TUI
 
-![TUI](docs/screenshot-tui.png)
+![TUI](docs/screenshot-webui.png)
 
 ### Web UI — Configuration
 
-![WebUI Config](docs/screenshot-webui.png)
+![WebUI Config](docs/screenshot-webui-history.png)
 
 ### Web UI — Transcription History
 
-![WebUI History](docs/screenshot-webui-history.png)
+![WebUI History](docs/screenshot-tui.png)
 
 ## Features
 
