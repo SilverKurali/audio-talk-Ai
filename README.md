@@ -12,11 +12,11 @@ Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局
 
 ### TUI 界面
 
-![TUI](docs/screenshot-tui.png)
+![TUI](docs/screenshot-webui.png)
 
 ### Web 管理界面 — 配置
 
-![WebUI 配置](docs/screenshot-webui.png)
+![WebUI 配置](docs/screenshot-tui.png)
 
 ### Web 管理界面 — 转写历史
 
