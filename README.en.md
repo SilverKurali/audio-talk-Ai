@@ -14,9 +14,13 @@ Supports multiple ASR providers with one-click switching in the TUI.
 
 ![TUI](docs/screenshot-tui.png)
 
-### Web UI
+### Web UI — Configuration
 
-![WebUI](docs/screenshot-webui.png)
+![WebUI Config](docs/screenshot-webui.png)
+
+### Web UI — Transcription History
+
+![WebUI History](docs/screenshot-webui-history.png)
 
 ## Features
 

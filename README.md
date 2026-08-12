@@ -14,9 +14,13 @@ Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局
 
 ![TUI](docs/screenshot-tui.png)
 
-### Web 管理界面
+### Web 管理界面 — 配置
 
-![WebUI](docs/screenshot-webui.png)
+![WebUI 配置](docs/screenshot-webui.png)
+
+### Web 管理界面 — 转写历史
+
+![WebUI 历史](docs/screenshot-webui-history.png)
 
 ## 功能
 
