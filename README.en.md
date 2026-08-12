@@ -1,6 +1,6 @@
 # Audio Talk AI
 
-[中文](README.md) | [Project Structure](PROJECT_STRUCTURE.md) | [ASR Providers Guide](docs/asr-providers-guide.md) | [iFlytek ASR Guide](docs/xfyun-guide.md)
+[中文](README.md) | [Website](https://silverkurali.github.io/audio-talk-Ai/index.en.html) | [Project Structure](PROJECT_STRUCTURE.md) | [ASR Providers Guide](docs/asr-providers-guide.md) | [iFlytek ASR Guide](docs/xfyun-guide.md)
 
 Type less, speak more.
 

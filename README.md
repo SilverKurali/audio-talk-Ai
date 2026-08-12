@@ -1,6 +1,6 @@
 # Audio Talk AI
 
-[English](README.en.md) | [项目结构](PROJECT_STRUCTURE.md) | [ASR 服务商配置指南](docs/asr-providers-guide.md) | [讯飞 ASR 详细指南](docs/xfyun-guide.md)
+[English](README.en.md) | [官方网站](https://silverkurali.github.io/audio-talk-Ai/) | [项目结构](PROJECT_STRUCTURE.md) | [ASR 服务商配置指南](docs/asr-providers-guide.md) | [讯飞 ASR 详细指南](docs/xfyun-guide.md)
 
 减少用键盘的次数，改用口喷吧。
 
