@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#161b22"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3fb950"/>
+      <stop offset="1" stop-color="#f0b429"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <rect x="0.5" y="0.5" width="63" height="63" rx="13.5" fill="none" stroke="#30363d" stroke-width="1"/>
+  <!-- 麦克风 + 声波 -->
+  <g transform="translate(32 33)">
+    <!-- 声波柱 -->
+    <g fill="url(#wave)" id="bars">
+      <rect x="-22" y="-6" width="4" height="12" rx="2"/>
+      <rect x="-14" y="-11" width="4" height="22" rx="2"/>
+      <rect x="-6" y="-15" width="4" height="30" rx="2"/>
+      <rect x="2" y="-9" width="4" height="18" rx="2"/>
+      <rect x="10" y="-13" width="4" height="26" rx="2"/>
+      <rect x="18" y="-5" width="4" height="10" rx="2"/>
+    </g>
+  </g>
+  <!-- 底座弧线 -->
+  <path d="M20 44 a12 12 0 0 0 24 0" fill="none" stroke="#3fb950" stroke-width="3" stroke-linecap="round"/>
+  <line x1="32" y1="44" x2="32" y2="52" stroke="#3fb950" stroke-width="3" stroke-linecap="round"/>
+</svg>

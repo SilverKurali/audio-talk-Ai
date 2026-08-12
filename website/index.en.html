@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audio Talk AI — Desktop Voice Input Tool</title>
+  <meta name="description" content="Audio Talk AI is a cross-platform desktop voice input tool. Record with a global hotkey and let recognized speech be copied to the clipboard or typed into the focused field. 12 ASR providers across Linux, macOS, and Windows." />
+  <meta name="theme-color" content="#0d1117" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="alternate" hreflang="zh-CN" href="index.html" />
+  <link rel="alternate" hreflang="en" href="index.en.html" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Audio Talk AI — Desktop Voice Input Tool" />
+  <meta property="og:description" content="Global hotkey recording, auto paste. 12 ASR providers, cross-platform." />
+  <meta property="og:image" content="assets/images/webui-config.png" />
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+  <!-- ============ Nav ============ -->
+  <header class="nav">
+    <div class="container nav-inner">
+      <a href="#" class="brand" aria-label="Audio Talk AI">
+        <img src="assets/favicon.svg" alt="" />
+        <span>Audio Talk AI</span>
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#providers">Providers</a>
+        <a href="#platforms">Platforms</a>
+        <a href="#screenshots">Screenshots</a>
+        <a href="#quickstart">Quick Start</a>
+      </nav>
+      <div class="nav-actions">
+        <a href="index.html" class="lang-toggle" title="中文">中 / EN</a>
+        <a href="https://gitee.com/AY77-OP/audio-talk-ai" target="_blank" rel="noopener" class="icon-link" aria-label="Gitee">
+          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm3.95 5.5-1.4 1.4a2.05 2.05 0 0 0-2.9 0L5.2 9.35a.9.9 0 0 1-1.27-1.27l2.45-2.45a3.85 3.85 0 0 1 5.44 0l.13-.13Zm.9 2.62L9.95 11a2.05 2.05 0 0 1-2.9 0L5.55 9.5a.9.9 0 1 1 1.27-1.27l1.5 1.5a.25.25 0 0 0 .35 0L10.9 7.5a.9.9 0 1 1 1.27 1.27Z"/></svg>
+        </a>
+        <a href="https://github.com/SilverKurali/audio-talk-Ai" target="_blank" rel="noopener" class="icon-link" aria-label="GitHub">
+          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        </a>
+        <button class="menu-btn" aria-label="Menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ Hero ============ -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="container hero-inner">
+      <div class="hero-badges reveal">
+        <span class="pill"><span class="dot"></span>Linux · macOS · Windows</span>
+        <span class="pill amber"><span class="dot"></span>12 ASR Providers</span>
+        <span class="pill"><span class="dot"></span>GPL v3.0 · No Commercial Use</span>
+      </div>
+      <div class="waveform" aria-hidden="true">
+        <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <h1 class="reveal">Type less,<br><span class="accent">speak more.</span></h1>
+      <p class="lead reveal reveal-delay-1">
+        Audio Talk AI is a desktop voice input tool. Hold a global hotkey, speak,
+        and the recognized text is copied to the clipboard or typed directly into
+        the focused field. Coding, chatting, note-taking, long-form writing — just say it.
+      </p>
+      <div class="hero-cta reveal reveal-delay-2">
+        <a href="#quickstart" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download
+        </a>
+        <a href="https://gitee.com/AY77-OP/audio-talk-ai" target="_blank" rel="noopener" class="btn btn-ghost">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          View Source
+        </a>
+      </div>
+
+      <div class="terminal reveal reveal-delay-3">
+        <div class="terminal-bar">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span class="title">audio-talk-ai — zsh</span>
+        </div>
+        <div class="terminal-body">
+          <div><span class="prompt">$</span> <span class="cmd">audio-talk-ai</span></div>
+          <div class="out">[INFO] config loaded: ~/.config/audio-talk-ai/config.toml</div>
+          <div class="out">[INFO] ASR provider: <span class="key">Doubao (streaming)</span> ✓</div>
+          <div class="out">[INFO] hotkey: <span class="key">F9</span> · mode: toggle · auto-submit: on</div>
+          <div class="out">[INFO] WebUI: http://localhost:<span class="key">8391</span></div>
+          <div><span class="prompt">█</span> <span class="key">press F9 to start recording…</span><span class="cursor"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Stats ============ -->
+  <section class="section" style="padding-top:0; padding-bottom:64px;">
+    <div class="container">
+      <div class="stats-band reveal">
+        <div class="stat"><div class="num">12</div><div class="lbl">ASR providers</div></div>
+        <div class="stat"><div class="num">4</div><div class="lbl">Desktop platforms</div></div>
+        <div class="stat"><div class="num">F9</div><div class="lbl">Default hotkey</div></div>
+        <div class="stat"><div class="num">0</div><div class="lbl">Runtime deps</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Features ============ -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Core Features</span>
+        <h2 class="section-title">Built for faster input</h2>
+        <p class="section-sub">From hotkey trigger to auto-submit, the whole pipeline is tuned for "less typing, more talking".</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card reveal">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h8M8 16h5"/></svg>
+          </div>
+          <h3>Global hotkey recording</h3>
+          <p><code>toggle</code> (press to start, press again to stop) and <code>hold</code> (press and speak) modes. Default F9; modifier combos like Alt+Super also work.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-1">
+          <div class="feature-icon amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+          </div>
+          <h3>12 ASR providers</h3>
+          <p>Doubao, OpenAI Realtime/Whisper, the full iFlytek lineup, and Xiaomi MiMo. Switch on the fly in the TUI — streaming or batch, your call.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-2">
+          <div class="feature-icon cyan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </div>
+          <h3>Auto copy / submit</h3>
+          <p>Recognized text goes to the clipboard or straight into the focused field — and your prior clipboard is restored after pasting.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <h3>Status overlay</h3>
+          <p>Always-on-top recording capsule for Wayland, X11, macOS, and Windows — live status and waveform, no workflow interruption.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-1">
+          <div class="feature-icon amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          </div>
+          <h3>TUI + WebUI</h3>
+          <p>A Bubble Tea config UI in the terminal, plus a browser console at <code>http://localhost:8391</code> — config stays in sync in real time.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-2">
+          <div class="feature-icon cyan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          </div>
+          <h3>Hotword boosting</h3>
+          <p>Configure hotwords for project names, people, English terms, and domain jargon to measurably lift recognition accuracy.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>
+          </div>
+          <h3>Usage stats</h3>
+          <p>Tracks total sessions, total characters, average speed, and recent speed — quantify how fast you really talk.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-1">
+          <div class="feature-icon amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+          </div>
+          <h3>Detachable session</h3>
+          <p>On Linux / macOS, start a TUI session with <code>--d</code>, detach, and hotkeys keep working. Reattach anytime with <code>--di</code>.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-2">
+          <div class="feature-icon cyan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h3>Encrypted secrets</h3>
+          <p>API keys are stored encrypted with <strong>AES-256-GCM</strong>; plaintext lives only in memory. Migration auto-encrypts; downgrades are blocked.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Providers ============ -->
+  <section class="section" id="providers" style="background:var(--bg-soft); border-top:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft);">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Speech Recognition</span>
+        <h2 class="section-title">12 ASR providers, switch anytime</h2>
+        <p class="section-sub">Streaming for real-time text, batch for record-then-transcribe. Major providers at home and abroad — dialects, long audio, speaker diarization all covered.</p>
+      </div>
+
+      <div class="provider-group reveal">
+        <div class="provider-group-head">
+          <h3>Streaming ASR</h3>
+          <span class="tag">real-time</span>
+        </div>
+        <div class="providers-grid">
+          <div class="provider-card">
+            <div class="provider-logo" style="background:linear-gradient(135deg,#3fb950,#2ea043)">豆</div>
+            <div class="provider-info">
+              <h4>Doubao <span class="badge-rec">Recommended</span></h4>
+              <p>ByteDance Volcengine, binary WebSocket</p>
+            </div>
+          </div>
+          <div class="provider-card">
+            <div class="provider-logo" style="background:linear-gradient(135deg,#10a37f,#0d8a6c)">O</div>
+            <div class="provider-info">
+              <h4>OpenAI Realtime</h4>
+              <p>gpt-4o-transcribe family, WebSocket</p>
+            </div>
+          </div>
+          <div class="provider-card">
+            <div class="provider-logo" style="background:linear-gradient(135deg,#f0b429,#d99e0c)">飞</div>
+            <div class="provider-info">
+              <h4>iFlytek Spark</h4>
+              <p>Dynamic correction, 202 dialects</p>
+            </div>
+          </div>
+          <div class="provider-card">
+            <div class="provider-logo" style="background:linear-gradient(135deg,#f0b429,#d99e0c)">飞</div>
+            <div class="provider-info">
+              <h4>iFlytek IAT</h4>
+              <p>Medical / gov / finance domains</p>
+            </div>
+          </div>
+          <div class="provider-card">
+            <div class="provider-logo" style="background:linear-gradient(135deg,#f0b429,#d99e0c)">飞</div>
+            <div class="provider-info">
+              <h4>iFlytek RTASR</h4>
+              <p>Large model, up to 8h, diarization</p>
+            </div>
+          </div>
+          <div class="provider-card">
+            <div class="provider-logo" style="background:linear-gradient(135deg,#f0b429,#d99e0c)">飞</div>
+            <div class="provider-info">
+              <h4>iFlytek RTASR Standard</h4>
+              <p>apiKey auth, up to 5 hours</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="provider-group reveal">
+        <div class="provider-group-head">
+          <h3>Batch transcription</h3>
+          <span class="tag">record-then-recognize</span>
+        </div>
+        <div class="providers-grid">
+          <div class="provider-card">
+            <div class="provider-logo" style="background:linear-gradient(135deg,#10a37f,#0d8a6c)">W</div>
+            <div class="provider-info">
+              <h4>OpenAI Whisper</h4>
+              <p>Compatible with Ollama / vLLM etc.</p>
+            </div>
+          </div>
+          <div class="provider-card">
+            <div class="provider-logo" style="background:linear-gradient(135deg,#f0b429,#d99e0c)">飞</div>
+            <div class="provider-info">
+              <h4>iFlytek LFASR</h4>
+              <p>Standard edition, up to 5 hours</p>
+            </div>
+          </div>
+          <div class="provider-card">
+            <div class="provider-logo" style="background:linear-gradient(135deg,#f0b429,#d99e0c)">飞</div>
+            <div class="provider-info">
+              <h4>iFlytek LFASR LLM</h4>
+              <p>202 dialects / 37 languages</p>
+            </div>
+          </div>
+          <div class="provider-card">
+            <div class="provider-logo" style="background:linear-gradient(135deg,#f0b429,#d99e0c)">飞</div>
+            <div class="provider-info">
+              <h4>iFlytek LFASR Fast</h4>
+              <p>~20s for a 1-hour recording</p>
+            </div>
+          </div>
+          <div class="provider-card">
+            <div class="provider-logo" style="background:linear-gradient(135deg,#ff6900,#e85d00)">Mi</div>
+            <div class="provider-info">
+              <h4>Xiaomi MiMo</h4>
+              <p>Chinese/English + dialects</p>
+            </div>
+          </div>
+          <div class="provider-card">
+            <div class="provider-logo" style="background:linear-gradient(135deg,#ff6900,#e85d00)">Mi</div>
+            <div class="provider-info">
+              <h4>Xiaomi MiMo Token Plan</h4>
+              <p>Domestic (China) endpoint</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Platforms ============ -->
+  <section class="section" id="platforms">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Cross-platform</span>
+        <h2 class="section-title">Four desktops, all native</h2>
+        <p class="section-sub">Each platform calls native APIs directly — no Electron shell. Fast, light on resources.</p>
+      </div>
+      <div class="platforms-grid">
+        <div class="platform-card reveal">
+          <div class="ph">
+            <div class="picon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 2v7.5H21L11.5 22v-7.5H3l9.5-12.5z"/></svg></div>
+            <span class="platform-status">Supported</span>
+          </div>
+          <h4>Linux Wayland</h4>
+          <p>Hotkeys via evdev (needs input group); clipboard via wl-clipboard, auto-submit via wtype or uinput.</p>
+        </div>
+        <div class="platform-card reveal reveal-delay-1">
+          <div class="ph">
+            <div class="picon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93z"/></svg></div>
+            <span class="platform-status">Supported</span>
+          </div>
+          <h4>Linux X11</h4>
+          <p>Native X11 global hotkeys, XTest-based auto-submit, native X11 overlay capsule.</p>
+        </div>
+        <div class="platform-card reveal reveal-delay-2">
+          <div class="ph">
+            <div class="picon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg></div>
+            <span class="platform-status">Supported</span>
+          </div>
+          <h4>macOS</h4>
+          <p>CGEventTap hotkeys, CoreAudio recording, NSPasteboard clipboard, AppKit overlay.</p>
+        </div>
+        <div class="platform-card reveal reveal-delay-3">
+          <div class="ph">
+            <div class="picon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5L10.5 4.5v7H3v-6zM3 12.5h7.5v7L3 18.5v-6zM11.5 4.35L21 3v8.5H11.5v-7.15zM11.5 12.5H21V21l-9.5-1.35v-7.15z"/></svg></div>
+            <span class="platform-status">Supported</span>
+          </div>
+          <h4>Windows</h4>
+          <p>WH_KEYBOARD_LL low-level hook, ffmpeg/sox recording, SendInput Ctrl+V, pure Go — no CGO.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Screenshots ============ -->
+  <section class="section" id="screenshots" style="background:var(--bg-soft); border-top:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft);">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Preview</span>
+        <h2 class="section-title">What you see is what you get</h2>
+        <p class="section-sub">A TUI in the terminal and a WebUI in the browser — two faces, one config.</p>
+      </div>
+      <div class="shots-grid">
+        <div class="shot reveal">
+          <img src="assets/images/tui.png" alt="TUI" loading="lazy" />
+          <div class="caption">TUI<span>terminal · Bubble Tea</span></div>
+        </div>
+        <div class="shot reveal reveal-delay-1">
+          <img src="assets/images/webui-config.png" alt="Web UI configuration" loading="lazy" />
+          <div class="caption">Web configuration<span>localhost:8391</span></div>
+        </div>
+        <div class="shot reveal reveal-delay-2">
+          <img src="assets/images/webui-history.png" alt="Web UI transcription history" loading="lazy" />
+          <div class="caption">Transcription history<span>locally persisted</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Quick Start ============ -->
+  <section class="section quickstart" id="quickstart">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Quick Start</span>
+        <h2 class="section-title">Up and running in three steps</h2>
+        <p class="section-sub">Pick your platform, copy the commands. Run <code>--doctor</code> after install to verify the environment.</p>
+      </div>
+
+      <div class="os-tabs reveal">
+        <button class="os-tab active" data-os="linux">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 2v7.5H21L11.5 22v-7.5H3l9.5-12.5z"/></svg> Linux
+        </button>
+        <button class="os-tab" data-os="macos">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg> macOS
+        </button>
+        <button class="os-tab" data-os="windows">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5L10.5 4.5v7H3v-6zM3 12.5h7.5v7L3 18.5v-6zM11.5 4.35L21 3v8.5H11.5v-7.15zM11.5 12.5H21V21l-9.5-1.35v-7.15z"/></svg> Windows
+        </button>
+      </div>
+
+      <!-- Linux -->
+      <div class="os-panel active" data-os="linux">
+        <div class="code-block">
+          <div class="code-head">
+            <span class="label">Method A · Pre-built binary (recommended)</span>
+            <button class="copy-btn" data-ok="Copied"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">Copy</span></button>
+          </div>
+          <pre><code><span class="c"># download the latest release (~9MB, no compiler needed)</span>
+<span class="k">curl</span> <span class="p">-L</span> <span class="p">-o</span> audio-talk-ai \
+  https://gitee.com/AY77-OP/audio-talk-ai/releases/download/v0.1.0/audio-talk-ai
+<span class="k">chmod</span> +x audio-talk-ai
+<span class="k">sudo</span> mv audio-talk-ai /usr/local/bin/   <span class="c"># or ~/.local/bin/</span>
+<span class="k">audio-talk-ai</span> <span class="p">--doctor</span>              <span class="s"># environment check</span></code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-head">
+            <span class="label">Method B · Build from source (Go 1.25+)</span>
+            <button class="copy-btn" data-ok="Copied"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">Copy</span></button>
+          </div>
+          <pre><code><span class="c"># Debian / Ubuntu build deps</span>
+<span class="k">sudo</span> apt install golang-go build-essential \
+  libx11-dev libxtst-dev libxext-dev libxinerama-dev libwayland-dev
+
+<span class="k">git</span> clone https://gitee.com/AY77-OP/audio-talk-ai.git
+<span class="k">cd</span> audio-talk-ai
+make build          <span class="c"># or go build -o build/audio-talk-ai ./cmd/audio-talk-ai</span>
+make install        <span class="s"># installs to ~/.local/bin/</span></code></pre>
+        </div>
+      </div>
+
+      <!-- macOS -->
+      <div class="os-panel" data-os="macos">
+        <div class="code-block">
+          <div class="code-head">
+            <span class="label">Build after installing Command Line Tools (cgo)</span>
+            <button class="copy-btn" data-ok="Copied"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">Copy</span></button>
+          </div>
+          <pre><code><span class="c"># needs clang and the macOS SDK (full Xcode not required)</span>
+<span class="k">xcode-select</span> <span class="p">--install</span>
+
+<span class="k">git</span> clone https://gitee.com/AY77-OP/audio-talk-ai.git
+<span class="k">cd</span> audio-talk-ai
+make build
+make install        <span class="s"># installs to ~/.local/bin/</span>
+
+<span class="c"># grant Accessibility & Microphone to your terminal app on launch</span>
+<span class="k">audio-talk-ai</span> <span class="p">--doctor</span></code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-head">
+            <span class="label">macOS hotkey syntax</span>
+            <button class="copy-btn" data-ok="Copied"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">Copy</span></button>
+          </div>
+          <pre><code><span class="c"># Option = Alt, Command/Cmd = Super</span>
+<span class="p">[voice]</span>
+push_to_talk = <span class="s">"Option+Command"</span></code></pre>
+        </div>
+      </div>
+
+      <!-- Windows -->
+      <div class="os-panel" data-os="windows">
+        <div class="code-block">
+          <div class="code-head">
+            <span class="label">Build (pure Go, no CGO; Go 1.25+)</span>
+            <button class="copy-btn" data-ok="Copied"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">Copy</span></button>
+          </div>
+          <pre><code><span class="c">:: recording needs ffmpeg (recommended) or sox on PATH</span>
+<span class="k">git</span> clone https://gitee.com/AY77-OP/audio-talk-ai.git
+<span class="k">cd</span> audio-talk-ai
+<span class="k">go</span> build -o audio-talk-ai.exe ./cmd/audio-talk-ai
+
+<span class="c">:: install to %LOCALAPPDATA%\Programs\audio-talk-ai\</span>
+audio-talk-ai.exe <span class="p">--install</span>
+audio-talk-ai.exe <span class="p">--doctor</span></code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-head">
+            <span class="label">Windows hotkey syntax</span>
+            <button class="copy-btn" data-ok="Copied"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">Copy</span></button>
+          </div>
+          <pre><code><span class="c">:: Win key = Super, Ctrl = Control</span>
+<span class="p">[voice]</span>
+push_to_talk = <span class="s">"Win+Alt"</span></code></pre>
+        </div>
+      </div>
+
+      <div class="notes reveal">
+        <div class="note">
+          <div class="nk">Default hotkey</div>
+          <div class="nv">F9</div>
+          <div class="nd">press to start, press again to stop (toggle)</div>
+        </div>
+        <div class="note">
+          <div class="nk">WebUI</div>
+          <div class="nv">localhost:8391</div>
+          <div class="nd">configure providers & view history</div>
+        </div>
+        <div class="note">
+          <div class="nk">Config</div>
+          <div class="nv">~/.config/audio-talk-ai/</div>
+          <div class="nd">migrate config.toml + key as a pair</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Footer ============ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="#" class="brand">
+            <img src="assets/favicon.svg" alt="" />
+            <span>Audio Talk AI</span>
+          </a>
+          <p>Type less, speak more. A cross-platform desktop voice input tool.</p>
+        </div>
+        <div class="footer-col">
+          <h5>Resources</h5>
+          <ul>
+            <li><a href="https://gitee.com/AY77-OP/audio-talk-ai" target="_blank" rel="noopener">Gitee (primary)</a></li>
+            <li><a href="https://github.com/SilverKurali/audio-talk-Ai" target="_blank" rel="noopener">GitHub mirror</a></li>
+            <li><a href="https://gitee.com/AY77-OP/audio-talk-ai/releases" target="_blank" rel="noopener">Releases</a></li>
+            <li><a href="index.html">中文</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Docs</h5>
+          <ul>
+            <li><a href="https://gitee.com/AY77-OP/audio-talk-ai/raw/master/docs/asr-providers-guide.md" target="_blank" rel="noopener">ASR Providers Guide</a></li>
+            <li><a href="https://gitee.com/AY77-OP/audio-talk-ai/raw/master/docs/xfyun-guide.md" target="_blank" rel="noopener">iFlytek Setup Guide</a></li>
+            <li><a href="https://gitee.com/AY77-OP/audio-talk-ai/raw/master/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a></li>
+            <li><a href="https://gitee.com/AY77-OP/audio-talk-ai/raw/master/README.en.md" target="_blank" rel="noopener">Project README</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2024–2025 Audio Talk AI · core based on <a href="https://github.com/whoamihappyhacking/just-talk-go" target="_blank" rel="noopener" style="color:var(--text-muted)">just-talk-go</a></p>
+        <span class="license">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+          GPL v3.0 · No Commercial Use
+        </span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot lightbox">
+    <button class="lightbox-close" aria-label="Close">✕</button>
+    <img class="lightbox-img" src="" alt="" />
+  </div>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>
