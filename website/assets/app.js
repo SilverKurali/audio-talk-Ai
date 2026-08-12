@@ -178,3 +178,11 @@
     })
     .catch(function () { /* 保留静态回退值 */ });
 })();
+
+/* ---------- 版权年份：自动取当前年份，回退为 HTML 里的静态值 ---------- */
+(function () {
+  var y = new Date().getFullYear();
+  document.querySelectorAll("[data-current-year]").forEach(function (el) {
+    el.textContent = y;
+  });
+})();
