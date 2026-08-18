@@ -143,7 +143,7 @@ Config file: `~/.config/audio-talk-ai/config.toml` (Windows: `%APPDATA%\audio-ta
 
 ### Secret Encryption & Migration
 
-Starting from this version, API secrets in the config are stored encrypted with **AES-256-GCM** as `enc:<base64>`. The decryption key lives in `~/.config/audio-talk-ai/key` (mode `0600`, readable only by you; on Windows `%APPDATA%\audio-talk-ai\key`, protected by the per-user directory ACL). Plaintext secrets exist in memory only while the program runs.
+Starting from v0.1.0, API secrets in the config are stored encrypted with **AES-256-GCM** as `enc:<base64>`. The decryption key lives in `~/.config/audio-talk-ai/key` (mode `0600`, readable only by you; on Windows `%APPDATA%\audio-talk-ai\key`, protected by the per-user directory ACL). Plaintext secrets exist in memory only while the program runs.
 
 - **Upgrading from a plaintext config**: on first launch (or first save) with the new version, plaintext secrets are encrypted and written back automatically. The original file is backed up and the ciphertext is verified to decrypt correctly before anything is overwritten, so your data is never destroyed.
 - **Downgrading to an old version is NOT compatible**: old versions do not understand the `enc:` prefix and will treat the ciphertext as the real key, causing auth failures. If you must downgrade, view and note the plaintext secrets from the TUI / WebUI before downgrading.
