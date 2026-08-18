@@ -8,6 +8,8 @@ Audio Talk AI is a desktop voice input tool. It records audio with a global hotk
 
 Supports multiple ASR providers with one-click switching in the TUI.
 
+![Speak, don't type](assets/readme-illustrations/01-speak-not-type.png)
+
 ## Screenshots
 
 ### TUI
@@ -23,6 +25,8 @@ Supports multiple ASR providers with one-click switching in the TUI.
 ![WebUI History](docs/screenshot-tui.png)
 
 ## Features
+
+![Voice pipeline](assets/readme-illustrations/02-voice-pipeline.png)
 
 - Global hotkey recording with `toggle` (press to start, press again to stop) and `hold` (press and speak) modes.
 - 12 ASR providers with dynamic switching in TUI:
@@ -43,6 +47,8 @@ Supports multiple ASR providers with one-click switching in the TUI.
 - TUI configuration with add/remove/switch ASR providers, dynamic credential fields, and interactive hints on all dropdowns.
 - ASR hotwords for project names, people names, English terms, and domain-specific vocabulary.
 - Usage statistics: total sessions, total characters, average speed, and recent speed.
+
+![Switch providers](assets/readme-illustrations/03-switch-ears.png)
 
 ## Platform Status
 
@@ -101,6 +107,8 @@ audio-talk-ai --backend x11      # force X11
 
 Press `Ctrl+]` or `b` to detach — Audio Talk AI keeps running in the background (hotkeys still work). Press `q` to end the session. Requires `fzf` for session selection (auto-connects when only one session exists).
 
+![Detachable session](assets/readme-illustrations/04-detach-balloon.png)
+
 ```bash
 audio-talk-ai --d          # start a detachable TUI session
 audio-talk-ai --di         # reattach to existing session
@@ -141,6 +149,8 @@ Starting from this version, API secrets in the config are stored encrypted with 
 - **Downgrading to an old version is NOT compatible**: old versions do not understand the `enc:` prefix and will treat the ciphertext as the real key, causing auth failures. If you must downgrade, view and note the plaintext secrets from the TUI / WebUI before downgrading.
 - **Backup & migration**: treat `config.toml` and `key` as a pair. Copying only the encrypted config without `key` (or lacking `key` on another machine) makes the ciphertext undecryptable and the program won't start.
 - **Health check**: run `audio-talk-ai --doctor` and look at the "密钥加密" (secret encryption) item to confirm there are no plaintext secrets and the key file permissions are correct.
+
+![Key pair](assets/readme-illustrations/05-key-pair.png)
 
 ### Basic Config
 

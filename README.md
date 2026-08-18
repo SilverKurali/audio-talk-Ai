@@ -8,6 +8,8 @@ Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局
 
 支持多个语音识别服务商，可在 TUI 中一键切换。
 
+![口喷代替键盘](assets/readme-illustrations/01-speak-not-type.png)
+
 ## 截图
 
 ### TUI 界面
@@ -23,6 +25,8 @@ Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局
 ![WebUI 历史](docs/screenshot-tui.png)
 
 ## 功能
+
+![语音工作流](assets/readme-illustrations/02-voice-pipeline.png)
 
 - 全局快捷键录音，支持 `toggle`（按一下开始、再按一下停止）和 `hold`（按住说话）两种模式。
 - 支持 12 个语音识别服务商，可在 TUI 中动态切换：
@@ -43,6 +47,8 @@ Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局
 - TUI 配置界面，支持添加/删除/切换 ASR 服务商，动态显示对应凭据字段，所有下拉选项均有交互提示。
 - 热词增强识别，适合项目名、人名、英文术语和专有名词。
 - 录音历史统计，包括历史次数、总字数、平均速度和最近速度。
+
+![换服务商](assets/readme-illustrations/03-switch-ears.png)
 
 ## 平台状态
 
@@ -101,6 +107,8 @@ audio-talk-ai --backend x11      # 强制 X11
 
 启动后按 `Ctrl+]` 或 `b` 断开，Audio Talk AI 继续后台运行（热键仍有效）。按 `q` 结束会话。需要 `fzf` 来选择会话（仅一个会话时自动连接）。
 
+![可断开会话](assets/readme-illustrations/04-detach-balloon.png)
+
 ```bash
 audio-talk-ai --d          # 启动可断开的 TUI 会话
 audio-talk-ai --di         # 恢复已有会话
@@ -141,6 +149,8 @@ port = 8391
 - **降级回旧版本不兼容**：旧版本不认识 `enc:` 前缀，会把密文当作真实密钥，导致鉴权失败。如有降级需要，请在降级前从 TUI / WebUI 重新查看并记下明文密钥。
 - **备份与迁移**：`config.toml` 与 `key` 必须**成对**处理。只复制密文而丢失 `key`，或在其他机器上缺少 `key`，都会导致密文无法解密、程序无法启动。
 - **体检**：运行 `audio-talk-ai --doctor` 可查看"密钥加密"一项，确认是否存在明文密钥、钥匙文件权限是否正确。
+
+![密钥成对](assets/readme-illustrations/05-key-pair.png)
 
 ### 基本配置
 
