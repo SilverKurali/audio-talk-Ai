@@ -8,7 +8,7 @@ Audio Talk AI is a desktop voice input tool. It records audio with a global hotk
 
 Supports multiple ASR providers with one-click switching in the TUI.
 
-![Speak, don't type](assets/readme-illustrations/01-speak-not-type.png)
+![Concept: old keyboard hangs on wall retired, 小黑 speaks into a funnel, text drops into input box](assets/readme-illustrations/01-speak-not-type.png)
 
 ## Screenshots
 
@@ -26,7 +26,7 @@ Supports multiple ASR providers with one-click switching in the TUI.
 
 ## Features
 
-![Voice pipeline](assets/readme-illustrations/02-voice-pipeline.png)
+![Pipeline: press F9 hotkey → voice enters ASR black-box machine → text recognized → auto-submitted to input box](assets/readme-illustrations/02-voice-pipeline.png)
 
 - Global hotkey recording with `toggle` (press to start, press again to stop) and `hold` (press and speak) modes.
 - 12 ASR providers with dynamic switching in TUI:
@@ -48,7 +48,7 @@ Supports multiple ASR providers with one-click switching in the TUI.
 - ASR hotwords for project names, people names, English terms, and domain-specific vocabulary.
 - Usage statistics: total sessions, total characters, average speed, and recent speed.
 
-![Switch providers](assets/readme-illustrations/03-switch-ears.png)
+![Concept: 小黑 on a ladder swaps an ear-bulb into listening machine, 4 spare ears on a rack (12 ASR providers)](assets/readme-illustrations/03-switch-ears.png)
 
 ## Platform Status
 
@@ -107,7 +107,7 @@ audio-talk-ai --backend x11      # force X11
 
 Press `Ctrl+]` or `b` to detach — Audio Talk AI keeps running in the background (hotkeys still work). Press `q` to end the session. Requires `fzf` for session selection (auto-connects when only one session exists).
 
-![Detachable session](assets/readme-illustrations/04-detach-balloon.png)
+![Concept: TUI floats away as balloon, 小黑 holds the string and keeps speaking, hotkeys still work](assets/readme-illustrations/04-detach-balloon.png)
 
 ```bash
 audio-talk-ai --d          # start a detachable TUI session
@@ -150,7 +150,7 @@ Starting from v0.1.0, API secrets in the config are stored encrypted with **AES-
 - **Backup & migration**: treat `config.toml` and `key` as a pair. Copying only the encrypted config without `key` (or lacking `key` on another machine) makes the ciphertext undecryptable and the program won't start.
 - **Health check**: run `audio-talk-ai --doctor` and look at the "密钥加密" (secret encryption) item to confirm there are no plaintext secrets and the key file permissions are correct.
 
-![Key pair](assets/readme-illustrations/05-key-pair.png)
+![Concept: locked config.toml box and key tied together with string, 小黑 carries them as a pair, lose one = locked out](assets/readme-illustrations/05-key-pair.png)
 
 ### Basic Config
 

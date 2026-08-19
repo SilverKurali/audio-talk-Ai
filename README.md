@@ -8,7 +8,7 @@ Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局
 
 支持多个语音识别服务商，可在 TUI 中一键切换。
 
-![口喷代替键盘](assets/readme-illustrations/01-speak-not-type.png)
+![概念图：旧键盘挂墙退休，小黑对着漏斗说话，文字从漏斗底部掉进输入框](assets/readme-illustrations/01-speak-not-type.png)
 
 ## 截图
 
@@ -26,7 +26,7 @@ Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局
 
 ## 功能
 
-![语音工作流](assets/readme-illustrations/02-voice-pipeline.png)
+![流程图：按 F9 热键 → 声音进入 ASR 黑盒机器 → 识别出文字 → 自动上屏到输入框](assets/readme-illustrations/02-voice-pipeline.png)
 
 - 全局快捷键录音，支持 `toggle`（按一下开始、再按一下停止）和 `hold`（按住说话）两种模式。
 - 支持 12 个语音识别服务商，可在 TUI 中动态切换：
@@ -48,7 +48,7 @@ Audio Talk AI 是一个面向桌面环境的语音输入工具。它通过全局
 - 热词增强识别，适合项目名、人名、英文术语和专有名词。
 - 录音历史统计，包括历史次数、总字数、平均速度和最近速度。
 
-![换服务商](assets/readme-illustrations/03-switch-ears.png)
+![概念图：小黑站在梯子上给听音机器换耳朵，旁边挂着 4 只备用耳朵（12 家 ASR 服务商）](assets/readme-illustrations/03-switch-ears.png)
 
 ## 平台状态
 
@@ -107,7 +107,7 @@ audio-talk-ai --backend x11      # 强制 X11
 
 启动后按 `Ctrl+]` 或 `b` 断开，Audio Talk AI 继续后台运行（热键仍有效）。按 `q` 结束会话。需要 `fzf` 来选择会话（仅一个会话时自动连接）。
 
-![可断开会话](assets/readme-illustrations/04-detach-balloon.png)
+![概念图：TUI 界面变成气球飘走，小黑手里牵着线继续说话，热键仍有效](assets/readme-illustrations/04-detach-balloon.png)
 
 ```bash
 audio-talk-ai --d          # 启动可断开的 TUI 会话
@@ -150,7 +150,7 @@ port = 8391
 - **备份与迁移**：`config.toml` 与 `key` 必须**成对**处理。只复制密文而丢失 `key`，或在其他机器上缺少 `key`，都会导致密文无法解密、程序无法启动。
 - **体检**：运行 `audio-talk-ai --doctor` 可查看"密钥加密"一项，确认是否存在明文密钥、钥匙文件权限是否正确。
 
-![密钥成对](assets/readme-illustrations/05-key-pair.png)
+![概念图：config.toml 上锁纸箱和钥匙用绳拴成一对，小黑背着走，丢一个就打不开](assets/readme-illustrations/05-key-pair.png)
 
 ### 基本配置
 
