@@ -45,9 +45,9 @@ The `website/` directory is self-contained and deploys to any static host.
 
 ### GitHub Pages
 
-1. 把 `website/` 的内容推送到一个分支（例如 `gh-pages`），或推到仓库根目录后在 Settings → Pages 选择目录。
-2. Source 选 `Deploy from a branch`，分支选 `gh-pages` / `(root)`，目录选 `/website`（或你放置的目录）。
-3. 几分钟后访问 `https://<user>.github.io/<repo>/`。
+本仓库已配置自动部署：`.github/workflows/deploy-website.yml` 会在 `website/**` 变更推送到 `master` 时自动发布（也可手动触发 workflow）。只需在仓库 Settings → Pages 把 Source 选为 **GitHub Actions**，无需手动推送分支。
+
+This repo deploys automatically: `.github/workflows/deploy-website.yml` publishes on pushes to `master` that touch `website/**` (or via manual workflow dispatch). Just set Settings → Pages Source to **GitHub Actions** — no manual branch push needed.
 
 ### Gitee Pages
 
@@ -80,7 +80,7 @@ Cloudflare Pages、Vercel、Netlify 等：构建命令留空，输出目录 / pu
   > | `screenshot-webui-history.png` | Web 配置页 | `webui-config.png` |
   > | `screenshot-tui.png` | Web 转写历史 | `webui-history.png` |
   >
-  > 顺带一提：仓库的**中文 README 引用是对的**（与上表一致），**英文 README 的引用是错的**（它按文件名字面引用，恰好踩中错位）。如需，可把英文 README 的引用改成与中文一致。
+  > 顺带一提：中英文 README 的截图引用均已与上表一致（按实际内容引用，而非按文件名字面引用）。
 - **服务商列表**：编辑 `#providers` 区段；流式 / 批量分别在两个 `.provider-group` 内。
 - **安装命令**：编辑 `#quickstart` 区段下各 OS 的 `.os-panel`；如改了 release 版本号，记得同步三处命令。
 - **仓库链接**：导航栏、Footer、快速开始里的 URL。

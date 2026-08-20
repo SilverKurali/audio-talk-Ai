@@ -20,11 +20,17 @@ All notable project changes are tracked here.
 - At-rest encryption for API secrets in `config.toml`: plaintext credentials are now encrypted with AES-256-GCM on first run and stored as `enc:<base64>`; a per-user key file (`~/.config/audio-talk-ai/key`, mode 0600) is used for decryption. Migration is safe: the original config is backed up and the encrypted bytes are verified to round-trip before any file is overwritten.
 - Doctor `密钥加密` check reports plaintext-secrets warnings, missing/over-permissive key files, and overall at-rest safety.
 - macOS recording device selection: the `device` config field is now honored on macOS via CoreAudio; `ListDevices` enumerates real audio input devices (previously it always recorded from the default device).
-- Multi-provider ASR system: support 6 speech recognition services with dynamic switching in TUI.
+- Multi-provider ASR system: support 12 speech recognition services with dynamic switching in TUI.
   - **Doubao** (ByteDance Volcengine): streaming ASR via binary WebSocket protocol.
   - **OpenAI Realtime**: streaming ASR via JSON WebSocket, supports gpt-4o-transcribe / gpt-4o-mini-transcribe / whisper-1.
   - **OpenAI Whisper**: batch transcription via REST, compatible with Ollama, vLLM, and other OpenAI-format services.
   - **iFlytek Spark** (讯飞星火): streaming ASR via JSON WebSocket, supports dynamic correction (wpgs) and 202 dialects.
+  - **iFlytek IAT** (讯飞语音听写): streaming ASR via JSON WebSocket, vertical domains (medical/gov/finance) and dialect auto-switch.
+  - **iFlytek RTASR** (讯飞实时转写): streaming ASR via WebSocket + binary PCM, large model, up to 8 hours.
+  - **iFlytek RTASR Standard** (讯飞实时转写标准版): streaming ASR via WebSocket + binary PCM, standard edition, up to 5 hours, apiKey auth.
+  - **iFlytek LFASR** (讯飞录音转写): batch transcription, standard edition, up to 5 hours.
+  - **iFlytek LFASR LLM** (讯飞转写大模型): batch transcription, 202 dialects / 37 languages auto-switch.
+  - **iFlytek LFASR Fast** (讯飞极速转写): batch transcription, ~20s for 1-hour audio.
   - **Xiaomi MiMo**: batch transcription via REST, supports Chinese/English and dialects.
   - **Xiaomi MiMo Token Plan**: batch transcription, domestic (China) endpoint.
 - ASR provider registry with self-registration via `init()` (similar to `database/sql` drivers).

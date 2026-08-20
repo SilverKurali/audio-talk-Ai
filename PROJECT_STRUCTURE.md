@@ -14,11 +14,17 @@ audio-talk-ai/
 ├── asr/                           # ASR（语音识别）抽象层
 │   ├── asr.go                     # Client 接口定义、Common 配置、Result 类型
 │   ├── registry.go                # Provider 注册表（类似 database/sql 驱动机制）
+│   ├── metadata.go                # FieldDef/ProviderMeta 自描述元数据（驱动 TUI/WebUI 动态表单）
+│   ├── drivers/drivers.go         # 集中空白导入所有 provider，触发 init() 注册
 │   ├── doubao/client.go           # 豆包（火山引擎）流式 ASR，二进制 WebSocket 协议
 │   ├── openairealtime/client.go   # OpenAI Realtime 流式 ASR，JSON WebSocket，24kHz 重采样
 │   ├── openaiwhisper/client.go    # OpenAI Whisper 批量 ASR，REST API，兼容 Ollama
 │   ├── xfyunspark/client.go       # 讯飞星火流式 ASR，JSON WebSocket，HMAC-SHA256 鉴权，支持动态修正
-│   └── mimoasr/client.go          # 小米 MiMo 批量 ASR，REST API，Chat Completions 格式
+│   ├── xfyuniat/client.go         # 讯飞语音听写（流式版）流式 ASR，垂直领域 + 方言免切
+│   ├── xfyunrtasr/client.go       # 讯飞实时转写大模型流式 ASR，WebSocket + Binary PCM，最长 8 小时
+│   ├── xfyunrtasrstd/client.go    # 讯飞实时转写标准版流式 ASR，WebSocket + Binary PCM，最长 5 小时
+│   ├── xfyunlfasr/client.go       # 讯飞录音转写批量 ASR（标准版/大模型/极速三版本）
+│   └── mimoasr/client.go          # 小米 MiMo 批量 ASR，REST API，Chat Completions 格式（含 TokenPlan 国内节点）
 │
 ├── config/
 │   ├── config.go                  # 配置加载/保存（TOML），热键解析，ASR 服务商管理，明文密钥安全迁移
@@ -83,6 +89,7 @@ audio-talk-ai/
 │       └── static/                # 前端文件（嵌入二进制）
 │           ├── index.html         # SPA 主页面
 │           ├── app.js             # 前端逻辑
+│           ├── datepicker.js      # 历史记录日期级联选择器（仅显示有记录的日期）
 │           └── style.css          # 暗色主题样式
 │
 ├── plugins/                       # 引擎插件
@@ -121,9 +128,15 @@ audio-talk-ai/
 ├── bin/
 │   └── daudio-talk-ai             # 可断开会话的 shell 包装脚本
 │
+├── website/                       # 官方网站（GitHub Pages 静态页，push 到 master 由 Actions 自动部署）
+│
 ├── docs/
-│   ├── screenshot-tui.png         # TUI 截图
-│   └── screenshot-webui.png       # WebUI 截图
+│   ├── asr-providers-guide.md     # ASR 服务商配置指南（含密钥获取教程）
+│   ├── xfyun-guide.md             # 讯飞 ASR 详细配置指南
+│   ├── knowledge/zh/              # 中文设计笔记（架构、配置加密、日志、双栈依赖等）
+│   ├── screenshot-tui.png         # README 截图源文件（实际内容：WebUI 转写历史页；文件名与内容历史错位）
+│   ├── screenshot-webui.png       # README 截图源文件（实际内容：TUI 界面）
+│   └── screenshot-webui-history.png # README 截图源文件（实际内容：WebUI 配置页）
 │
 ├── Makefile                       # 构建/安装/测试/清理目标
 ├── go.mod                         # Go 模块定义
